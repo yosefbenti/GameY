@@ -1,0 +1,324 @@
+[33m[nodemon] 3.1.11[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): server.js[39m
+[33m[nodemon] watching extensions: js[39m
+[32m[nodemon] starting `node server.js`[39m
+WebSocket coordinator running on ws://0.0.0.0:8000
+WebSocket server is listening on ws://0.0.0.0:8000
+Client connected
+Received message: {"type":"stateRequest"}
+Client connected
+Received message: {"type":"stateRequest"}
+Client connected
+Received message: {"type":"stateRequest"}
+Client connected
+Client connected
+Client connected
+Client connected
+Received message: {"type":"stateRequest"}
+Received message: {"type":"stateRequest"}
+Received message: {"type":"stateRequest"}
+Received message: {"type":"stateRequest"}
+Client connected
+Received message: {"type":"stateRequest"}
+Received message: {"type":"image","url":"http://192.168.100.161:8000/uploads/current-1771048523581.jpg"}
+Broadcasting image message
+Received message: {"type":"progress","payload":{"team":"A","matched":0,"pairs":16,"remaining":120}}
+Broadcasting teamProgress message: { team: 'A', matched: 0, pairs: 16, remaining: 120, teamDisplay: 'A' }
+Client connected
+Client connected
+Received message: {"type":"stateRequest"}
+Received message: {"type":"progress","payload":{"team":"A","matched":0,"pairs":16,"remaining":120}}
+Broadcasting teamProgress message: { team: 'A', matched: 0, pairs: 16, remaining: 120, teamDisplay: 'A' }
+Received message: {"type":"stateRequest"}
+Received message: {"type":"progress","payload":{"team":"A","matched":0,"pairs":16,"remaining":120}}
+Broadcasting teamProgress message: { team: 'A', matched: 0, pairs: 16, remaining: 120, teamDisplay: 'A' }
+Client disconnected
+Client disconnected
+Received message: {"type":"image","url":"http://localhost:8000/uploads/current-1771048557520.jpg"}
+Broadcasting image message
+Received message: {"type":"progress","payload":{"team":"A","matched":0,"pairs":16,"remaining":120}}
+Broadcasting teamProgress message: { team: 'A', matched: 0, pairs: 16, remaining: 120, teamDisplay: 'A' }
+Received message: {"type":"image","url":"http://localhost:8000/uploads/current-1771048595698.jpg"}
+Broadcasting image message
+Received message: {"type":"progress","payload":{"team":"A","matched":0,"pairs":16,"remaining":120}}
+Broadcasting teamProgress message: { team: 'A', matched: 0, pairs: 16, remaining: 120, teamDisplay: 'A' }
+Received message: {"type":"image","url":"http://localhost:8000/uploads/current-1771048596722.jpg"}
+Broadcasting image message
+Received message: {"type":"progress","payload":{"team":"A","matched":0,"pairs":16,"remaining":120}}
+Broadcasting teamProgress message: { team: 'A', matched: 0, pairs: 16, remaining: 120, teamDisplay: 'A' }
+Received message: {"type":"level","mode":"puzzle","level":1,"url":"http://localhost:8000/uploads/current-1771048596722.jpg"}
+Broadcasting level message
+Received message: {"type":"progress","payload":{"team":"A","matched":0,"pairs":16,"remaining":120}}
+Broadcasting teamProgress message: { team: 'A', matched: 0, pairs: 16, remaining: 120, teamDisplay: 'A' }
+Received message: {"type":"progress","payload":{"team":"A","matched":0,"pairs":16,"remaining":120}}
+Broadcasting teamProgress message: { team: 'A', matched: 0, pairs: 16, remaining: 120, teamDisplay: 'A' }
+Received message: {"type":"updateTeamName","team":"A","name":"yosef"}
+Broadcasting updateTeamName message: { type: 'updateTeamName', team: 'A', name: 'yosef' }
+Received message: {"type":"start","start":1771048607863,"timeLimit":120}
+Broadcasting start message
+Received message: {"type":"progress","payload":{"team":"A","matched":0,"pairs":16,"remaining":120}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 0,
+  pairs: 16,
+  remaining: 120,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"progress","payload":{"team":"A","matched":1,"pairs":16,"remaining":115}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 1,
+  pairs: 16,
+  remaining: 115,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"progress","payload":{"team":"A","matched":1,"pairs":16,"remaining":113}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 1,
+  pairs: 16,
+  remaining: 113,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"progress","payload":{"team":"A","matched":1,"pairs":16,"remaining":109}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 1,
+  pairs: 16,
+  remaining: 109,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"progress","payload":{"team":"A","matched":2,"pairs":16,"remaining":106}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 2,
+  pairs: 16,
+  remaining: 106,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"progress","payload":{"team":"A","matched":2,"pairs":16,"remaining":105}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 2,
+  pairs: 16,
+  remaining: 105,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"progress","payload":{"team":"A","matched":2,"pairs":16,"remaining":102}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 2,
+  pairs: 16,
+  remaining: 102,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"progress","payload":{"team":"A","matched":3,"pairs":16,"remaining":100}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 3,
+  pairs: 16,
+  remaining: 100,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"progress","payload":{"team":"A","matched":2,"pairs":16,"remaining":97}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 2,
+  pairs: 16,
+  remaining: 97,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"progress","payload":{"team":"A","matched":2,"pairs":16,"remaining":94}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 2,
+  pairs: 16,
+  remaining: 94,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"progress","payload":{"team":"A","matched":4,"pairs":16,"remaining":92}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 4,
+  pairs: 16,
+  remaining: 92,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"progress","payload":{"team":"A","matched":5,"pairs":16,"remaining":89}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 5,
+  pairs: 16,
+  remaining: 89,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"progress","payload":{"team":"A","matched":6,"pairs":16,"remaining":87}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 6,
+  pairs: 16,
+  remaining: 87,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"progress","payload":{"team":"A","matched":7,"pairs":16,"remaining":85}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 7,
+  pairs: 16,
+  remaining: 85,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"progress","payload":{"team":"A","matched":8,"pairs":16,"remaining":82}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 8,
+  pairs: 16,
+  remaining: 82,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"progress","payload":{"team":"A","matched":9,"pairs":16,"remaining":77}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 9,
+  pairs: 16,
+  remaining: 77,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"progress","payload":{"team":"A","matched":10,"pairs":16,"remaining":74}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 10,
+  pairs: 16,
+  remaining: 74,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"progress","payload":{"team":"A","matched":11,"pairs":16,"remaining":69}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 11,
+  pairs: 16,
+  remaining: 69,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"progress","payload":{"team":"A","matched":12,"pairs":16,"remaining":61}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 12,
+  pairs: 16,
+  remaining: 61,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"progress","payload":{"team":"A","matched":13,"pairs":16,"remaining":56}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 13,
+  pairs: 16,
+  remaining: 56,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"progress","payload":{"team":"A","matched":14,"pairs":16,"remaining":54}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 14,
+  pairs: 16,
+  remaining: 54,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"progress","payload":{"team":"A","matched":16,"pairs":16,"remaining":52}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 16,
+  pairs: 16,
+  remaining: 52,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"roundComplete","payload":{"team":"A","level":0,"matched":16,"pairs":16,"score":160,"bonus":0,"reason":"complete","timestamp":1771048676098}}
+Received message: {"type":"roundComplete","payload":{"team":"A","level":0,"matched":16,"pairs":16,"score":160,"bonus":0,"reason":"complete","timestamp":1771048676098}}
+Received message: {"type":"progress","payload":{"team":"A","matched":16,"pairs":16,"remaining":52}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 16,
+  pairs: 16,
+  remaining: 52,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"requestNextLevel","team":"A"}
+Broadcasting requestNextLevel message
+Received message: {"type":"resetAll"}
+Received message: {"type":"reset"}
+Broadcasting reset message
+Received message: {"type":"progress","payload":{"team":"A","matched":0,"pairs":16,"remaining":120}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 0,
+  pairs: 16,
+  remaining: 120,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"start","start":1771048694615,"timeLimit":120}
+Broadcasting start message
+Received message: {"type":"progress","payload":{"team":"A","matched":0,"pairs":16,"remaining":120}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 0,
+  pairs: 16,
+  remaining: 120,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"resetAll"}
+Received message: {"type":"reset"}
+Broadcasting reset message
+Received message: {"type":"progress","payload":{"team":"A","matched":0,"pairs":16,"remaining":120}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 0,
+  pairs: 16,
+  remaining: 120,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"start","start":1771048712982,"timeLimit":30}
+Broadcasting start message
+Received message: {"type":"progress","payload":{"team":"A","matched":0,"pairs":16,"remaining":30}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 0,
+  pairs: 16,
+  remaining: 30,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"progress","payload":{"team":"A","matched":1,"pairs":16,"remaining":27}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 1,
+  pairs: 16,
+  remaining: 27,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"progress","payload":{"team":"A","matched":2,"pairs":16,"remaining":25}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 2,
+  pairs: 16,
+  remaining: 25,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"progress","payload":{"team":"A","matched":3,"pairs":16,"remaining":22}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 3,
+  pairs: 16,
+  remaining: 22,
+  teamDisplay: 'yosef'
+}
+Received message: {"type":"progress","payload":{"team":"A","matched":4,"pairs":16,"remaining":20}}
+Broadcasting teamProgress message: {
+  team: 'A',
+  matched: 4,
+  pairs: 16,
+  remaining: 20,
+  teamDisplay: 'yosef'
+}
+Client disconnected
+Client disconnected
+Client disconnected

@@ -1,0 +1,100 @@
+:root{
+  /* board will be a square that fits most of the viewport */
+  --board-size: min(80vmin, 900px);
+}
+*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;line-height:1.3;margin:16px;color:#111}
+header h1{margin:0 0 12px}
+.controls{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+.boards{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+.team{border:1px solid #ddd;padding:12px;border-radius:8px;background:#fafafa;max-width:calc(var(--board-size) + 40px)}
+.team h2{display:flex;justify-content:space-between;align-items:center;margin:0 0 8px}
+.board{width:var(--board-size);height:var(--board-size);display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);gap:2px;background:#333;padding:2px}
+.board.word-hidden{display:none !important}
+.slot{background:#222;position:relative;overflow:hidden}
+.piece{width:100%;height:100%;cursor:grab;background-repeat:no-repeat;background-position:center center}
+.memory-slot{padding:6px}
+/* Memory card styling: make numbers fill the box */
+.card{
+  width:100%;
+  height:100%;
+  border-radius:8px;
+  border:1px solid #d1d5db;
+  background:linear-gradient(180deg,#fff,#f8fafc);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:800;
+  font-size:clamp(28px, 8vmin, 56px);
+  color:#0b1220;
+  cursor:pointer;
+}
+.card.matched{background:linear-gradient(180deg,#ecfdf5,#d1fae5);border-color:#bbf7d0;color:#065f46;cursor:default}
+.card:disabled{opacity:0.7;cursor:default}
+.piece:active{cursor:grabbing}
+.secondary{margin-top:8px}
+.score{margin-top:8px;font-weight:600}
+.status{margin-left:8px;font-weight:600}
+footer{margin-top:12px;color:#444}
+.hidden{display:none !important}
+
+.word-challenge{
+  margin-top:0;
+  padding:14px;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  background:#f8fafc;
+  width:var(--board-size);
+  height:var(--board-size);
+  max-width:none;
+  max-height:none;
+  display:flex;
+  flex-direction:column;
+  overflow:auto;
+}
+.word-challenge h3{margin:0 0 8px;font-size:1.05rem}
+.letter-display{
+  font-weight:700;
+  margin-bottom:10px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.letter-display span{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:34px;
+  height:34px;
+  border-radius:10px;
+  background:#111827;
+  color:#fff;
+  font-weight:800;
+}
+.categories{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-bottom:12px;
+}
+.category-row{
+  display:grid;
+  grid-template-columns:160px 1fr;
+  gap:10px;
+  align-items:center;
+}
+.category-row label{font-weight:600}
+.word-input{
+  padding:8px 10px;
+  border-radius:8px;
+  border:1px solid #d1d5db;
+  font-size:14px;
+}
+.word-input.invalid{border-color:#ef4444;background:#fff1f2}
+.word-input.skipped{border-color:#f59e0b;background:#fffbeb}
+.word-status{margin-top:8px;font-size:0.95rem;color:#334155}
+
+@media (max-width:800px){
+  .boards{flex-direction:column}
+  :root{--board-size:280px}
+}

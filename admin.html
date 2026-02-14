@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin — Puzzle Control</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body class="admin-page">
+  <header>
+    <h1>Admin — Control Panel</h1>
+  </header>
+  <main class="admin-grid">
+    <section class="admin-box admin-time">
+      <div class="box-title">Time & Level</div>
+      <div class="dual-row">
+        <div class="dual-col">
+          <label>Time (seconds)
+            <input id="timeInput" type="number" value="120" min="10" />
+          </label>
+          <div>Current timer: <span id="globalTimer">00:00</span></div>
+        </div>
+        <div class="dual-col">
+          <div class="level-display" id="levelBox">
+            <div class="level-label">Current level</div>
+            <div id="currentLevel">—</div>
+            <div class="level-letter">Letter: <span id="currentLetter">—</span></div>
+          </div>
+          <div class="inline-row">
+            <button id="level1Btn">Start Level 1 (Puzzle)</button>
+            <button id="level2Btn">Start Level 2 (Memory)</button>
+            <button id="level3Btn">Start Level 3 (Word)</button>
+          </div>
+          <label>Letter for Level 3 (optional)
+            <input id="letterInput" type="text" maxlength="1" placeholder="A-Z" class="small-input" />
+          </label>
+          <label>Start level number
+            <div class="inline-row">
+              <input id="levelNumber" type="number" min="1" value="2" class="small-input" />
+              <button id="startLevelBtn">Start Level</button>
+            </div>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-box admin-connection">
+      <div class="box-title">Connection</div>
+      <div class="status" id="status">Not connected</div>
+      <div class="help-text">Status updates when the server connects.</div>
+      <div>Level status: <span id="levelStatus">Idle</span></div>
+    </section>
+
+    <section class="admin-box preview-box">
+      <div class="box-title">Image Control</div>
+      <label>Image URL
+        <div class="inline-row">
+          <input id="imageInput" type="url" placeholder="https://.../image.jpg" />
+          <button id="setImageBtn">Set Image</button>
+        </div>
+      </label>
+      <label>Upload local image
+        <div class="inline-row">
+          <input id="imageFileInput" type="file" accept="image/*" />
+          <button id="uploadImageBtn">Upload Image</button>
+        </div>
+      </label>
+      <img id="imagePreview" alt="preview" />
+    </section>
+
+    <section class="admin-box">
+      <div class="box-title">Game Controls</div>
+      <div class="button-grid">
+        <button id="startBtn">Start</button>
+        <button id="pauseBtn" class="secondary">Pause</button>
+        <button id="forceEndBtn" class="secondary">Force End</button>
+        <button id="nextBtn" class="secondary">Next Level</button>
+        <button id="resetBtn">Reset</button>
+        <button id="resetAllBtn" class="secondary">Reset All</button>
+      </div>
+    </section>
+
+    <section id="teamAPanel" class="admin-box">
+      <div class="box-title">Team <span id="teamAName">A</span></div>
+      <label>Set Team A Name:
+        <input id="teamANameInput" type="text" placeholder="Enter Team A Name" />
+        <button id="setTeamANameBtn">Set</button>
+      </label>
+      <div>Matched pairs: <span class="matched">0 / 0</span></div>
+      <div>Completion: <span class="completion">0%</span></div>
+      <div class="score">Score: 0</div>
+      <div>Status: <span class="team-status">Waiting</span></div>
+    </section>
+
+    <section id="teamBPanel" class="admin-box">
+      <div class="box-title">Team <span id="teamBName">B</span></div>
+      <label>Set Team B Name:
+        <input id="teamBNameInput" type="text" placeholder="Enter Team B Name" />
+        <button id="setTeamBNameBtn">Set</button>
+      </label>
+      <div>Matched pairs: <span class="matched">0 / 0</span></div>
+      <div>Completion: <span class="completion">0%</span></div>
+      <div class="score">Score: 0</div>
+      <div>Status: <span class="team-status">Waiting</span></div>
+    </section>
+
+    <section class="admin-box">
+      <div class="box-title">Totals</div>
+      <div>Team <span id="totalALabel">A</span>: <span id="totalA">0</span></div>
+      <div>Team <span id="totalBLabel">B</span>: <span id="totalB">0</span></div>
+      <div class="winner">Winner: <span id="winner">—</span></div>
+      <div id="lastRound" class="last-round">Last: —</div>
+    </section>
+
+    <section class="admin-box">
+      <div class="box-title">Reserved</div>
+      <div class="help-text">Empty box for future controls.</div>
+    </section>
+  </main>
+  <script>
+    (function(){
+      const wsProto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+      const wsHost = window.location.hostname || 'localhost';
+      const wsUrl = `${wsProto}://${wsHost}:8000`;
+      window.GAME_CONFIG = { adminWs: wsUrl, ws: wsUrl };
+    })();
+  </script>
+  <script src="script.js?v=20260214a"></script>
+</body>
+</html>

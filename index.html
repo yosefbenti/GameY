@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Level 1 – Picture Jigsaw Puzzle (Easy)</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Level 1 – Picture Jigsaw Puzzle (Easy)</h1>
+  </header>
+
+  <section class="controls">
+    <label>Admin time (seconds): <input id="timeInput" type="number" value="120" min="10" /></label>
+    <button id="startBtn">Start</button>
+    <button id="resetBtn">Reset</button>
+    <div class="status" id="status">Waiting to start</div>
+  </section>
+
+  <section id="levelPuzzle">
+    <main class="boards">
+      <div class="team">
+        <h2>Team A <span class="timer" id="timerA">00:00</span></h2>
+        <div class="board" id="boardA"></div>
+        <div class="score" id="scoreA">Score: 0%</div>
+      </div>
+
+      <div class="team">
+        <h2>Team B <span class="timer" id="timerB">00:00</span></h2>
+        <div class="board" id="boardB"></div>
+        <div class="score" id="scoreB">Score: 0%</div>
+      </div>
+    </main>
+
+    <footer>
+      <small>Rules: Rearrange pieces to form the image. First to finish wins or time runs out.</small>
+    </footer>
+  </section>
+
+  <section id="memoryLevel" class="hidden">
+    <h2>Memory Level</h2>
+    <p>Game description for memory level.</p>
+  </section>
+
+  <section id="wordLevel" class="hidden">
+    <h2>Word Level</h2>
+    <p>Game description for word level.</p>
+  </section>
+
+  <script src="script.js?v=20260214a"></script>
+</body>
+</html>

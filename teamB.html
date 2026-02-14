@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Team B - Puzzle</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Team <span data-team-name>B</span> — Puzzle</h1>
+  </header>
+  <main class="boards">
+    <div class="team">
+      <section class="level-section level-puzzle" id="levelPuzzle">
+        <h2>Team <span data-team-name>B</span> <span class="timer" id="timerB">00:00</span></h2>
+        <div class="board" id="boardB"></div>
+        <button id="holdShowBtn" class="secondary">Hold to show solved puzzle</button>
+        <div class="score">Score: 0</div>
+        <div class="completion">Completion: 0%</div>
+        <div class="status" id="status">Waiting to connect</div>
+      </section>
+
+      <section class="level-section level-word hidden" id="wordLevel">
+        <h2>Team B — Word Challenge <span class="timer word-timer" id="wordTimerB">00:00</span></h2>
+        <section class="word-challenge" id="wordChallenge">
+          <h3>Word Challenge</h3>
+          <div class="letter-display">Letter: <span id="challengeLetter">—</span></div>
+          <div class="categories" id="wordCategories">
+            <div class="category-row">
+              <label for="word-0">Country name</label>
+              <input id="word-0" class="word-input" type="text" placeholder="Starts with —" />
+            </div>
+            <div class="category-row">
+              <label for="word-1">Food name</label>
+              <input id="word-1" class="word-input" type="text" placeholder="Starts with —" />
+            </div>
+            <div class="category-row">
+              <label for="word-2">Drink name</label>
+              <input id="word-2" class="word-input" type="text" placeholder="Starts with —" />
+            </div>
+            <div class="category-row">
+              <label for="word-3">Human name</label>
+              <input id="word-3" class="word-input" type="text" placeholder="Starts with —" />
+            </div>
+            <div class="category-row">
+              <label for="word-4">Animal name</label>
+              <input id="word-4" class="word-input" type="text" placeholder="Starts with —" />
+            </div>
+          </div>
+          <button id="submitWordsBtn">Submit Answers</button>
+          <div class="word-status" id="wordStatus">Waiting to start</div>
+        </section>
+        <div class="score word-score">Score: 0</div>
+        <div class="completion word-completion">Completion: 0%</div>
+      </section>
+    </div>
+  </main>
+  <script>
+    (function(){
+      const wsProto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+      const wsHost = window.location.hostname || 'localhost';
+      const wsUrl = `${wsProto}://${wsHost}:8000`;
+      window.GAME_CONFIG = { team: 'B', containerId: 'boardB', ws: wsUrl };
+    })();
+  </script>
+  <script src="script.js?v=20260214a"></script>
+</body>
+</html>
