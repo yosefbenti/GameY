@@ -48,6 +48,14 @@
     <p>Game description for word level.</p>
   </section>
 
+  <script>
+    (function(){
+      const wsProto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+      const wsHost = window.location.host || 'localhost:8000';
+      const wsUrl = `${wsProto}://${wsHost}`;
+      window.GAME_CONFIG = { ws: wsUrl };
+    })();
+  </script>
   <script src="script.js?v=20260214a"></script>
 </body>
 </html>

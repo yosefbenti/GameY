@@ -7,12 +7,52 @@ const WebSocket = require('ws');
 
 const HOST = process.env.WS_HOST || '0.0.0.0';
 const PORT = Number(process.env.WS_PORT) || 8000;
+const STATIC_DIR = __dirname;
 
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
+function sendStaticFile(res, absPath) {
+  if (!absPath.startsWith(STATIC_DIR)) {
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.end('Forbidden');
+    return;
+  }
+  if (!fs.existsSync(absPath) || !fs.statSync(absPath).isFile()) {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not Found');
+    return;
+  }
+
+  const ext = path.extname(absPath).toLowerCase();
+  const mimeByExt = {
+    '.html': 'text/html; charset=utf-8',
+    '.css': 'text/css; charset=utf-8',
+    '.js': 'application/javascript; charset=utf-8',
+    '.json': 'application/json; charset=utf-8',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.webp': 'image/webp',
+    '.gif': 'image/gif',
+    '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon',
+  };
+
+  res.writeHead(200, {
+    'Access-Control-Allow-Origin': '*',
+    'Cache-Control': 'no-store, max-age=0',
+    'Content-Type': mimeByExt[ext] || 'application/octet-stream',
+  });
+  fs.createReadStream(absPath).pipe(res);
+}
+
 const httpServer = http.createServer((req, res) => {
   try {
+    if (req && req.headers && req.headers.host) {
+      state.publicHost = req.headers.host;
+    }
+
     if (req.method === 'OPTIONS') {
       res.writeHead(204, {
         'Access-Control-Allow-Origin': '*',
@@ -24,6 +64,17 @@ const httpServer = http.createServer((req, res) => {
     }
 
     const urlPath = decodeURIComponent((req.url || '').split('?')[0]);
+
+    const routeToFile = {
+      '/': 'admin.html',
+      '/admin': 'admin.html',
+      '/admin.html': 'admin.html',
+      '/teamA': 'teamA.html',
+      '/teamA.html': 'teamA.html',
+      '/teamB': 'teamB.html',
+      '/teamB.html': 'teamB.html',
+      '/index.html': 'index.html',
+    };
 
     if (urlPath === '/upload' && req.method === 'POST') {
       const contentType = String(req.headers['content-type'] || '').split(';')[0].toLowerCase();
@@ -131,8 +182,22 @@ const httpServer = http.createServer((req, res) => {
       fs.createReadStream(absPath).pipe(res);
       return;
     }
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, ws: `ws://${HOST}:${PORT}` }));
+
+    if (urlPath === '/health' || urlPath === '/api/status') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, ws: `ws://${getPublicHost()}` }));
+      return;
+    }
+
+    const mapped = routeToFile[urlPath] || (urlPath.startsWith('/') ? urlPath.slice(1) : urlPath);
+    const absPath = path.join(STATIC_DIR, mapped);
+    if (absPath.startsWith(STATIC_DIR) && fs.existsSync(absPath) && fs.statSync(absPath).isFile()) {
+      sendStaticFile(res, absPath);
+      return;
+    }
+
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Not Found');
   } catch (error) {
     res.writeHead(500, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: false, error: String(error) }));
