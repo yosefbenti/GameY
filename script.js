@@ -485,7 +485,7 @@ function evaluatePlayerInputs(playerInputs) {
         const correct = checkCompletionForContainer(board);
         const points = correct * 10;
         const inferredLevel = Number(currentLevel) || (levelMode === 'memory' ? 2 : (levelMode === 'word' ? 3 : 1));
-        const entry = { team: cfg.team || 'unknown', level: inferredLevel, matched: correct, pairs: TOTAL, score: points, bonus: 0, reason: 'complete', timestamp: Date.now() };
+        const entry = { team: cfg.team || 'unknown', level: inferredLevel, matched: correct, pairs: TOTAL, score: points, bonus: 0, remaining: Math.max(0, Math.floor(Number(remaining) || 0)), reason: 'complete', timestamp: Date.now() };
         if(pubWs && pubWs.readyState === WebSocket.OPEN) pubWs.send(JSON.stringify({ type: 'roundComplete', payload: entry }));
       }catch(e){console.error('send immediate roundComplete failed', e)}
       recordScoreAndAdvance('complete');
@@ -529,7 +529,7 @@ function evaluatePlayerInputs(playerInputs) {
     }
     const bonus = 0;
     const inferredLevel = Number(currentLevel) || (levelMode === 'memory' ? 2 : (levelMode === 'word' ? 3 : 1));
-    const entry = { team: cfg.team || 'unknown', level: inferredLevel, matched, pairs, score, bonus, reason, timestamp: Date.now() };
+    const entry = { team: cfg.team || 'unknown', level: inferredLevel, matched, pairs, score, bonus, remaining: Math.max(0, Math.floor(Number(remaining) || 0)), reason, timestamp: Date.now() };
     try{
       const existing = JSON.parse(localStorage.getItem('puzzle_scores')||'[]');
       existing.push(entry);

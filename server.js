@@ -275,6 +275,13 @@ function buildLevelScorePayload() {
   };
 }
 
+function isTimedRaceLevel(level, mode) {
+  const l = Number(level);
+  const m = String(mode || '').toLowerCase();
+  if (l === 1 || l === 2) return true;
+  return m === 'puzzle' || m === 'memory';
+}
+
 function sendToClient(ws, msgObj) {
   try {
     if (ws.readyState === WebSocket.OPEN) {
@@ -680,13 +687,55 @@ wss.on('connection', (ws, req) => {
           else level = 1;
         }
 
+        const isFirstFinisherThisRound = state.scoredTeamsThisRound.size === 0;
+        let speedBonus = 0;
+        if (
+          isFirstFinisherThisRound &&
+          isTimedRaceLevel(level, mode) &&
+          String(payload.reason || '').toLowerCase() === 'complete'
+        ) {
+          const clientRemaining = Number(payload.remaining);
+          const serverRemaining = computeRemainingSeconds();
+          const remaining = Number.isFinite(clientRemaining) ? clientRemaining : serverRemaining;
+          const levelTimeLimit = Math.max(
+            1,
+            Number(payload.timeLimit)
+            || Number(state.session.level && state.session.level.timeLimit)
+            || Number(state.session.timeLimit)
+            || 120
+          );
+          const halfTime = Math.ceil(levelTimeLimit / 2);
+          speedBonus = (Number.isFinite(remaining) && remaining >= halfTime)
+            ? Math.max(0, Math.floor(remaining))
+            : 0;
+        }
+
+        payload.level = level;
+        payload.mode = mode || payload.mode;
+        payload.bonus = speedBonus;
+
         // finalized score contributes to cumulative total by level (L1 + L2 + L3)
-        const finalScore = Math.max(0, Number(payload.score) || 0);
+        const finalScore = Math.max(0, (Number(payload.score) || 0) + (Number(payload.bonus) || 0));
         if (level && [1, 2, 3].includes(level)) {
           if (!state.levelScores[teamKey]) state.levelScores[teamKey] = { 1: 0, 2: 0, 3: 0 };
           state.levelScores[teamKey][level] = finalScore;
           if (!state.completedLevels[teamKey]) state.completedLevels[teamKey] = new Set();
           state.completedLevels[teamKey].add(level);
+        }
+
+        // If one team completes level 1/2 first, end this level immediately for everyone.
+        if (isFirstFinisherThisRound && isTimedRaceLevel(level, mode)) {
+          stopTimerInterval();
+          state.session.start = null;
+          state.session.endAt = null;
+          state.session.paused = false;
+          state.session.pausedRemaining = null;
+          broadcast({
+            type: 'timerFinished',
+            reason: 'opponentComplete',
+            winnerTeam: teamKey,
+            level,
+          });
         }
 
         state.scoredTeamsThisRound.add(teamKey);

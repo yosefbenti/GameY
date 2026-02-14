@@ -1,39 +1,123 @@
-# Picture Jigsaw Puzzle (4x4) — Level 1–3
+# GameY — 2-Team Multi-Level Game
 
-Quick local game for two teams on the same screen.
+GameY is a real-time browser game for two teams with an Admin control panel.
 
-How to run
+It has 3 levels:
 
-1. Open the file [index.html](index.html) in your browser (no server required).
-2. Set the admin time (seconds).
-3. Click `Start` to start both timers simultaneously.
-4. Drag and drop pieces to swap them between slots and complete the image.
+1. Level 1: Jigsaw Puzzle
+2. Level 2: Memory Match
+3. Level 3: Word Challenge
 
-Rules implemented
+---
 
-- 4×4 puzzle per team (same image).
-- Shared start and countdown timer.
-- First team to assemble the full image wins; otherwise level ends when time runs out.
-- Scoring displayed as % complete; a simple speed bonus is shown for the winner.
+## 1) Run the game
 
-Level 2 — Memory Match
+From the project folder:
 
-- Pairs of cards, shared timer.
-- Correct pairs score +10 points each.
+```bash
+./start-all.sh
+```
 
-Level 3 — Letter-Based Word Challenge
+This starts one unified server on port `8000`.
 
-- Random letter shown to both teams.
-- Fixed categories: Country, Food, Drink, Human name, Animal.
-- Correct word per category starting with the letter scores +10.
-- Invalid or repeated answers are rejected; players can skip categories for 0 points.
+Open:
 
-LAN (same network) play
+- Admin: [http://localhost:8000/admin](http://localhost:8000/admin)
+- Team A: [http://localhost:8000/teamA](http://localhost:8000/teamA)
+- Team B: [http://localhost:8000/teamB](http://localhost:8000/teamB)
 
-- Run the server machine with `./start-all.sh`.
-- Open on server machine:
-	- Admin: `http://localhost:8001/admin.html`
-- Open on other computers using the server IP (example `192.168.1.50`):
-	- Team A: `http://192.168.1.50:8002/teamA.html`
-	- Team B: `http://192.168.1.50:8003/teamB.html`
-- Ensure firewall allows inbound TCP ports `8000`, `8001`, `8002`, `8003` on the server machine.
+From other devices on the same network, replace `localhost` with your server LAN IP.
+
+---
+
+## 2) Admin flow (recommended)
+
+1. Open Admin page.
+2. Optionally set team names.
+3. Set game image (URL or upload) for puzzle level.
+4. Start levels:
+	 - `Start Level 1 (Puzzle)`
+	 - `Start Level 2 (Memory)`
+	 - `Start Level 3 (Word)`
+5. Click `Start` to run timer for active level.
+
+Useful controls:
+
+- `Pause`
+- `Force End`
+- `Next Level`
+- `Reset` (current round)
+- `Reset All` (scores + round state)
+
+---
+
+## 3) How players play
+
+## Level 1 — Jigsaw Puzzle
+
+- 4x4 board (16 pieces).
+- Drag and drop to swap pieces.
+- Each correct piece position is worth `10` points.
+- Max base score: `160`.
+
+## Level 2 — Memory Match
+
+- Match card pairs.
+- Each matched pair is worth `10` points.
+- Default in admin is 4 pairs, so max base score is `40`.
+
+## Level 3 — Word Challenge
+
+- A letter is chosen (admin can set or random).
+- Categories: Country, Food, Drink, Animal.
+- Each valid category answer starting with that letter gives `10` points.
+- Duplicate/invalid answers do not score.
+
+---
+
+## 4) Scoring and bonus rules
+
+## Base scoring
+
+- Level score = progress points for that level.
+- Team total = Level 1 + Level 2 + Level 3.
+
+## Fast-finish behavior (Level 1 and 2 only)
+
+- If one team completes first:
+	- the other team is immediately frozen,
+	- the level ends for both teams.
+
+## Bonus rule
+
+- Bonus is only considered for the **first finisher** on Level 1 or 2.
+- Bonus is granted only if player finishes with at least half of level time remaining.
+- If granted, bonus equals remaining seconds (integer).
+
+Formula:
+
+$$
+	ext{Final Level Score} = \text{Base Score} + \text{Bonus}
+$$
+
+Bonus eligibility:
+
+$$
+	ext{Bonus applies if } \text{remaining} \ge \left\lceil\frac{\text{timeLimit}}{2}\right\rceil
+$$
+
+---
+
+## 5) Winner logic
+
+- Admin panel shows running totals and current leading team.
+- Final winner is decided by total score across all 3 levels.
+- Until both teams complete all 3 levels, winner may display as pending.
+
+---
+
+## 6) Troubleshooting
+
+- If pages do not sync, restart with `./start-all.sh`.
+- If other devices cannot connect, check firewall for TCP port `8000`.
+- If image upload fails, use a smaller image and retry.
