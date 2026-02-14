@@ -1,0 +1,12 @@
+# Runtime logs
+*.log
+
+# Uploaded images generated at runtime
+uploads/current-*.jpg
+uploads/current-*.jpeg
+uploads/current-*.png
+uploads/current-*.webp
+uploads/current-*.gif
+
+# Local persisted game history data
+game-history.json

@@ -11,6 +11,27 @@ const STATIC_DIR = __dirname;
 
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+const GAME_HISTORY_FILE = path.join(__dirname, 'game-history.json');
+
+function loadGameHistoryFromDisk() {
+  try {
+    if (!fs.existsSync(GAME_HISTORY_FILE)) return [];
+    const raw = fs.readFileSync(GAME_HISTORY_FILE, 'utf8');
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.error('Failed to read game history:', error);
+    return [];
+  }
+}
+
+function saveGameHistoryToDisk(history) {
+  try {
+    fs.writeFileSync(GAME_HISTORY_FILE, JSON.stringify(history, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Failed to write game history:', error);
+  }
+}
 
 function sendStaticFile(res, absPath) {
   if (!absPath.startsWith(STATIC_DIR)) {
@@ -189,6 +210,16 @@ const httpServer = http.createServer((req, res) => {
       return;
     }
 
+    if (urlPath === '/api/history') {
+      res.writeHead(200, {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store, max-age=0',
+      });
+      res.end(JSON.stringify({ ok: true, history: state.gameHistory || [] }));
+      return;
+    }
+
     const mapped = routeToFile[urlPath] || (urlPath.startsWith('/') ? urlPath.slice(1) : urlPath);
     const absPath = path.join(STATIC_DIR, mapped);
     if (absPath.startsWith(STATIC_DIR) && fs.existsSync(absPath) && fs.statSync(absPath).isFile()) {
@@ -233,6 +264,8 @@ const state = {
     pausedRemaining: null,
   },
   publicHost: null,
+  gameHistory: loadGameHistoryFromDisk(),
+  lastLoggedGameSignature: null,
 };
 
 let timerInterval = null;
@@ -280,6 +313,39 @@ function isTimedRaceLevel(level, mode) {
   const m = String(mode || '').toLowerCase();
   if (l === 1 || l === 2) return true;
   return m === 'puzzle' || m === 'memory';
+}
+
+function buildGameHistoryEntry() {
+  const totalA = Number(state.totals.A) || 0;
+  const totalB = Number(state.totals.B) || 0;
+  const winner = getWinnerSummary(totalA, totalB);
+  return {
+    id: Date.now(),
+    playedAt: new Date().toISOString(),
+    teams: {
+      A: state.teamNames.A || 'A',
+      B: state.teamNames.B || 'B',
+    },
+    levelScores: buildLevelScorePayload(),
+    totals: { A: totalA, B: totalB },
+    winnerKey: winner.winnerKey,
+    winnerName: winner.winnerName,
+  };
+}
+
+function maybeLogCompletedGame() {
+  if (!canDeclareFinalWinner()) return;
+  const entry = buildGameHistoryEntry();
+  const signature = JSON.stringify({ teams: entry.teams, levelScores: entry.levelScores, totals: entry.totals });
+  if (signature === state.lastLoggedGameSignature) return;
+
+  state.lastLoggedGameSignature = signature;
+  state.gameHistory.push(entry);
+  if (state.gameHistory.length > 500) {
+    state.gameHistory = state.gameHistory.slice(-500);
+  }
+  saveGameHistoryToDisk(state.gameHistory);
+  broadcast({ type: 'gameLogged', entry, history: state.gameHistory });
 }
 
 function sendToClient(ws, msgObj) {
@@ -503,6 +569,11 @@ function replayStateToClient(ws) {
     winnerName: winner.winnerName,
   });
 
+  sendToClient(ws, {
+    type: 'gameHistory',
+    history: state.gameHistory || [],
+  });
+
   // game state snapshot
   if (state.session.level) sendToClient(ws, state.session.level);
   if (state.session.image) sendToClient(ws, state.session.image);
@@ -651,6 +722,7 @@ wss.on('connection', (ws, req) => {
 
     if (data.type === 'resetAll') {
       resetAllScores();
+      state.lastLoggedGameSignature = null;
       stopTimerInterval();
       state.session.start = null;
       state.session.endAt = null;
@@ -741,6 +813,7 @@ wss.on('connection', (ws, req) => {
         state.scoredTeamsThisRound.add(teamKey);
         state.roundScores[teamKey] = 0;
         state.totals[teamKey] = computeTeamTotal(teamKey);
+        maybeLogCompletedGame();
       }
       broadcast({ type: 'roundComplete', payload });
       emitScoreUpdate();

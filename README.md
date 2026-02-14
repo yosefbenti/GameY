@@ -30,6 +30,30 @@ From other devices on the same network, replace `localhost` with your server LAN
 
 ---
 
+## 1.1) Run like an app (Linux desktop shortcut)
+
+You can create a desktop icon so GameY starts when you click it.
+
+Use:
+
+```bash
+./install-desktop-shortcut.sh
+```
+
+This creates:
+
+- launcher: `~/.local/share/applications/gamey.desktop`
+- desktop icon: `~/Desktop/GameY.desktop` (if Desktop folder exists)
+
+Clicking the icon will:
+
+1. run [start-all.sh](start-all.sh)
+2. open Admin page at [http://localhost:8000/admin](http://localhost:8000/admin)
+
+Note: on some Linux desktops, first right-click the icon and choose **Allow Launching**.
+
+---
+
 ## 2) Admin flow (recommended)
 
 1. Open Admin page.

@@ -113,9 +113,28 @@
       <div id="lastRound" class="last-round">Leading: —</div>
     </section>
 
-    <section class="admin-box">
-      <div class="box-title">Reserved</div>
-      <div class="help-text">Empty box for future controls.</div>
+    <section id="historyPanel" class="admin-box">
+      <div class="box-title">Game History</div>
+      <div class="help-text">Saved completed games (Team names + Level 1/2/3 scores + totals).</div>
+      <div class="history-wrap">
+        <table class="history-table" id="gameHistoryTable">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Team A</th>
+              <th>A L1/L2/L3</th>
+              <th>A Total</th>
+              <th>Team B</th>
+              <th>B L1/L2/L3</th>
+              <th>B Total</th>
+              <th>Winner</th>
+            </tr>
+          </thead>
+          <tbody id="gameHistoryBody">
+            <tr><td colspan="8">No completed games yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>
   </main>
   <script>

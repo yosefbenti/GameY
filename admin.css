@@ -19,12 +19,13 @@ html,body{height:100%}
   grid-auto-rows:minmax(190px, auto);
   gap:16px;
   align-items:stretch;
-  max-width:1200px;
+  max-width:1600px;
   margin:0 auto 24px;
 }
 
 .admin-page .admin-time{grid-column:1 / span 2;grid-row:1}
 .admin-page .admin-connection{grid-column:3;grid-row:1}
+.admin-page #historyPanel{grid-column:1 / -1; min-height:320px}
 
 .admin-page .dual-row{
   display:grid;
@@ -132,6 +133,37 @@ html,body{height:100%}
 .admin-page .level-label{font-size:14px;color:#546}
 .admin-page .winner{margin-top:8px;font-weight:700}
 .admin-page .last-round{margin-top:8px;color:#334}
+
+.admin-page .history-wrap{
+  overflow:auto;
+  border:1px solid #e6eef8;
+  border-radius:10px;
+  background:#fff;
+}
+
+.admin-page .history-table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:840px;
+  font-size:12px;
+}
+
+.admin-page .history-table th,
+.admin-page .history-table td{
+  padding:8px 10px;
+  border-bottom:1px solid #eef3fb;
+  text-align:left;
+  white-space:nowrap;
+}
+
+.admin-page .history-table thead th{
+  position:sticky;
+  top:0;
+  background:#f5f9ff;
+  color:#1f2937;
+  font-weight:700;
+  z-index:1;
+}
 
 /* Preview area */
 .admin-page #imagePreview{max-width:100%;max-height:320px;border-radius:10px;border:1px solid #e6eef8;box-shadow:0 6px 16px rgba(2,6,23,0.06);object-fit:cover;display:block}

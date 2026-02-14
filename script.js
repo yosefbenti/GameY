@@ -680,6 +680,59 @@ function evaluatePlayerInputs(playerInputs) {
     setLastRound(`Leading: Tie — ${scoreA} vs ${scoreB}`);
   }
 
+  function formatHistoryLevelTriplet(levels, teamKey){
+    const byTeam = levels && levels[teamKey] ? levels[teamKey] : {};
+    const l1 = Number(byTeam[1]) || 0;
+    const l2 = Number(byTeam[2]) || 0;
+    const l3 = Number(byTeam[3]) || 0;
+    return `${l1}/${l2}/${l3}`;
+  }
+
+  function renderGameHistory(history){
+    const body = document.getElementById('gameHistoryBody');
+    if(!body) return;
+    const rows = Array.isArray(history) ? history.slice().reverse() : [];
+    body.innerHTML = '';
+    if(!rows.length){
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 8;
+      td.textContent = 'No completed games yet.';
+      tr.appendChild(td);
+      body.appendChild(tr);
+      return;
+    }
+
+    rows.forEach(entry=>{
+      const tr = document.createElement('tr');
+      const when = entry && entry.playedAt ? new Date(entry.playedAt) : null;
+      const timeText = when && !Number.isNaN(when.getTime()) ? when.toLocaleString() : '—';
+      const teamAName = (entry && entry.teams && entry.teams.A) ? entry.teams.A : 'A';
+      const teamBName = (entry && entry.teams && entry.teams.B) ? entry.teams.B : 'B';
+      const aLevels = formatHistoryLevelTriplet(entry.levelScores, 'A');
+      const bLevels = formatHistoryLevelTriplet(entry.levelScores, 'B');
+      const aTotal = Number(entry && entry.totals && entry.totals.A) || 0;
+      const bTotal = Number(entry && entry.totals && entry.totals.B) || 0;
+      const winner = (entry && entry.winnerName) ? entry.winnerName : 'Pending';
+
+      [
+        timeText,
+        teamAName,
+        aLevels,
+        String(aTotal),
+        teamBName,
+        bLevels,
+        String(bTotal),
+        winner,
+      ].forEach(value=>{
+        const td = document.createElement('td');
+        td.textContent = value;
+        tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    });
+  }
+
   function resetAdminPanels(){
     try{
       const teamAPanel = document.getElementById('teamAPanel');
@@ -916,6 +969,10 @@ function evaluatePlayerInputs(playerInputs) {
                 updateWinnerFromTotals();
               }
             }catch(e){console.error(e)}
+          } else if(msg.type === 'gameHistory'){
+            try{ renderGameHistory(msg.history || []); }catch(e){ console.error('render history failed', e); }
+          } else if(msg.type === 'gameLogged'){
+            try{ renderGameHistory(msg.history || []); }catch(e){ console.error('render logged game failed', e); }
           } else if(msg.type === 'level'){
             // incoming level config: { type: 'level', mode: 'memory', pairs:5, timeLimit:60, level:2 }
             try{
