@@ -215,6 +215,14 @@ const state = {
   totals: { A: 0, B: 0 },
   roundScores: { A: 0, B: 0 },
   scoredTeamsThisRound: new Set(),
+  levelScores: {
+    A: { 1: 0, 2: 0, 3: 0 },
+    B: { 1: 0, 2: 0, 3: 0 },
+  },
+  completedLevels: {
+    A: new Set(),
+    B: new Set(),
+  },
   session: {
     image: null,
     level: null,
@@ -228,6 +236,44 @@ const state = {
 };
 
 let timerInterval = null;
+
+function computeTeamTotal(teamKey) {
+  const byLevel = state.levelScores[teamKey] || {};
+  return [1, 2, 3].reduce((sum, level) => sum + (Number(byLevel[level]) || 0), 0);
+}
+
+function areAllLevelsCompleteForTeam(teamKey) {
+  const done = state.completedLevels[teamKey];
+  if (!done || typeof done.has !== 'function') return false;
+  return done.has(1) && done.has(2) && done.has(3);
+}
+
+function canDeclareFinalWinner() {
+  return areAllLevelsCompleteForTeam('A') && areAllLevelsCompleteForTeam('B');
+}
+
+function getWinnerSummary(totalA, totalB) {
+  if (!canDeclareFinalWinner()) {
+    return {
+      winnerKey: '',
+      winnerName: 'Pending (complete all 3 levels)',
+    };
+  }
+  if (totalA > totalB) {
+    return { winnerKey: 'A', winnerName: state.teamNames.A || 'A' };
+  }
+  if (totalB > totalA) {
+    return { winnerKey: 'B', winnerName: state.teamNames.B || 'B' };
+  }
+  return { winnerKey: '', winnerName: 'No winner (Tie)' };
+}
+
+function buildLevelScorePayload() {
+  return {
+    A: { ...state.levelScores.A },
+    B: { ...state.levelScores.B },
+  };
+}
 
 function sendToClient(ws, msgObj) {
   try {
@@ -304,27 +350,40 @@ function resetAllScores() {
   state.totals = { A: 0, B: 0 };
   state.roundScores = { A: 0, B: 0 };
   state.scoredTeamsThisRound.clear();
+  state.levelScores = {
+    A: { 1: 0, 2: 0, 3: 0 },
+    B: { 1: 0, 2: 0, 3: 0 },
+  };
+  state.completedLevels = {
+    A: new Set(),
+    B: new Set(),
+  };
 }
 
 function emitScoreUpdate() {
-  const a = (Number(state.totals.A) || 0) + (Number(state.roundScores.A) || 0);
-  const b = (Number(state.totals.B) || 0) + (Number(state.roundScores.B) || 0);
-  let winnerKey = '';
-  if (a > b) winnerKey = 'A';
-  else if (b > a) winnerKey = 'B';
+  const a = Number(state.totals.A) || 0;
+  const b = Number(state.totals.B) || 0;
+  const winner = getWinnerSummary(Number(state.totals.A) || 0, Number(state.totals.B) || 0);
 
   broadcast({
     type: 'scoreUpdate',
     totals: { A: a, B: b },
+    totalFinal: { A: Number(state.totals.A) || 0, B: Number(state.totals.B) || 0 },
+    levelScores: buildLevelScorePayload(),
+    completedLevels: {
+      A: Array.from(state.completedLevels.A || []),
+      B: Array.from(state.completedLevels.B || []),
+    },
     names: { ...state.teamNames },
-    winnerKey,
-    winnerName: winnerKey ? (state.teamNames[winnerKey] || winnerKey) : 'No winner',
+    winnerKey: winner.winnerKey,
+    winnerName: winner.winnerName,
   });
 }
 
 function buildGameStatePayload() {
-  const scoreA = (Number(state.totals.A) || 0) + (Number(state.roundScores.A) || 0);
-  const scoreB = (Number(state.totals.B) || 0) + (Number(state.roundScores.B) || 0);
+  const scoreA = Number(state.totals.A) || 0;
+  const scoreB = Number(state.totals.B) || 0;
+  const winner = getWinnerSummary(Number(state.totals.A) || 0, Number(state.totals.B) || 0);
   const remaining = computeRemainingSeconds();
   return {
     type: 'gameState',
@@ -338,6 +397,14 @@ function buildGameStatePayload() {
       start: state.session.start || null,
     },
     scores: { A: scoreA, B: scoreB },
+    totalFinal: { A: Number(state.totals.A) || 0, B: Number(state.totals.B) || 0 },
+    levelScores: buildLevelScorePayload(),
+    completedLevels: {
+      A: Array.from(state.completedLevels.A || []),
+      B: Array.from(state.completedLevels.B || []),
+    },
+    winnerKey: winner.winnerKey,
+    winnerName: winner.winnerName,
     names: { ...state.teamNames },
   };
 }
@@ -412,17 +479,21 @@ function replayStateToClient(ws) {
   sendToClient(ws, { type: 'updateTeamName', team: 'B', name: state.teamNames.B || 'B' });
 
   // totals / winner
-  const a = (Number(state.totals.A) || 0) + (Number(state.roundScores.A) || 0);
-  const b = (Number(state.totals.B) || 0) + (Number(state.roundScores.B) || 0);
-  let winnerKey = '';
-  if (a > b) winnerKey = 'A';
-  else if (b > a) winnerKey = 'B';
+  const a = Number(state.totals.A) || 0;
+  const b = Number(state.totals.B) || 0;
+  const winner = getWinnerSummary(Number(state.totals.A) || 0, Number(state.totals.B) || 0);
   sendToClient(ws, {
     type: 'scoreUpdate',
     totals: { A: a, B: b },
+    totalFinal: { A: Number(state.totals.A) || 0, B: Number(state.totals.B) || 0 },
+    levelScores: buildLevelScorePayload(),
+    completedLevels: {
+      A: Array.from(state.completedLevels.A || []),
+      B: Array.from(state.completedLevels.B || []),
+    },
     names: { ...state.teamNames },
-    winnerKey,
-    winnerName: winnerKey ? (state.teamNames[winnerKey] || winnerKey) : 'No winner',
+    winnerKey: winner.winnerKey,
+    winnerName: winner.winnerName,
   });
 
   // game state snapshot
@@ -509,7 +580,10 @@ wss.on('connection', (ws, req) => {
         payload.teamDisplay = state.teamNames[teamKey] || teamKey;
         // live score shown during a running round
         const matched = Number(payload.matched) || 0;
-        state.roundScores[teamKey] = Math.max(0, matched * 10);
+        // Ignore late progress after this team has already finalized the round.
+        if (!state.scoredTeamsThisRound.has(teamKey)) {
+          state.roundScores[teamKey] = Math.max(0, matched * 10);
+        }
       }
       console.log('Broadcasting teamProgress message:', payload);
       broadcast({ type: 'teamProgress', payload });
@@ -585,16 +659,39 @@ wss.on('connection', (ws, req) => {
       const payload = data.payload || {};
       const teamKey = normalizeTeamKey(payload.team || data.team);
       if (teamKey) {
+        // Make round completion idempotent for each team in the current round.
+        if (state.scoredTeamsThisRound.has(teamKey)) {
+          broadcast({ type: 'roundComplete', payload: { ...payload, team: teamKey, teamDisplay: state.teamNames[teamKey] || teamKey } });
+          emitGameState();
+          return;
+        }
+
         payload.team = teamKey;
         payload.teamDisplay = state.teamNames[teamKey] || teamKey;
-        // finalized round score overrides any live running score
-        const finalScore = Number(payload.score) || 0;
-        state.roundScores[teamKey] = Math.max(0, finalScore);
-        if (!state.scoredTeamsThisRound.has(teamKey)) {
-          state.totals[teamKey] = (Number(state.totals[teamKey]) || 0) + state.roundScores[teamKey];
-          state.roundScores[teamKey] = 0;
-          state.scoredTeamsThisRound.add(teamKey);
+        const levelFromPayload = Number(payload.level);
+        const activeLevel = Number(state.session.level && state.session.level.level);
+        const mode = String(payload.mode || (state.session.level && state.session.level.mode) || '').toLowerCase();
+        let level = Number.isFinite(levelFromPayload) && levelFromPayload > 0
+          ? levelFromPayload
+          : (Number.isFinite(activeLevel) && activeLevel > 0 ? activeLevel : null);
+        if (!level) {
+          if (mode === 'memory') level = 2;
+          else if (mode === 'word') level = 3;
+          else level = 1;
         }
+
+        // finalized score contributes to cumulative total by level (L1 + L2 + L3)
+        const finalScore = Math.max(0, Number(payload.score) || 0);
+        if (level && [1, 2, 3].includes(level)) {
+          if (!state.levelScores[teamKey]) state.levelScores[teamKey] = { 1: 0, 2: 0, 3: 0 };
+          state.levelScores[teamKey][level] = finalScore;
+          if (!state.completedLevels[teamKey]) state.completedLevels[teamKey] = new Set();
+          state.completedLevels[teamKey].add(level);
+        }
+
+        state.scoredTeamsThisRound.add(teamKey);
+        state.roundScores[teamKey] = 0;
+        state.totals[teamKey] = computeTeamTotal(teamKey);
       }
       broadcast({ type: 'roundComplete', payload });
       emitScoreUpdate();

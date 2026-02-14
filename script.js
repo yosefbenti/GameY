@@ -89,6 +89,7 @@
   let wordState = null;
   let wsRecoveryScheduled = false;
   let lastAuthoritativeLevelSig = '';
+  let winnerFromServer = false;
 
   function scheduleWsRecovery(reason){
     if(wsRecoveryScheduled) return;
@@ -483,7 +484,8 @@ function evaluatePlayerInputs(playerInputs) {
       try{
         const correct = checkCompletionForContainer(board);
         const points = correct * 10;
-        const entry = { team: cfg.team || 'unknown', level: currentLevel, matched: correct, pairs: TOTAL, score: points, bonus: 0, reason: 'complete', timestamp: Date.now() };
+        const inferredLevel = Number(currentLevel) || (levelMode === 'memory' ? 2 : (levelMode === 'word' ? 3 : 1));
+        const entry = { team: cfg.team || 'unknown', level: inferredLevel, matched: correct, pairs: TOTAL, score: points, bonus: 0, reason: 'complete', timestamp: Date.now() };
         if(pubWs && pubWs.readyState === WebSocket.OPEN) pubWs.send(JSON.stringify({ type: 'roundComplete', payload: entry }));
       }catch(e){console.error('send immediate roundComplete failed', e)}
       recordScoreAndAdvance('complete');
@@ -526,7 +528,8 @@ function evaluatePlayerInputs(playerInputs) {
       score = matched * 10;
     }
     const bonus = 0;
-    const entry = { team: cfg.team || 'unknown', level: currentLevel, matched, pairs, score, bonus, reason, timestamp: Date.now() };
+    const inferredLevel = Number(currentLevel) || (levelMode === 'memory' ? 2 : (levelMode === 'word' ? 3 : 1));
+    const entry = { team: cfg.team || 'unknown', level: inferredLevel, matched, pairs, score, bonus, reason, timestamp: Date.now() };
     try{
       const existing = JSON.parse(localStorage.getItem('puzzle_scores')||'[]');
       existing.push(entry);
@@ -651,23 +654,30 @@ function evaluatePlayerInputs(playerInputs) {
   }
 
   function updateWinnerFromTotals(){
-    const totalAEl = document.getElementById('totalA');
-    const totalBEl = document.getElementById('totalB');
-    if(!totalAEl || !totalBEl) return;
-    const a = Number(totalAEl.textContent) || 0;
-    const b = Number(totalBEl.textContent) || 0;
-    if(a === b){
-      setWinner('No winner');
-    } else if(a > b){
-      setWinner(getTeamDisplayName('A'));
-    } else {
-      setWinner(getTeamDisplayName('B'));
+    if(!winnerFromServer){
+      setWinner('Pending (complete all 3 levels)');
     }
   }
 
   function setLastRound(text){
     const lr = document.getElementById('lastRound');
     if(lr) lr.textContent = text;
+  }
+
+  function updateLeadingTeamFromTotals(a, b){
+    const scoreA = Number(a) || 0;
+    const scoreB = Number(b) || 0;
+    const nameA = getTeamDisplayName('A');
+    const nameB = getTeamDisplayName('B');
+    if(scoreA > scoreB){
+      setLastRound(`Leading: ${nameA} (Team A) — ${scoreA} vs ${scoreB}`);
+      return;
+    }
+    if(scoreB > scoreA){
+      setLastRound(`Leading: ${nameB} (Team B) — ${scoreB} vs ${scoreA}`);
+      return;
+    }
+    setLastRound(`Leading: Tie — ${scoreA} vs ${scoreB}`);
   }
 
   function resetAdminPanels(){
@@ -688,8 +698,9 @@ function evaluatePlayerInputs(playerInputs) {
     }catch(e){}
     adminState.progress.A = { matched: 0, pairs: 0 };
     adminState.progress.B = { matched: 0, pairs: 0 };
+    winnerFromServer = false;
     updateWinnerFromTotals();
-    setLastRound('Last: —');
+    setLastRound('Leading: —');
     try{ const cl = document.getElementById('currentLetter'); if(cl) cl.textContent = '—'; }catch(e){}
   }
 
@@ -760,6 +771,10 @@ function evaluatePlayerInputs(playerInputs) {
         if(totalBEl) totalBEl.textContent = String(Number(gs.scores.B) || 0);
         updateWinnerFromTotals();
       }
+      if(typeof gs.winnerName === 'string' && gs.winnerName){
+        winnerFromServer = true;
+        setWinner(gs.winnerName);
+      }
     }catch(e){ console.error('apply gameState failed', e); }
   }
 
@@ -817,6 +832,9 @@ function evaluatePlayerInputs(playerInputs) {
               // if server says finished, handle it
               if(msg.status === 'finished' || remaining <= 0){
                 finished = true; clearInterval(interval); disableMoves(); if(statusEl) statusEl.textContent = 'Time is up';
+                if(levelMode === 'word') disableWordInputs();
+                // Make sure timeout score is added to previous levels (L1+L2+L3 total).
+                if(!scoreRecorded) recordScoreAndAdvance('timeout', true, false);
               }
             }catch(e){console.error('timer msg error',e)}
           } else if(msg.type === 'pause'){
@@ -827,26 +845,9 @@ function evaluatePlayerInputs(playerInputs) {
             // authoritative finish
             try{ finished = true; clearInterval(interval); disableMoves(); if(statusEl) statusEl.textContent = msg.reason ? `Ended (${msg.reason})` : 'Time finished'; }catch(e){}
             try{ if(levelMode === 'word') disableWordInputs(); }catch(e){}
+            // Also submit this team's final score on timeout/force-end so totals accumulate.
+            try{ if(!scoreRecorded) recordScoreAndAdvance(msg.reason || 'timeout', true, false); }catch(e){}
             try{ const ls = document.getElementById('levelStatus'); if(ls) ls.textContent = 'Finished'; const g = document.getElementById('globalTimer'); if(g) g.textContent = '00:00'; }catch(e){}
-            // decide winner by completion %, allow tie to show no winner
-            try{
-              const a = adminState.progress.A || { matched: 0, pairs: 0 };
-              const b = adminState.progress.B || { matched: 0, pairs: 0 };
-              const pctA = a.pairs > 0 ? Math.round((a.matched / a.pairs) * 100) : 0;
-              const pctB = b.pairs > 0 ? Math.round((b.matched / b.pairs) * 100) : 0;
-              if(pctA === pctB){
-                setWinner('No winner');
-                setLastRound(`Last: Tie ${pctA}% - ${pctB}%`);
-              } else if(pctA > pctB){
-                const nameA = getTeamDisplayName('A');
-                setWinner(nameA);
-                setLastRound(`Last: ${nameA} ${pctA}% - ${pctB}%`);
-              } else {
-                const nameB = getTeamDisplayName('B');
-                setWinner(nameB);
-                setLastRound(`Last: ${nameB} ${pctB}% - ${pctA}%`);
-              }
-            }catch(e){}
           } else if(msg.type === 'teamProgress'){
             // update admin panels if present
             try{
@@ -906,9 +907,12 @@ function evaluatePlayerInputs(playerInputs) {
                 if(aTotalLabel) aTotalLabel.textContent = getTeamDisplayName('A');
                 if(bTotalLabel) bTotalLabel.textContent = getTeamDisplayName('B');
               }catch(e){}
+              updateLeadingTeamFromTotals(a, b);
               if(typeof msg.winnerName === 'string' && msg.winnerName){
+                winnerFromServer = true;
                 setWinner(msg.winnerName);
               } else {
+                winnerFromServer = false;
                 updateWinnerFromTotals();
               }
             }catch(e){console.error(e)}
@@ -921,6 +925,8 @@ function evaluatePlayerInputs(playerInputs) {
               } else if(cfgLevel.mode === 'word'){
                 setupWordLevel(cfgLevel);
               } else if(cfgLevel.mode === 'puzzle'){
+                currentLevel = Number(cfgLevel.level) || 1;
+                GAME.currentLevel = currentLevel;
                 // switch to standard puzzle image if provided
                 if(cfgLevel.url) applyImage(cfgLevel.url);
                 // reset to puzzle
@@ -941,18 +947,22 @@ function evaluatePlayerInputs(playerInputs) {
                 if(statusEl) statusEl.textContent = msg.payload && msg.payload.team ? `${msg.payload.team} completed the puzzle` : 'Round complete';
                 disableMoves();
                 if(levelMode === 'word') disableWordInputs();
-                if(!scoreRecorded) recordScoreAndAdvance('otherComplete', false, false);
+                // Record this team's current round score as well so totals across
+                // puzzle + memory + word are summed fairly for both teams.
+                if(!scoreRecorded) recordScoreAndAdvance('otherComplete', true, false);
               }
-              // show last round summary in admin UI if present
+              // show current leader (previous total + current round score)
               try{
                 const lr = msg.payload || {};
                 const lrTeamKey = normalizeTeamKey(lr.team || lr.teamDisplay);
-                const lrName = lr.teamDisplay || (lrTeamKey ? getTeamDisplayName(lrTeamKey) : (lr.team || 'unknown'));
-                const lastEl = document.getElementById('lastRound');
-                if(lastEl){
-                  const suffix = lrTeamKey ? ` (Team ${lrTeamKey})` : '';
-                  lastEl.textContent = `${lrName}${suffix} completed — score ${lr.score || 0}`;
-                }
+                const roundScore = Math.max(0, Number(lr.score) || 0);
+                const totalAEl = document.getElementById('totalA');
+                const totalBEl = document.getElementById('totalB');
+                let aNow = Number(totalAEl && totalAEl.textContent) || 0;
+                let bNow = Number(totalBEl && totalBEl.textContent) || 0;
+                if(lrTeamKey === 'A') aNow += roundScore;
+                if(lrTeamKey === 'B') bNow += roundScore;
+                updateLeadingTeamFromTotals(aNow, bNow);
                 updateWinnerFromTotals();
               }catch(e){}
             }catch(e){ console.error('handling roundComplete', e); }
@@ -1054,8 +1064,8 @@ function evaluatePlayerInputs(playerInputs) {
 
   function setupWordLevel(cfgLevel){
     levelMode = 'word';
-    currentLevel = 3;
-    GAME.currentLevel = 3;
+    currentLevel = Number(cfgLevel.level) || 3;
+    GAME.currentLevel = currentLevel;
     scoreRecorded = false;
     finished = false;
     const letter = (cfgLevel.letter || randomLetter()).toUpperCase();
@@ -1232,6 +1242,8 @@ function evaluatePlayerInputs(playerInputs) {
   function setupMemoryLevel(cfgLevel){
     // cfgLevel: { mode: 'memory', pairs: 5, timeLimit: 60, level: 2, items: optional array }
     levelMode = 'memory';
+    currentLevel = Number(cfgLevel.level) || 2;
+    GAME.currentLevel = currentLevel;
     scoreRecorded = false;
     memoryState = { pairs: cfgLevel.pairs || 4, timeLimit: cfgLevel.timeLimit || 60, level: cfgLevel.level || 0 };
     showLevelMode('memory');
