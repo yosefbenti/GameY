@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Live Dashboard — Team A vs Team B</title>
+  <style>
+    :root{
+      --bg:#0f172a;
+      --card:#111827;
+      --card-border:#1f2937;
+      --text:#e5e7eb;
+      --muted:#94a3b8;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      background:radial-gradient(circle at top,#1e293b 0%,var(--bg) 55%);
+      color:var(--text);
+      padding:18px;
+    }
+    .dashboard{
+      max-width:1800px;
+      margin:0 auto;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+    .top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    h1{
+      margin:0;
+      font-size:clamp(1.15rem,2vw,1.8rem);
+      font-weight:800;
+      letter-spacing:0.02em;
+    }
+    .sub{
+      color:var(--muted);
+      font-size:0.92rem;
+    }
+    .status-grid{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(140px,1fr));
+      gap:10px;
+    }
+    .pill{
+      background:rgba(255,255,255,0.04);
+      border:1px solid var(--card-border);
+      border-radius:12px;
+      padding:10px 12px;
+      min-height:62px;
+    }
+    .pill .k{
+      color:var(--muted);
+      font-size:0.78rem;
+      text-transform:uppercase;
+      letter-spacing:0.06em;
+      margin-bottom:5px;
+    }
+    .pill .v{
+      font-weight:700;
+      color:#f8fafc;
+      font-size:1rem;
+    }
+    .pill .v.ok{color:#22c55e}
+    .pill .v.warn{color:#f59e0b}
+    .pill .v.bad{color:#ef4444}
+    .boards{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+      min-height:calc(100vh - 130px);
+    }
+    .panel{
+      background:var(--card);
+      border:1px solid var(--card-border);
+      border-radius:14px;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      min-height:480px;
+    }
+    .panel h2{
+      margin:0;
+      padding:10px 14px;
+      border-bottom:1px solid var(--card-border);
+      font-size:1rem;
+      font-weight:700;
+      color:#f8fafc;
+      background:rgba(255,255,255,0.02);
+    }
+    .board-frame{
+      width:100%;
+      height:100%;
+      border:0;
+      flex:1;
+      pointer-events:none;
+      background:#0b1220;
+    }
+    .note{font-size:0.85rem;color:var(--muted)}
+
+    @media (max-width: 1080px){
+      .status-grid{grid-template-columns:repeat(2,minmax(140px,1fr))}
+      .boards{grid-template-columns:1fr;min-height:auto}
+      .panel{min-height:420px}
+    }
+  </style>
+</head>
+<body>
+  <main class="dashboard" aria-label="Live game dashboard">
+    <header class="top">
+      <div>
+        <h1>Live Dashboard — Team A vs Team B</h1>
+        <div class="sub">Read-only spectator view (updates automatically)</div>
+      </div>
+      <div class="note" id="lastUpdate">Waiting for live data…</div>
+    </header>
+
+    <section class="status-grid" aria-label="Live status summary">
+      <div class="pill">
+        <div class="k">Connection</div>
+        <div class="v warn" id="connectionState">Connecting…</div>
+      </div>
+      <div class="pill">
+        <div class="k">Current level</div>
+        <div class="v" id="levelState">—</div>
+      </div>
+      <div class="pill">
+        <div class="k">Timer</div>
+        <div class="v" id="timerState">00:00</div>
+      </div>
+      <div class="pill">
+        <div class="k">Totals</div>
+        <div class="v" id="totalsState">A: 0 | B: 0</div>
+      </div>
+    </section>
+
+    <section class="boards" aria-label="Team boards side by side">
+      <article class="panel" aria-label="Team A board">
+        <h2 id="teamAHeader">Team A — 0% — Score 0</h2>
+        <iframe class="board-frame" src="/teamA?view=1" title="Team A live board" loading="eager" sandbox="allow-scripts allow-same-origin"></iframe>
+      </article>
+      <article class="panel" aria-label="Team B board">
+        <h2 id="teamBHeader">Team B — 0% — Score 0</h2>
+        <iframe class="board-frame" src="/teamB?view=1" title="Team B live board" loading="eager" sandbox="allow-scripts allow-same-origin"></iframe>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    (function(){
+      const elConn = document.getElementById('connectionState');
+      const elLevel = document.getElementById('levelState');
+      const elTimer = document.getElementById('timerState');
+      const elTotals = document.getElementById('totalsState');
+      const elLast = document.getElementById('lastUpdate');
+      const elA = document.getElementById('teamAHeader');
+      const elB = document.getElementById('teamBHeader');
+
+      const state = {
+        names: { A: 'Team A', B: 'Team B' },
+        totals: { A: 0, B: 0 },
+        progress: {
+          A: { matched: 0, pairs: 0, score: 0 },
+          B: { matched: 0, pairs: 0, score: 0 },
+        },
+        levelText: '—',
+      };
+
+      function markConnection(label, tone){
+        if(!elConn) return;
+        elConn.textContent = label;
+        elConn.classList.remove('ok','warn','bad');
+        if(tone) elConn.classList.add(tone);
+      }
+
+      function touch(){
+        if(!elLast) return;
+        const now = new Date();
+        elLast.textContent = `Last update: ${now.toLocaleTimeString()}`;
+      }
+
+      function formatTime(seconds){
+        const n = Math.max(0, Number(seconds) || 0);
+        const m = Math.floor(n / 60);
+        const s = n % 60;
+        return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+      }
+
+      function normalizeTeam(raw){
+        const v = String(raw || '').trim().toLowerCase();
+        if(v === 'a' || v === 'teama' || v === 'team a') return 'A';
+        if(v === 'b' || v === 'teamb' || v === 'team b') return 'B';
+        return '';
+      }
+
+      function updateHeaders(){
+        const a = state.progress.A;
+        const b = state.progress.B;
+        const aPct = a.pairs > 0 ? Math.round((a.matched / a.pairs) * 100) : 0;
+        const bPct = b.pairs > 0 ? Math.round((b.matched / b.pairs) * 100) : 0;
+        if(elA) elA.textContent = `${state.names.A} — ${aPct}% — Score ${a.score}`;
+        if(elB) elB.textContent = `${state.names.B} — ${bPct}% — Score ${b.score}`;
+        if(elTotals) elTotals.textContent = `A: ${state.totals.A} | B: ${state.totals.B}`;
+      }
+
+      function applyLevel(msg){
+        const mode = String((msg && msg.mode) || '').toLowerCase();
+        const level = Number(msg && msg.level) || null;
+        if(mode === 'memory') state.levelText = `Level ${level || 2} — Memory`;
+        else if(mode === 'word') state.levelText = `Level ${level || 3} — Word`;
+        else if(mode === 'puzzle') state.levelText = `Level ${level || 1} — Puzzle`;
+        else if(level) state.levelText = `Level ${level}`;
+        if(elLevel && state.levelText) elLevel.textContent = state.levelText;
+      }
+
+      function connect(){
+        const wsProto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const wsHost = window.location.host || 'localhost:8000';
+        const ws = new WebSocket(`${wsProto}://${wsHost}`);
+
+        ws.addEventListener('open', ()=>{
+          markConnection('Connected', 'ok');
+          touch();
+          try{ ws.send(JSON.stringify({ type: 'stateRequest' })); }catch(e){}
+        });
+
+        ws.addEventListener('close', ()=>{
+          markConnection('Reconnecting…', 'warn');
+          setTimeout(connect, 1200);
+        });
+
+        ws.addEventListener('error', ()=>{
+          markConnection('Connection error', 'bad');
+        });
+
+        ws.addEventListener('message', (evt)=>{
+          let msg = null;
+          try{ msg = JSON.parse(evt.data); }catch(e){ return; }
+
+          if(msg.type === 'gameState'){
+            if(msg.names){
+              state.names.A = msg.names.A || state.names.A;
+              state.names.B = msg.names.B || state.names.B;
+            }
+            if(msg.scores){
+              state.totals.A = Number(msg.scores.A) || 0;
+              state.totals.B = Number(msg.scores.B) || 0;
+            }
+            if(msg.level) applyLevel(msg.level);
+            if(msg.timer && typeof msg.timer.remaining !== 'undefined' && elTimer){
+              elTimer.textContent = formatTime(msg.timer.remaining);
+            }
+            updateHeaders();
+            touch();
+            return;
+          }
+
+          if(msg.type === 'updateTeamName'){
+            const team = normalizeTeam(msg.team);
+            if(team && msg.name) state.names[team] = String(msg.name);
+            updateHeaders();
+            touch();
+            return;
+          }
+
+          if(msg.type === 'scoreUpdate'){
+            const t = msg.totals || {};
+            state.totals.A = Number(t.A) || 0;
+            state.totals.B = Number(t.B) || 0;
+            updateHeaders();
+            touch();
+            return;
+          }
+
+          if(msg.type === 'teamProgress'){
+            const p = msg.payload || {};
+            const team = normalizeTeam(p.team || p.teamDisplay);
+            if(!team) return;
+            const matched = Math.max(0, Number(p.matched) || 0);
+            const pairs = Math.max(0, Number(p.pairs) || 0);
+            state.progress[team].matched = matched;
+            state.progress[team].pairs = pairs;
+            state.progress[team].score = matched * 10;
+            updateHeaders();
+            touch();
+            return;
+          }
+
+          if(msg.type === 'timer'){
+            if(typeof msg.remaining !== 'undefined' && elTimer){
+              elTimer.textContent = formatTime(msg.remaining);
+            }
+            touch();
+            return;
+          }
+
+          if(msg.type === 'level'){
+            applyLevel(msg);
+            touch();
+          }
+        });
+      }
+
+      connect();
+    })();
+  </script>
+</body>
+</html>

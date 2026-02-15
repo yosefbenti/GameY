@@ -10,11 +10,18 @@
   <header>
     <h1>Team <span data-team-name>B</span> — Puzzle</h1>
   </header>
+  <section class="zoom-controls" aria-label="Board zoom controls">
+    <button id="zoomOutBtn" type="button" aria-label="Zoom out">−</button>
+    <span id="zoomValue" class="zoom-value" aria-live="polite">100%</span>
+    <button id="zoomInBtn" type="button" aria-label="Zoom in">+</button>
+    <button id="zoomResetBtn" type="button" aria-label="Reset zoom">Reset</button>
+  </section>
   <main class="boards">
     <div class="team">
       <section class="level-section level-puzzle" id="levelPuzzle">
         <h2>Team <span data-team-name>B</span> <span class="timer" id="timerB">00:00</span></h2>
         <div class="board" id="boardB"></div>
+        <div class="touch-hint">Touch mode: tap a puzzle piece, then tap another tile to swap.</div>
         <button id="holdShowBtn" class="secondary">Hold to show solved puzzle</button>
         <div class="score">Score: 0</div>
         <div class="completion">Completion: 0%</div>
@@ -64,6 +71,6 @@
       window.GAME_CONFIG = { team: 'B', containerId: 'boardB', ws: wsUrl };
     })();
   </script>
-  <script src="script.js?v=20260214a"></script>
+  <script src="script.js?v=20260215c"></script>
 </body>
 </html>

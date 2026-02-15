@@ -29,11 +29,13 @@ Open in your browser:
   Admin -> http://localhost:8000/admin
   Team A -> http://localhost:8000/teamA
   Team B -> http://localhost:8000/teamB
+  Dashboard -> http://localhost:8000/dashboard
 
 From other computers on the same network:
   Admin -> http://${LAN_IP}:8000/admin
   Team A -> http://${LAN_IP}:8000/teamA
   Team B -> http://${LAN_IP}:8000/teamB
+  Dashboard -> http://${LAN_IP}:8000/dashboard
 
 To stop them:
   kill ${COORD_PID}

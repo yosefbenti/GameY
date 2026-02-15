@@ -25,8 +25,16 @@ Open:
 - Admin: [http://localhost:8000/admin](http://localhost:8000/admin)
 - Team A: [http://localhost:8000/teamA](http://localhost:8000/teamA)
 - Team B: [http://localhost:8000/teamB](http://localhost:8000/teamB)
+- Dashboard: [http://localhost:8000/dashboard](http://localhost:8000/dashboard)
 
 From other devices on the same network, replace `localhost` with your server LAN IP.
+
+Example:
+
+- Admin: `http://192.168.100.161:8000/admin`
+- Team A: `http://192.168.100.161:8000/teamA`
+- Team B: `http://192.168.100.161:8000/teamB`
+- Dashboard: `http://192.168.100.161:8000/dashboard`
 
 ---
 

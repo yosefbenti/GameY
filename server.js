@@ -2,6 +2,7 @@
 // Requires: npm install ws
 const fs = require('fs');
 const http = require('http');
+const os = require('os');
 const path = require('path');
 const WebSocket = require('ws');
 
@@ -90,6 +91,8 @@ const httpServer = http.createServer((req, res) => {
       '/': 'admin.html',
       '/admin': 'admin.html',
       '/admin.html': 'admin.html',
+      '/dashboard': 'dashboard.html',
+      '/dashboard.html': 'dashboard.html',
       '/teamA': 'teamA.html',
       '/teamA.html': 'teamA.html',
       '/teamB': 'teamB.html',
@@ -237,8 +240,42 @@ const httpServer = http.createServer((req, res) => {
 
 const wss = new WebSocket.Server({ server: httpServer });
 
+function getLanIPv4List() {
+  try {
+    const nets = os.networkInterfaces();
+    const out = [];
+    Object.values(nets).forEach((entries) => {
+      (entries || []).forEach((entry) => {
+        if (!entry) return;
+        if (entry.family !== 'IPv4') return;
+        if (entry.internal) return;
+        if (!entry.address) return;
+        out.push(entry.address);
+      });
+    });
+    return Array.from(new Set(out));
+  } catch (error) {
+    return [];
+  }
+}
+
 httpServer.listen(PORT, HOST, () => {
   console.log(`WebSocket server is listening on ws://${HOST}:${PORT}`);
+  console.log('Open in your browser:');
+  console.log(`  Admin -> http://localhost:${PORT}/admin`);
+  console.log(`  Team A -> http://localhost:${PORT}/teamA`);
+  console.log(`  Team B -> http://localhost:${PORT}/teamB`);
+  console.log(`  Dashboard -> http://localhost:${PORT}/dashboard`);
+
+  const lanIps = getLanIPv4List();
+  if (lanIps.length) {
+    const ip = lanIps[0];
+    console.log('From other computers on the same network:');
+    console.log(`  Admin -> http://${ip}:${PORT}/admin`);
+    console.log(`  Team A -> http://${ip}:${PORT}/teamA`);
+    console.log(`  Team B -> http://${ip}:${PORT}/teamB`);
+    console.log(`  Dashboard -> http://${ip}:${PORT}/dashboard`);
+  }
 });
 
 const state = {
@@ -262,6 +299,18 @@ const state = {
     endAt: null,
     timeLimit: 120,
     pausedRemaining: null,
+  },
+  puzzleStates: {
+    A: null,
+    B: null,
+  },
+  memoryStates: {
+    A: null,
+    B: null,
+  },
+  wordStates: {
+    A: null,
+    B: null,
   },
   publicHost: null,
   gameHistory: loadGameHistoryFromDisk(),
@@ -417,6 +466,16 @@ function saveDataUrlImage(dataUrl) {
 function resetRoundScoresOnly() {
   state.scoredTeamsThisRound.clear();
   state.roundScores = { A: 0, B: 0 };
+}
+
+function resetPuzzleStates() {
+  state.puzzleStates = { A: null, B: null };
+}
+
+function resetLiveBoardStates() {
+  resetPuzzleStates();
+  state.memoryStates = { A: null, B: null };
+  state.wordStates = { A: null, B: null };
 }
 
 function resetAllScores() {
@@ -595,6 +654,25 @@ function replayStateToClient(ws) {
       status: remaining <= 0 ? 'finished' : (state.session.paused ? 'paused' : 'running'),
     });
   }
+
+  if (state.puzzleStates && state.puzzleStates.A && Array.isArray(state.puzzleStates.A.layout)) {
+    sendToClient(ws, { type: 'puzzleState', payload: { ...state.puzzleStates.A } });
+  }
+  if (state.puzzleStates && state.puzzleStates.B && Array.isArray(state.puzzleStates.B.layout)) {
+    sendToClient(ws, { type: 'puzzleState', payload: { ...state.puzzleStates.B } });
+  }
+  if (state.memoryStates && state.memoryStates.A && Array.isArray(state.memoryStates.A.cards)) {
+    sendToClient(ws, { type: 'memoryState', payload: { ...state.memoryStates.A } });
+  }
+  if (state.memoryStates && state.memoryStates.B && Array.isArray(state.memoryStates.B.cards)) {
+    sendToClient(ws, { type: 'memoryState', payload: { ...state.memoryStates.B } });
+  }
+  if (state.wordStates && state.wordStates.A && state.wordStates.A.letter) {
+    sendToClient(ws, { type: 'wordState', payload: { ...state.wordStates.A } });
+  }
+  if (state.wordStates && state.wordStates.B && state.wordStates.B.letter) {
+    sendToClient(ws, { type: 'wordState', payload: { ...state.wordStates.B } });
+  }
 }
 
 function broadcast(msgObj) {
@@ -670,8 +748,87 @@ wss.on('connection', (ws, req) => {
       return;
     }
 
+    if (data.type === 'puzzleState') {
+      const payload = data.payload || {};
+      const teamKey = normalizeTeamKey(payload.team || data.team);
+      const layout = Array.isArray(payload.layout)
+        ? payload.layout.map((id) => (id == null ? null : String(id)))
+        : null;
+      if (!teamKey || !layout || !layout.length) return;
+
+      const statePayload = {
+        team: teamKey,
+        teamDisplay: state.teamNames[teamKey] || teamKey,
+        layout,
+        timestamp: Date.now(),
+      };
+      state.puzzleStates[teamKey] = statePayload;
+      broadcast({ type: 'puzzleState', payload: statePayload });
+      return;
+    }
+
+    if (data.type === 'memoryState') {
+      const payload = data.payload || {};
+      const teamKey = normalizeTeamKey(payload.team || data.team);
+      const cards = Array.isArray(payload.cards) ? payload.cards : null;
+      if (!teamKey || !cards || !cards.length) return;
+      const normalizedCards = cards.map((c) => {
+        const card = c || {};
+        return {
+          val: String(card.val || ''),
+          revealed: Boolean(card.revealed),
+          matched: Boolean(card.matched),
+        };
+      });
+      const statePayload = {
+        team: teamKey,
+        teamDisplay: state.teamNames[teamKey] || teamKey,
+        pairs: Math.max(0, Number(payload.pairs) || 0),
+        matched: Math.max(0, Number(payload.matched) || 0),
+        cards: normalizedCards,
+        timestamp: Date.now(),
+      };
+      state.memoryStates[teamKey] = statePayload;
+      broadcast({ type: 'memoryState', payload: statePayload });
+      return;
+    }
+
+    if (data.type === 'wordState') {
+      const payload = data.payload || {};
+      const teamKey = normalizeTeamKey(payload.team || data.team);
+      const letter = String(payload.letter || '').toUpperCase();
+      const categories = Array.isArray(payload.categories) ? payload.categories.map((c) => String(c || '')) : [];
+      const inputs = Array.isArray(payload.inputs)
+        ? payload.inputs.map((row) => ({
+            value: String((row && row.value) || ''),
+            invalid: Boolean(row && row.invalid),
+            skipped: Boolean(row && row.skipped),
+          }))
+        : [];
+      if (!teamKey || !letter) return;
+      const statePayload = {
+        team: teamKey,
+        teamDisplay: state.teamNames[teamKey] || teamKey,
+        letter,
+        categories,
+        inputs,
+        correctCount: Math.max(0, Number(payload.correctCount) || 0),
+        total: Math.max(0, Number(payload.total) || categories.length || inputs.length || 0),
+        status: String(payload.status || ''),
+        finished: Boolean(payload.finished),
+        timestamp: Date.now(),
+      };
+      state.wordStates[teamKey] = statePayload;
+      broadcast({ type: 'wordState', payload: statePayload });
+      return;
+    }
+
     if (data.type === 'start' || data.type === 'level' || data.type === 'next' || data.type === 'reset') {
       resetRoundScoresOnly();
+    }
+
+    if (data.type === 'reset' || data.type === 'resetAll' || data.type === 'level' || data.type === 'image' || data.type === 'next') {
+      resetLiveBoardStates();
     }
 
     if (data.type === 'start') {
@@ -802,6 +959,21 @@ wss.on('connection', (ws, req) => {
           state.session.endAt = null;
           state.session.paused = false;
           state.session.pausedRemaining = null;
+
+          // Finalize opponent score immediately from latest progress snapshot,
+          // so round totals are complete even before loser client submits.
+          const otherTeamKey = teamKey === 'A' ? 'B' : 'A';
+          if (!state.scoredTeamsThisRound.has(otherTeamKey)) {
+            const opponentBaseScore = Math.max(0, Number(state.roundScores[otherTeamKey]) || 0);
+            if (!state.levelScores[otherTeamKey]) state.levelScores[otherTeamKey] = { 1: 0, 2: 0, 3: 0 };
+            state.levelScores[otherTeamKey][level] = opponentBaseScore;
+            if (!state.completedLevels[otherTeamKey]) state.completedLevels[otherTeamKey] = new Set();
+            state.completedLevels[otherTeamKey].add(level);
+            state.scoredTeamsThisRound.add(otherTeamKey);
+            state.roundScores[otherTeamKey] = 0;
+            state.totals[otherTeamKey] = computeTeamTotal(otherTeamKey);
+          }
+
           broadcast({
             type: 'timerFinished',
             reason: 'opponentComplete',
