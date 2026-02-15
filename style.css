@@ -3,6 +3,8 @@
   --board-zoom: 1;
   --board-base-size: min(80vmin, 900px);
   --board-size: calc(var(--board-base-size) * var(--board-zoom));
+  --word-board-width: var(--board-size);
+  --word-board-height: var(--board-size);
 }
 *{box-sizing:border-box}
 body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;line-height:1.3;margin:16px;color:#111}
@@ -51,8 +53,8 @@ footer{margin-top:12px;color:#444}
   border:1px solid #e5e7eb;
   border-radius:12px;
   background:#f8fafc;
-  width:var(--board-size);
-  height:var(--board-size);
+  width:var(--word-board-width);
+  height:var(--word-board-height);
   max-width:none;
   max-height:none;
   display:flex;
@@ -100,6 +102,43 @@ footer{margin-top:12px;color:#444}
 .word-input.invalid{border-color:#ef4444;background:#fff1f2}
 .word-input.skipped{border-color:#f59e0b;background:#fffbeb}
 .word-status{margin-top:8px;font-size:0.95rem;color:#334155}
+
+/* Read-only embedded board shown on /dashboard (team pages with ?view=1) */
+.spectator-view{
+  --board-base-size: min(86vmin, 980px);
+  --word-board-width: min(94vw, 1160px);
+  --word-board-height: min(56vh, 560px);
+}
+
+.spectator-view .level-word .word-challenge{
+  width:var(--word-board-width);
+  max-width:100%;
+  padding:14px 22px;
+}
+
+.spectator-view .team{
+  max-width:calc(var(--word-board-width) + 40px);
+}
+
+.spectator-view .level-word .categories{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px 16px;
+  margin-bottom:8px;
+  padding:0 8px;
+}
+
+.spectator-view .level-word .category-row{
+  grid-template-columns:130px 1fr;
+}
+
+.spectator-view .level-word .letter-display{
+  margin-bottom:6px;
+}
+
+.spectator-view #submitWordsBtn{
+  display:none !important;
+}
 
 @media (max-width:800px){
   .boards{flex-direction:column}

@@ -403,6 +403,9 @@ function evaluatePlayerInputs(playerInputs) {
   const wordStatusEl = document.getElementById('wordStatus');
   const queryParams = new URLSearchParams(window.location.search || '');
   const isSpectator = queryParams.get('view') === '1' || cfg.spectator === true;
+  if(isSpectator){
+    try{ document.body.classList.add('spectator-view'); }catch(e){}
+  }
   const touchCapable = (typeof window !== 'undefined') && (
     ('ontouchstart' in window) ||
     (navigator.maxTouchPoints > 0) ||
