@@ -823,12 +823,20 @@ function evaluatePlayerInputs(playerInputs) {
     timeLimit = limitSeconds;
     remaining = timeLimit;
     started = true; finished = false;
-    showLevelMode(levelMode === 'word' ? 'word' : 'puzzle');
+    showLevelMode(levelMode === 'word' ? 'word' : (levelMode === 'memory' ? 'memory' : 'puzzle'));
     if(statusEl) statusEl.textContent = 'Game started';
     const activeTimer = (levelMode === 'word' ? wordTimerEl : puzzleTimerEl);
     if(activeTimer) activeTimer.textContent = formatTime(remaining);
     try{ const g = document.getElementById('globalTimer'); if(g) g.textContent = formatTime(remaining); }catch(e){}
     clearInterval(interval);
+
+    if(levelMode === 'memory'){
+      if(isSpectator) disableMoves();
+      else runMemoryInitialPreview();
+      disableWordInputs();
+      return;
+    }
+
     if(isSpectator) disableMoves();
     else enableMoves();
     enableWordInputs();
@@ -844,6 +852,9 @@ function evaluatePlayerInputs(playerInputs) {
     levelMode = 'puzzle';
     if(memoryState && memoryState.previewTimeout){
       try{ clearTimeout(memoryState.previewTimeout); }catch(e){}
+    }
+    if(memoryState && memoryState.initialPreviewTimeout){
+      try{ clearTimeout(memoryState.initialPreviewTimeout); }catch(e){}
     }
     memoryState = null;
     wordState = null;
@@ -1618,6 +1629,37 @@ function evaluatePlayerInputs(playerInputs) {
   }
 
   // Memory level implementation
+  function runMemoryInitialPreview(){
+    if(levelMode !== 'memory' || !memoryState || !board) return;
+    const allCards = Array.from(board.querySelectorAll('.card'));
+    if(!allCards.length) return;
+
+    if(memoryState.initialPreviewTimeout){
+      try{ clearTimeout(memoryState.initialPreviewTimeout); }catch(e){}
+      memoryState.initialPreviewTimeout = null;
+    }
+
+    allCards.forEach(c=>{
+      c.textContent = c.dataset.val;
+      c.disabled = true;
+    });
+    sendMemoryState('initialReveal', true);
+
+    memoryState.initialPreviewTimeout = setTimeout(()=>{
+      if(levelMode !== 'memory' || !board) {
+        memoryState.initialPreviewTimeout = null;
+        return;
+      }
+      const liveCards = Array.from(board.querySelectorAll('.card'));
+      liveCards.forEach(c=>{
+        if(!c.classList.contains('matched')) c.textContent = '';
+        c.disabled = false;
+      });
+      memoryState.initialPreviewTimeout = null;
+      sendMemoryState('initial', true);
+    }, 3000);
+  }
+
   function setupMemoryLevel(cfgLevel){
     // cfgLevel: { mode: 'memory', pairs: 5, timeLimit: 60, level: 2, items: optional array }
     levelMode = 'memory';
@@ -1689,18 +1731,19 @@ function evaluatePlayerInputs(playerInputs) {
       return;
     }
 
-    // active player: show all briefly then hide
-    allCards.forEach(c=>{ c.textContent = c.dataset.val; });
-    setTimeout(()=>{
-      allCards.forEach(c=> c.textContent = '');
-      sendMemoryState('initial', true);
-    }, 2000);
+    // active player waits for Start; keep cards hidden + disabled until timer starts
+    allCards.forEach(c=>{
+      c.textContent = '';
+      c.disabled = true;
+    });
+    sendMemoryState('initialHidden', true);
   }
 
   function onMemoryClick(e){
     if(levelMode !== 'memory' || finished) return;
     if(isSpectator) return;
     const btn = e.currentTarget;
+    if(btn.disabled) return;
     if(btn.classList.contains('matched')) return;
     // if no card is open -> reveal as preview and auto-hide after 1s
     if(!memoryState.opened || memoryState.opened.length === 0){
