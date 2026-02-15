@@ -120,6 +120,15 @@ footer{margin-top:12px;color:#444}
   max-width:calc(var(--word-board-width) + 40px);
 }
 
+.spectator-view .level-puzzle .board{
+  width:min(90vw, 1020px) !important;
+  height:min(62vh, 620px) !important;
+}
+
+.spectator-view #holdShowBtn{
+  display:none !important;
+}
+
 .spectator-view .level-word .categories{
   display:grid;
   grid-template-columns:1fr;

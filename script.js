@@ -689,6 +689,7 @@ function evaluatePlayerInputs(playerInputs) {
     const broadcast = options.broadcast !== false;
     if(!board) return;
     if(levelMode === 'word') return;
+    if(solvedPreviewActive) return;
     if(finished) return; // stop updating scores after round finished
     const correct = checkCompletionForContainer(board);
     const points = correct * 10;
@@ -1195,7 +1196,11 @@ function evaluatePlayerInputs(playerInputs) {
                 return;
               }
               restoreBoardState(payload.layout);
-              updateScores({ broadcast: false });
+              const reason = String(payload.reason || '');
+              const isPreviewSync = reason === 'previewShow' || reason === 'previewHide';
+              if(!isPreviewSync){
+                updateScores({ broadcast: false });
+              }
             }catch(e){ console.error('apply puzzleState failed', e); }
           } else if(msg.type === 'memoryState'){
             try{
@@ -1796,13 +1801,14 @@ function evaluatePlayerInputs(playerInputs) {
       solvedPreviewSnapshot = captureBoardState();
       setBoardToSolved();
       solvedPreviewActive = true;
+      sendPuzzleState('previewShow', true);
       return;
     }
     if(!solvedPreviewActive) return;
     restoreBoardState(solvedPreviewSnapshot);
     solvedPreviewSnapshot = null;
     solvedPreviewActive = false;
-    updateScores();
+    sendPuzzleState('previewHide', true);
   }
 
   if(holdShowBtn){
