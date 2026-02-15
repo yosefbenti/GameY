@@ -131,6 +131,240 @@
   let wsRecoveryScheduled = false;
   let lastAuthoritativeLevelSig = '';
   let winnerFromServer = false;
+  let startCountdownInterval = null;
+  let startCountdownOverlayEl = null;
+  let countdownMaskedLetter = null;
+  let countdownAudioCtx = null;
+  let countdownLastAnnounced = null;
+  let heartbeatInterval = null;
+
+  function getCountdownAudioContext(){
+    if(countdownAudioCtx) return countdownAudioCtx;
+    try{
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if(!Ctx) return null;
+      countdownAudioCtx = new Ctx();
+      return countdownAudioCtx;
+    }catch(e){
+      return null;
+    }
+  }
+
+  function primeCountdownAudio(){
+    const ctx = getCountdownAudioContext();
+    if(!ctx) return;
+    if(ctx.state === 'suspended'){
+      try{ ctx.resume(); }catch(e){}
+    }
+  }
+
+  function playCountdownBeep(secondLeft){
+    const ctx = getCountdownAudioContext();
+    if(!ctx) return;
+    if(ctx.state === 'suspended'){
+      try{ ctx.resume(); }catch(e){ return; }
+    }
+    if(ctx.state !== 'running') return;
+
+    const isFinal = Number(secondLeft) <= 1;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = isFinal ? 'triangle' : 'sine';
+    osc.frequency.setValueAtTime(isFinal ? 1320 : 980, now);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(isFinal ? 0.075 : 0.05, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + (isFinal ? 0.24 : 0.14));
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + (isFinal ? 0.26 : 0.16));
+  }
+
+  function stopHeartbeatSound(){
+    if(heartbeatInterval){
+      clearInterval(heartbeatInterval);
+      heartbeatInterval = null;
+    }
+  }
+
+  function playHeartbeatSound(){
+    const ctx = getCountdownAudioContext();
+    if(!ctx) return;
+    if(ctx.state === 'suspended'){
+      try{ ctx.resume(); }catch(e){ return; }
+    }
+    if(ctx.state !== 'running') return;
+
+    const now = ctx.currentTime;
+    const noiseBuffer = ctx.createBuffer(1, Math.max(1, Math.floor(ctx.sampleRate * 0.03)), ctx.sampleRate);
+    const channel = noiseBuffer.getChannelData(0);
+    for(let i=0;i<channel.length;i++) channel[i] = (Math.random() * 2 - 1) * 0.7;
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(2100, now);
+    filter.Q.setValueAtTime(8, now);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.08, now + 0.004);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    noise.start(now);
+    noise.stop(now + 0.055);
+  }
+
+  function updateHeartbeatForTone(tone){
+    const shouldPlay = tone === 'danger' && started && !finished;
+    if(!shouldPlay){
+      stopHeartbeatSound();
+      return;
+    }
+    if(heartbeatInterval) return;
+    playHeartbeatSound();
+    heartbeatInterval = setInterval(playHeartbeatSound, 1000);
+  }
+
+  window.addEventListener('pointerdown', primeCountdownAudio, { passive: true });
+  window.addEventListener('keydown', primeCountdownAudio);
+
+  function setWordLetterVisible(isVisible){
+    if(levelMode !== 'word') return;
+    const actualLetter = (wordState && wordState.letter)
+      ? String(wordState.letter || '').toUpperCase()
+      : (countdownMaskedLetter || '—');
+    const displayLetter = isVisible ? (actualLetter || '—') : '—';
+    if(wordLetterEl) wordLetterEl.textContent = displayLetter;
+    try{ const cl = document.getElementById('currentLetter'); if(cl) cl.textContent = displayLetter; }catch(e){}
+
+    if(wordSection){
+      const inputs = wordSection.querySelectorAll('input.word-input');
+      inputs.forEach(input=>{ input.placeholder = `Starts with ${displayLetter}`; });
+    }
+  }
+
+  function setCountdownVisualMask(isMasked){
+    if(levelMode === 'puzzle' && board){
+      if(isMasked){
+        if(typeof board.dataset.prevCountdownVisibility === 'undefined'){
+          board.dataset.prevCountdownVisibility = board.style.visibility || '';
+        }
+        board.style.visibility = 'hidden';
+      }else{
+        const prev = board.dataset.prevCountdownVisibility;
+        board.style.visibility = typeof prev === 'string' ? prev : '';
+        delete board.dataset.prevCountdownVisibility;
+      }
+    }
+
+    if(levelMode === 'word'){
+      if(isMasked){
+        countdownMaskedLetter = (wordLetterEl && wordLetterEl.textContent) ? String(wordLetterEl.textContent) : null;
+        setWordLetterVisible(false);
+      }else{
+        setWordLetterVisible(true);
+        countdownMaskedLetter = null;
+      }
+    }
+  }
+
+  function clearStartCountdownInterval(){
+    if(startCountdownInterval){
+      clearInterval(startCountdownInterval);
+      startCountdownInterval = null;
+    }
+  }
+
+  function ensureStartCountdownOverlay(){
+    if(startCountdownOverlayEl) return startCountdownOverlayEl;
+    const overlay = document.createElement('div');
+    overlay.className = 'start-countdown-overlay';
+    overlay.setAttribute('aria-live', 'polite');
+    overlay.innerHTML = '<div class="start-countdown-box"><div class="start-countdown-label">Starting in</div><div class="start-countdown-value" id="startCountdownValue">5</div><button id="enableCountdownSoundBtn" class="countdown-sound-btn" type="button">Enable sound</button><div id="countdownSoundHelp" class="countdown-sound-help">Tap to enable countdown sound on this device</div></div>';
+    const enableBtn = overlay.querySelector('#enableCountdownSoundBtn');
+    if(enableBtn){
+      enableBtn.addEventListener('click', ()=>{
+        primeCountdownAudio();
+        const current = Number(countdownLastAnnounced) || 1;
+        playCountdownBeep(current);
+        const ctx = getCountdownAudioContext();
+        const unlocked = ctx && ctx.state === 'running';
+        enableBtn.style.display = unlocked ? 'none' : '';
+        const helpEl = overlay.querySelector('#countdownSoundHelp');
+        if(helpEl) helpEl.style.display = unlocked ? 'none' : '';
+      });
+    }
+    document.body.appendChild(overlay);
+    startCountdownOverlayEl = overlay;
+    return overlay;
+  }
+
+  function setCountdownLock(isLocked){
+    if(isLocked){
+      setCountdownVisualMask(true);
+      disableMoves();
+      disableWordInputs();
+      if(levelMode === 'memory' && board){
+        const cards = board.querySelectorAll('.card');
+        cards.forEach(c=>{ c.disabled = true; });
+      }
+      return;
+    }
+    setCountdownVisualMask(false);
+    if(levelMode === 'word'){
+      if(!isSpectator) enableWordInputs();
+      return;
+    }
+    if(levelMode === 'memory' && board){
+      const cards = board.querySelectorAll('.card');
+      cards.forEach(c=>{ c.disabled = false; });
+      return;
+    }
+    if(!isSpectator) enableMoves();
+  }
+
+  function hideStartCountdown(){
+    clearStartCountdownInterval();
+    if(startCountdownOverlayEl) startCountdownOverlayEl.classList.remove('active');
+    countdownLastAnnounced = null;
+    setCountdownLock(false);
+  }
+
+  function showStartCountdown(seconds, endsAt){
+    const overlay = ensureStartCountdownOverlay();
+    const valueEl = overlay.querySelector('#startCountdownValue');
+    const enableBtn = overlay.querySelector('#enableCountdownSoundBtn');
+    const helpEl = overlay.querySelector('#countdownSoundHelp');
+    clearStartCountdownInterval();
+    countdownLastAnnounced = null;
+    overlay.classList.add('active');
+    setCountdownLock(true);
+
+    const ctx = getCountdownAudioContext();
+    const needsUnlock = !ctx || ctx.state !== 'running';
+    if(enableBtn) enableBtn.style.display = needsUnlock ? '' : 'none';
+    if(helpEl) helpEl.style.display = needsUnlock ? '' : 'none';
+
+    const fallbackEndsAt = Date.now() + (Math.max(1, Number(seconds) || 5) * 1000);
+    const target = Number(endsAt) || fallbackEndsAt;
+    const render = ()=>{
+      const left = Math.max(0, Math.ceil((target - Date.now()) / 1000));
+      const display = Math.max(1, left);
+      if(valueEl) valueEl.textContent = String(display);
+      if(display !== countdownLastAnnounced){
+        countdownLastAnnounced = display;
+        playCountdownBeep(display);
+      }
+      if(left <= 0) clearStartCountdownInterval();
+    };
+    render();
+    startCountdownInterval = setInterval(render, 100);
+  }
 
   function scheduleWsRecovery(reason){
     if(wsRecoveryScheduled) return;
@@ -424,6 +658,43 @@ function evaluatePlayerInputs(playerInputs) {
     return `${m}:${ss}`;
   }
 
+  function getTimerTone(sec, limitSec){
+    const limit = Math.max(1, Number(limitSec) || 1);
+    const remainingSec = Math.max(0, Number(sec) || 0);
+    if(remainingSec <= Math.floor(limit / 4)) return 'danger'; // 3/4 elapsed
+    if(remainingSec <= Math.floor(limit / 2)) return 'warn';   // 1/2 elapsed
+    return 'ok';
+  }
+
+  function applyTimerTone(el, tone){
+    if(!el || !el.classList) return;
+    el.classList.remove('timer-ok', 'timer-warn', 'timer-danger');
+    el.classList.add(`timer-${tone}`);
+  }
+
+  function updateTimerDisplays(sec, limitSec){
+    const safeSec = Math.max(0, Number(sec) || 0);
+    const safeLimit = Math.max(1, Number(limitSec) || Number(timeLimit) || 120);
+    const text = formatTime(safeSec);
+    const tone = getTimerTone(safeSec, safeLimit);
+    updateHeartbeatForTone(tone);
+    if(puzzleTimerEl){
+      puzzleTimerEl.textContent = text;
+      applyTimerTone(puzzleTimerEl, tone);
+    }
+    if(wordTimerEl){
+      wordTimerEl.textContent = text;
+      applyTimerTone(wordTimerEl, tone);
+    }
+    try{
+      const g = document.getElementById('globalTimer');
+      if(g){
+        g.textContent = text;
+        applyTimerTone(g, tone);
+      }
+    }catch(e){}
+  }
+
   function makeBoard(container){
     container.innerHTML='';
     for(let i=0;i<TOTAL;i++){
@@ -712,6 +983,7 @@ function evaluatePlayerInputs(playerInputs) {
   function endGame(winner, remainingSec){
     if(isSpectator) return;
     finished = true;
+    stopHeartbeatSound();
     clearInterval(interval);
     if(statusEl) statusEl.textContent = `${winner} completed the puzzle!`;
     if(puzzleScoreEl){
@@ -804,13 +1076,11 @@ function evaluatePlayerInputs(playerInputs) {
   function tick(){
     if(finished) return;
     remaining -= 1;
-    const activeTimer = (levelMode === 'word' ? wordTimerEl : puzzleTimerEl);
-    if(activeTimer) activeTimer.textContent = formatTime(remaining);
-    // also update admin global timer display if present
-    try{ const g = document.getElementById('globalTimer'); if(g) g.textContent = formatTime(remaining); }catch(e){}
+    updateTimerDisplays(remaining, timeLimit);
     if(remaining<=0){
       clearInterval(interval);
       finished = true;
+      stopHeartbeatSound();
       if(statusEl) statusEl.textContent = 'Time is up';
       if(levelMode === 'word') disableWordInputs();
       disableMoves();
@@ -820,14 +1090,13 @@ function evaluatePlayerInputs(playerInputs) {
 
   function startLocalTimer(atStartTimestamp, limitSeconds){
     // Server is authoritative for timer synchronization across different devices.
+    hideStartCountdown();
     timeLimit = limitSeconds;
     remaining = timeLimit;
     started = true; finished = false;
     showLevelMode(levelMode === 'word' ? 'word' : (levelMode === 'memory' ? 'memory' : 'puzzle'));
     if(statusEl) statusEl.textContent = 'Game started';
-    const activeTimer = (levelMode === 'word' ? wordTimerEl : puzzleTimerEl);
-    if(activeTimer) activeTimer.textContent = formatTime(remaining);
-    try{ const g = document.getElementById('globalTimer'); if(g) g.textContent = formatTime(remaining); }catch(e){}
+    updateTimerDisplays(remaining, timeLimit);
     clearInterval(interval);
 
     if(levelMode === 'memory'){
@@ -844,6 +1113,8 @@ function evaluatePlayerInputs(playerInputs) {
   }
 
   function resetLocal(){
+    stopHeartbeatSound();
+    hideStartCountdown();
     clearInterval(interval);
     started = false; finished = false;
     scoreRecorded = false;
@@ -862,9 +1133,7 @@ function evaluatePlayerInputs(playerInputs) {
     pendingWordSnapshot = null;
     resetWordUI();
     if(statusEl) statusEl.textContent = 'Waiting to start';
-    if(puzzleTimerEl) puzzleTimerEl.textContent = formatTime(remaining);
-    if(wordTimerEl) wordTimerEl.textContent = formatTime(remaining);
-    try{ const g = document.getElementById('globalTimer'); if(g) g.textContent = formatTime(remaining); }catch(e){}
+    updateTimerDisplays(remaining, timeLimit);
     if(board){
       board.style.gridTemplateColumns = `repeat(${COLS}, 1fr)`;
       board.style.gridTemplateRows = `repeat(${ROWS}, 1fr)`;
@@ -876,6 +1145,7 @@ function evaluatePlayerInputs(playerInputs) {
     if(isSpectator) disableMoves();
     else enableMoves();
     showLevelMode('puzzle');
+    if(!started) setCountdownVisualMask(true);
     updateScores();
     sendPuzzleState('reset', true);
   }
@@ -911,6 +1181,45 @@ function evaluatePlayerInputs(playerInputs) {
   function setWinner(text){
     const w = document.getElementById('winner');
     if(w) w.textContent = text;
+    renderWinnerBanner(text);
+  }
+
+  function ensureWinnerBanner(){
+    try{
+      if(isSpectator) return null;
+      if(document.body && document.body.classList && document.body.classList.contains('admin-page')) return null;
+    }catch(e){}
+    let el = document.getElementById('gameWinnerBanner');
+    if(el) return el;
+    el = document.createElement('div');
+    el.id = 'gameWinnerBanner';
+    el.className = 'game-winner-banner';
+    document.body.appendChild(el);
+    return el;
+  }
+
+  function isPendingWinnerText(text){
+    const t = String(text || '').trim().toLowerCase();
+    if(!t) return true;
+    if(t.includes('pending')) return true;
+    if(t === '—' || t === '-') return true;
+    return false;
+  }
+
+  function renderWinnerBanner(text){
+    const banner = ensureWinnerBanner();
+    if(!banner) return;
+    if(isPendingWinnerText(text)){
+      banner.classList.remove('show', 'tie');
+      banner.textContent = '';
+      return;
+    }
+    const raw = String(text || '').trim();
+    const lower = raw.toLowerCase();
+    const isTie = lower.includes('tie') || lower.includes('no winner');
+    banner.classList.toggle('tie', isTie);
+    banner.textContent = isTie ? '🏁 Final Result: Tie' : `🏆 Winner: ${raw}`;
+    banner.classList.add('show');
   }
 
   function updateWinnerFromTotals(){
@@ -1024,9 +1333,7 @@ function evaluatePlayerInputs(playerInputs) {
       if(typeof timer.remaining !== 'undefined' && timer.remaining !== null){
         remaining = Number(timer.remaining);
       }
-      const activeTimer = (levelMode === 'word' ? wordTimerEl : puzzleTimerEl);
-      if(activeTimer && Number.isFinite(remaining)) activeTimer.textContent = formatTime(remaining);
-      const g = document.getElementById('globalTimer'); if(g && Number.isFinite(remaining)) g.textContent = formatTime(remaining);
+      if(Number.isFinite(remaining)) updateTimerDisplays(remaining, timeLimit);
 
       if(timer.paused){
         clearInterval(interval);
@@ -1119,10 +1426,15 @@ function evaluatePlayerInputs(playerInputs) {
           } else if(msg.type === 'start'){
             startLocalTimer(msg.start, msg.timeLimit);
             // admin UI: update global timer and status
-            try{ const g = document.getElementById('globalTimer'); if(g) g.textContent = formatTime(msg.timeLimit); const ls = document.getElementById('levelStatus'); if(ls) ls.textContent = 'Running'; }catch(e){}
+            try{ const ls = document.getElementById('levelStatus'); if(ls) ls.textContent = 'Running'; }catch(e){}
+          } else if(msg.type === 'startCountdown'){
+            showStartCountdown(msg.seconds, msg.endsAt);
+            try{ const ls = document.getElementById('levelStatus'); if(ls) ls.textContent = 'Starting...'; }catch(e){}
+          } else if(msg.type === 'startCountdownCancel'){
+            hideStartCountdown();
           } else if(msg.type === 'reset'){
             resetLocal();
-            try{ const g = document.getElementById('globalTimer'); if(g) g.textContent = '00:00'; const ls = document.getElementById('levelStatus'); if(ls) ls.textContent = 'Idle'; }catch(e){}
+            try{ const ls = document.getElementById('levelStatus'); if(ls) ls.textContent = 'Idle'; }catch(e){}
             resetAdminPanels();
           } else if(msg.type === 'image'){
             // apply new image URL and rebuild board
@@ -1139,6 +1451,7 @@ function evaluatePlayerInputs(playerInputs) {
             try{
               if(typeof msg.remaining !== 'undefined'){
                 remaining = msg.remaining;
+                if(typeof msg.timeLimit !== 'undefined') timeLimit = Number(msg.timeLimit) || timeLimit;
                 if(remaining > 0 && msg.status !== 'paused'){
                   if(finished){
                     finished = false;
@@ -1146,14 +1459,12 @@ function evaluatePlayerInputs(playerInputs) {
                     enableWordInputs();
                   }
                 }
-                const activeTimer = (levelMode === 'word' ? wordTimerEl : puzzleTimerEl);
-                if(activeTimer) activeTimer.textContent = formatTime(remaining);
-                // admin UI
-                const g = document.getElementById('globalTimer'); if(g) g.textContent = formatTime(remaining);
+                updateTimerDisplays(remaining, timeLimit);
               }
               // if server says finished, handle it
               if(msg.status === 'finished' || remaining <= 0){
                 finished = true; clearInterval(interval); disableMoves(); if(statusEl) statusEl.textContent = 'Time is up';
+                stopHeartbeatSound();
                 if(levelMode === 'word') disableWordInputs();
                 // Make sure timeout score is added to previous levels (L1+L2+L3 total).
                 if(!scoreRecorded) recordScoreAndAdvance('timeout', true, false);
@@ -1166,10 +1477,11 @@ function evaluatePlayerInputs(playerInputs) {
           } else if(msg.type === 'timerFinished'){
             // authoritative finish
             try{ finished = true; clearInterval(interval); disableMoves(); if(statusEl) statusEl.textContent = msg.reason ? `Ended (${msg.reason})` : 'Time finished'; }catch(e){}
+            stopHeartbeatSound();
             try{ if(levelMode === 'word') disableWordInputs(); }catch(e){}
             // Also submit this team's final score on timeout/force-end so totals accumulate.
             try{ if(!scoreRecorded) recordScoreAndAdvance(msg.reason || 'timeout', true, false); }catch(e){}
-            try{ const ls = document.getElementById('levelStatus'); if(ls) ls.textContent = 'Finished'; const g = document.getElementById('globalTimer'); if(g) g.textContent = '00:00'; }catch(e){}
+            try{ updateTimerDisplays(0, timeLimit); const ls = document.getElementById('levelStatus'); if(ls) ls.textContent = 'Finished'; }catch(e){}
           } else if(msg.type === 'teamProgress'){
             // update admin panels if present
             try{
@@ -1438,8 +1750,8 @@ function evaluatePlayerInputs(playerInputs) {
     const letter = (cfgLevel.letter || randomLetter()).toUpperCase();
     const categories = Array.isArray(cfgLevel.categories) && cfgLevel.categories.length ? cfgLevel.categories : WORD_CATEGORIES.slice();
     wordState = { letter, categories, answers: {}, correctCount: 0, total: categories.length };
-    if(wordLetterEl) wordLetterEl.textContent = letter;
-    try{ const cl = document.getElementById('currentLetter'); if(cl) cl.textContent = letter; }catch(e){}
+    countdownMaskedLetter = letter;
+    setWordLetterVisible(Boolean(started));
     if(wordCategoriesEl){
       wordCategoriesEl.innerHTML = '';
       categories.forEach((cat, idx)=>{
@@ -1468,7 +1780,7 @@ function evaluatePlayerInputs(playerInputs) {
     if(wordScoreEl) wordScoreEl.textContent = 'Score: 0';
     if(wordCompletionEl) wordCompletionEl.textContent = 'Completion: 0%';
     showLevelMode('word');
-    if(isSpectator) disableWordInputs();
+    if(isSpectator || !started) disableWordInputs();
     else enableWordInputs();
     if(!isSpectator) sendWordState('setup', true);
     if(pendingWordSnapshot && String(pendingWordSnapshot.letter || '').toUpperCase() === letter){
@@ -1621,8 +1933,8 @@ function evaluatePlayerInputs(playerInputs) {
       restoreBoardState(pendingPuzzleLayout);
       pendingPuzzleLayout = null;
     }
-    if(puzzleTimerEl) puzzleTimerEl.textContent = formatTime(timeLimit);
-    if(wordTimerEl) wordTimerEl.textContent = formatTime(timeLimit);
+    updateTimerDisplays(timeLimit, timeLimit);
+    if(levelMode === 'puzzle' && !started) setCountdownVisualMask(true);
     updateScores({ broadcast: !isSpectator });
     if(isSpectator) disableMoves();
     else sendPuzzleState('initial', true);
@@ -1679,9 +1991,16 @@ function evaluatePlayerInputs(playerInputs) {
     // build a grid of cards (pairs*2)
     if(!board) return;
     // create items array: if provided use items else use numbers
-    const pairs = memoryState.pairs;
-    let items = cfgLevel.items && Array.isArray(cfgLevel.items) ? cfgLevel.items.slice(0,pairs) : null;
-    if(!items){ items = []; for(let i=1;i<=pairs;i++) items.push(String(i)); }
+    let items = cfgLevel.items && Array.isArray(cfgLevel.items)
+      ? cfgLevel.items.map(v=> String(v || '').trim()).filter(Boolean)
+      : null;
+    if(items && items.length > 10) items = items.slice(0, 10);
+    if(!items || !items.length){
+      const pairs = Math.max(2, Math.min(10, Number(memoryState.pairs) || 4));
+      items = [];
+      for(let i=1;i<=pairs;i++) items.push(String(i));
+    }
+    memoryState.pairs = items.length;
     // duplicate and shuffle
     const cards = [];
     items.forEach(it=>{ cards.push({val:it}); cards.push({val:it}); });
@@ -1716,8 +2035,7 @@ function evaluatePlayerInputs(playerInputs) {
     memoryState.mistakes = 0;
     memoryState.started = true;
     remaining = memoryState.timeLimit;
-    const activeTimer = (levelMode === 'word' ? wordTimerEl : puzzleTimerEl);
-    if(activeTimer) activeTimer.textContent = formatTime(remaining);
+    updateTimerDisplays(remaining, memoryState.timeLimit);
     // clear existing local interval; server will broadcast authoritative ticks
     clearInterval(interval);
 
@@ -1921,8 +2239,23 @@ function evaluatePlayerInputs(playerInputs) {
     const level2Btn = document.getElementById('level2Btn');
     const level3Btn = document.getElementById('level3Btn');
     const letterInput = document.getElementById('letterInput');
+    const memoryItemsInput = document.getElementById('memoryItemsInput');
     const levelNumber = document.getElementById('levelNumber');
     const startLevelBtn = document.getElementById('startLevelBtn');
+
+    function buildMemoryLevelPayload(){
+      const raw = (memoryItemsInput && typeof memoryItemsInput.value === 'string') ? memoryItemsInput.value : '';
+      const items = String(raw)
+        .split(/[\n,]+/)
+        .map(v=> v.trim())
+        .filter(Boolean)
+        .slice(0, 10);
+      const pairs = items.length ? items.length : 4;
+      const payload = { type: 'level', mode: 'memory', pairs, timeLimit: 60, level: 2 };
+      if(items.length) payload.items = items;
+      return payload;
+    }
+
     function sendLevelPayload(payload){
       try{ sendAdmin(payload); }catch(e){ console.error('send level failed', e); }
     }
@@ -1936,7 +2269,7 @@ function evaluatePlayerInputs(playerInputs) {
     }
     if(level2Btn){
       level2Btn.addEventListener('click', ()=>{
-        const payload = { type: 'level', mode: 'memory', pairs: 4, timeLimit: 60, level: 2 };
+        const payload = buildMemoryLevelPayload();
         sendLevelPayload(payload);
       });
     }
@@ -1951,7 +2284,7 @@ function evaluatePlayerInputs(playerInputs) {
       startLevelBtn.addEventListener('click', ()=>{
         const n = parseInt(levelNumber.value,10) || 1;
         if(n===2){
-          const payload = { type: 'level', mode: 'memory', pairs: 4, timeLimit: 60, level: 2 };
+          const payload = buildMemoryLevelPayload();
           sendLevelPayload(payload);
         }else if(n===3){
           const letter = (letterInput && letterInput.value && letterInput.value.trim()) ? letterInput.value.trim().charAt(0).toUpperCase() : randomLetter();

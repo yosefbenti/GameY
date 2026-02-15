@@ -58,6 +58,19 @@ html,body{height:100%}
   box-shadow:0 2px 8px rgba(12,20,40,0.04) inset;
 }
 
+.admin-page textarea{
+  width:100%;
+  padding:9px 10px;
+  border-radius:10px;
+  border:1px solid #d7e0ee;
+  background:#fff;
+  font-size:14px;
+  color:#0f172a;
+  box-shadow:0 2px 8px rgba(12,20,40,0.04) inset;
+  resize:vertical;
+  min-height:84px;
+}
+
 .admin-page button{
   appearance:none;border:0;padding:9px 12px;border-radius:10px;background:var(--primary);color:#fff;font-weight:700;cursor:pointer;transition:background .12s ease,transform .06s ease;
 }

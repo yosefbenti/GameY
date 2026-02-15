@@ -299,6 +299,9 @@ const state = {
     endAt: null,
     timeLimit: 120,
     pausedRemaining: null,
+    countdownEndAt: null,
+    countdownTimeLimit: null,
+    countdownSeconds: 0,
   },
   puzzleStates: {
     A: null,
@@ -318,6 +321,20 @@ const state = {
 };
 
 let timerInterval = null;
+let startCountdownTimeout = null;
+
+function clearPendingStartCountdown(notify = false) {
+  if (startCountdownTimeout) {
+    clearTimeout(startCountdownTimeout);
+    startCountdownTimeout = null;
+  }
+  state.session.countdownEndAt = null;
+  state.session.countdownTimeLimit = null;
+  state.session.countdownSeconds = 0;
+  if (notify) {
+    broadcast({ type: 'startCountdownCancel' });
+  }
+}
 
 function computeTeamTotal(teamKey) {
   const byLevel = state.levelScores[teamKey] || {};
@@ -642,6 +659,13 @@ function replayStateToClient(ws) {
       start: Number(state.session.start) || Date.now(),
       timeLimit: Number(state.session.timeLimit) || 120,
     });
+  } else if (Number(state.session.countdownEndAt) > Date.now()) {
+    sendToClient(ws, {
+      type: 'startCountdown',
+      seconds: Math.max(1, Math.ceil((Number(state.session.countdownEndAt) - Date.now()) / 1000)),
+      endsAt: Number(state.session.countdownEndAt),
+      timeLimit: Number(state.session.countdownTimeLimit) || Number(state.session.timeLimit) || 120,
+    });
   }
   if (state.session.paused) sendToClient(ws, { type: 'pause' });
   const remaining = computeRemainingSeconds();
@@ -832,14 +856,43 @@ wss.on('connection', (ws, req) => {
     }
 
     if (data.type === 'start') {
-      const startValue = Date.now();
+      clearPendingStartCountdown(true);
+      stopTimerInterval();
+      state.session.start = null;
+      state.session.endAt = null;
+      state.session.paused = false;
+      state.session.pausedRemaining = null;
+
+      const countdownSeconds = Math.max(1, Math.floor(Number(data.countdownSeconds) || 5));
       const limitValue = Number(data.timeLimit) || 120;
-      data.start = startValue;
       data.timeLimit = limitValue;
-      startTimerSync(startValue, limitValue);
+      const countdownEndAt = Date.now() + (countdownSeconds * 1000);
+      state.session.countdownEndAt = countdownEndAt;
+      state.session.countdownTimeLimit = limitValue;
+      state.session.countdownSeconds = countdownSeconds;
+
+      broadcast({
+        type: 'startCountdown',
+        seconds: countdownSeconds,
+        endsAt: countdownEndAt,
+        timeLimit: limitValue,
+      });
+
+      startCountdownTimeout = setTimeout(() => {
+        startCountdownTimeout = null;
+        const startValue = Date.now();
+        clearPendingStartCountdown(false);
+        startTimerSync(startValue, limitValue);
+        broadcast({ type: 'start', start: startValue, timeLimit: limitValue });
+        emitGameState();
+      }, countdownSeconds * 1000);
+
+      emitGameState();
+      return;
     }
 
     if (data.type === 'pause') {
+      clearPendingStartCountdown(true);
       pauseTimerSync();
     }
 
@@ -856,6 +909,7 @@ wss.on('connection', (ws, req) => {
     }
 
     if (data.type === 'level') {
+      clearPendingStartCountdown(true);
       if (data.mode === 'puzzle' && data.url) {
         data.url = normalizeSharedImageUrl(data.url);
       }
@@ -866,10 +920,12 @@ wss.on('connection', (ws, req) => {
     }
 
     if (data.type === 'next' && data.url) {
+      clearPendingStartCountdown(true);
       state.session.image = { type: 'image', url: data.url };
     }
 
     if (data.type === 'reset') {
+      clearPendingStartCountdown(true);
       stopTimerInterval();
       state.session.start = null;
       state.session.endAt = null;
@@ -878,6 +934,7 @@ wss.on('connection', (ws, req) => {
     }
 
     if (data.type === 'resetAll') {
+      clearPendingStartCountdown(true);
       resetAllScores();
       state.lastLoggedGameSignature = null;
       stopTimerInterval();

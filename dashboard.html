@@ -41,6 +41,12 @@
       font-weight:800;
       letter-spacing:0.02em;
     }
+    .title-row{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
     .sub{
       color:var(--muted);
       font-size:0.92rem;
@@ -115,6 +121,37 @@
     }
     .note{font-size:0.85rem;color:var(--muted)}
 
+    .boards-wrap{
+      position:relative;
+      min-height:calc(100vh - 220px);
+    }
+
+    .winner-banner{
+      display:none;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.32);
+      background:linear-gradient(135deg,#7c3aed,#2563eb);
+      color:#fff;
+      font-size:clamp(.85rem,1.4vw,1.02rem);
+      font-weight:900;
+      letter-spacing:.02em;
+      box-shadow:0 12px 36px rgba(37,99,235,.4);
+      animation:winnerPulse 1.2s ease-in-out infinite;
+      vertical-align:middle;
+    }
+    .winner-banner.show{display:flex}
+    .winner-banner.tie{background:linear-gradient(135deg,#f59e0b,#ea580c)}
+
+    @keyframes winnerPulse{
+      0%{transform:scale(1)}
+      50%{transform:scale(1.02)}
+      100%{transform:scale(1)}
+    }
+
     @media (max-width: 1080px){
       .status-grid{grid-template-columns:repeat(2,minmax(140px,1fr))}
       .boards{grid-template-columns:1fr;min-height:auto}
@@ -126,7 +163,10 @@
   <main class="dashboard" aria-label="Live game dashboard">
     <header class="top">
       <div>
-        <h1>Live Dashboard — Team A vs Team B</h1>
+        <div class="title-row">
+          <h1>Live Dashboard — Team A vs Team B</h1>
+          <span id="winnerBanner" class="winner-banner" aria-live="polite"></span>
+        </div>
         <div class="sub">Read-only spectator view (updates automatically)</div>
       </div>
       <div class="note" id="lastUpdate">Waiting for live data…</div>
@@ -151,19 +191,21 @@
       </div>
     </section>
 
-    <section class="boards" aria-label="Team boards side by side">
-      <article class="panel" aria-label="Team A board">
-        <h2 id="teamAHeader">Team A — 0% — Score 0</h2>
-        <div class="panel-body">
-          <iframe class="board-frame" src="/teamA?view=1" title="Team A live board" loading="eager" sandbox="allow-scripts allow-same-origin"></iframe>
-        </div>
-      </article>
-      <article class="panel" aria-label="Team B board">
-        <h2 id="teamBHeader">Team B — 0% — Score 0</h2>
-        <div class="panel-body">
-          <iframe class="board-frame" src="/teamB?view=1" title="Team B live board" loading="eager" sandbox="allow-scripts allow-same-origin"></iframe>
-        </div>
-      </article>
+    <section class="boards-wrap" aria-label="Boards with winner banner">
+      <section class="boards" aria-label="Team boards side by side">
+        <article class="panel" aria-label="Team A board">
+          <h2 id="teamAHeader">Team A — 0% — Score 0</h2>
+          <div class="panel-body">
+            <iframe class="board-frame" src="/teamA?view=1" title="Team A live board" loading="eager" sandbox="allow-scripts allow-same-origin"></iframe>
+          </div>
+        </article>
+        <article class="panel" aria-label="Team B board">
+          <h2 id="teamBHeader">Team B — 0% — Score 0</h2>
+          <div class="panel-body">
+            <iframe class="board-frame" src="/teamB?view=1" title="Team B live board" loading="eager" sandbox="allow-scripts allow-same-origin"></iframe>
+          </div>
+        </article>
+      </section>
     </section>
   </main>
 
@@ -176,6 +218,7 @@
       const elLast = document.getElementById('lastUpdate');
       const elA = document.getElementById('teamAHeader');
       const elB = document.getElementById('teamBHeader');
+      const elWinner = document.getElementById('winnerBanner');
 
       const state = {
         names: { A: 'Team A', B: 'Team B' },
@@ -222,6 +265,22 @@
         if(elA) elA.textContent = `${state.names.A} — ${aPct}% — Score ${a.score}`;
         if(elB) elB.textContent = `${state.names.B} — ${bPct}% — Score ${b.score}`;
         if(elTotals) elTotals.textContent = `A: ${state.totals.A} | B: ${state.totals.B}`;
+      }
+
+      function setWinnerBanner(text){
+        if(!elWinner) return;
+        const raw = String(text || '').trim();
+        const low = raw.toLowerCase();
+        const pending = !raw || low.includes('pending') || raw === '—' || raw === '-';
+        if(pending){
+          elWinner.classList.remove('show','tie');
+          elWinner.textContent = '';
+          return;
+        }
+        const tie = low.includes('tie') || low.includes('no winner');
+        elWinner.classList.toggle('tie', tie);
+        elWinner.textContent = tie ? '🏁 Final Result: Tie' : `🏆 Winner: ${raw}`;
+        elWinner.classList.add('show');
       }
 
       function applyLevel(msg){
@@ -271,6 +330,7 @@
             if(msg.timer && typeof msg.timer.remaining !== 'undefined' && elTimer){
               elTimer.textContent = formatTime(msg.timer.remaining);
             }
+            if(typeof msg.winnerName === 'string') setWinnerBanner(msg.winnerName);
             updateHeaders();
             touch();
             return;
@@ -288,6 +348,7 @@
             const t = msg.totals || {};
             state.totals.A = Number(t.A) || 0;
             state.totals.B = Number(t.B) || 0;
+            if(typeof msg.winnerName === 'string') setWinnerBanner(msg.winnerName);
             updateHeaders();
             touch();
             return;

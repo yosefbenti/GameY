@@ -44,6 +44,40 @@ header h1{margin:0 0 12px}
 .touch-hint{margin-top:8px;font-size:0.9rem;color:#334155}
 .score{margin-top:8px;font-weight:600}
 .status{margin-left:8px;font-weight:600}
+.timer-ok{color:#16a34a !important}
+.timer-warn{color:#f59e0b !important}
+.timer-danger{color:#ef4444 !important}
+
+.game-winner-banner{
+  position:fixed;
+  top:18px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:10001;
+  display:none;
+  align-items:center;
+  gap:10px;
+  padding:12px 18px;
+  border-radius:999px;
+  color:#fff;
+  font-weight:900;
+  letter-spacing:.02em;
+  font-size:clamp(1rem,2.2vw,1.4rem);
+  background:linear-gradient(135deg,#7c3aed,#2563eb);
+  border:1px solid rgba(255,255,255,.35);
+  box-shadow:0 12px 36px rgba(37,99,235,.45);
+  animation:winnerPulse 1.2s ease-in-out infinite;
+}
+
+.game-winner-banner.show{display:flex}
+.game-winner-banner.tie{background:linear-gradient(135deg,#f59e0b,#ea580c)}
+
+@keyframes winnerPulse{
+  0%{transform:translateX(-50%) scale(1)}
+  50%{transform:translateX(-50%) scale(1.03)}
+  100%{transform:translateX(-50%) scale(1)}
+}
+
 footer{margin-top:12px;color:#444}
 .hidden{display:none !important}
 
@@ -102,6 +136,62 @@ footer{margin-top:12px;color:#444}
 .word-input.invalid{border-color:#ef4444;background:#fff1f2}
 .word-input.skipped{border-color:#f59e0b;background:#fffbeb}
 .word-status{margin-top:8px;font-size:0.95rem;color:#334155}
+
+.start-countdown-overlay{
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(2,6,23,0.72);
+  z-index:9999;
+  pointer-events:none;
+}
+
+.start-countdown-overlay.active{display:flex}
+
+.start-countdown-box{
+  min-width:220px;
+  padding:18px 26px;
+  border-radius:16px;
+  border:1px solid rgba(148,163,184,0.45);
+  background:rgba(15,23,42,0.92);
+  color:#f8fafc;
+  text-align:center;
+  box-shadow:0 20px 55px rgba(0,0,0,0.38);
+  pointer-events:auto;
+}
+
+.start-countdown-label{
+  font-size:1.05rem;
+  font-weight:700;
+  letter-spacing:.03em;
+  opacity:.95;
+}
+
+.start-countdown-value{
+  margin-top:6px;
+  font-size:clamp(64px, 12vw, 150px);
+  line-height:1;
+  font-weight:900;
+}
+
+.countdown-sound-btn{
+  margin-top:10px;
+  padding:8px 12px;
+  border-radius:10px;
+  border:1px solid #93c5fd;
+  background:#1d4ed8;
+  color:#fff;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.countdown-sound-help{
+  margin-top:6px;
+  font-size:.85rem;
+  color:#cbd5e1;
+}
 
 /* Read-only embedded board shown on /dashboard (team pages with ?view=1) */
 .spectator-view{
