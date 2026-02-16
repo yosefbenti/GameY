@@ -847,6 +847,24 @@ wss.on('connection', (ws, req) => {
       return;
     }
 
+    if (data.type === 'deleteHistoryEntry') {
+      const rawEntryId = data.entryId;
+      if (rawEntryId == null) return;
+      const targetKey = String(rawEntryId);
+      const before = Array.isArray(state.gameHistory) ? state.gameHistory.length : 0;
+      state.gameHistory = (state.gameHistory || []).filter((entry) => String(entry && entry.id) !== targetKey);
+      const after = state.gameHistory.length;
+      if (after !== before) {
+        saveGameHistoryToDisk(state.gameHistory);
+        state.lastLoggedGameSignature = null;
+      }
+      broadcast({
+        type: 'gameHistory',
+        history: state.gameHistory || [],
+      });
+      return;
+    }
+
     if (data.type === 'start' || data.type === 'level' || data.type === 'next' || data.type === 'reset') {
       resetRoundScoresOnly();
     }

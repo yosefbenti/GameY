@@ -178,6 +178,24 @@ html,body{height:100%}
   z-index:1;
 }
 
+.admin-page .history-delete-btn{
+  padding:6px 10px;
+  border-radius:8px;
+  background:#dc2626;
+  color:#fff;
+  font-size:12px;
+  font-weight:700;
+}
+
+.admin-page .history-delete-btn:hover{
+  background:#b91c1c;
+}
+
+.admin-page .history-delete-btn:disabled{
+  background:#94a3b8;
+  cursor:not-allowed;
+}
+
 /* Preview area */
 .admin-page #imagePreview{max-width:100%;max-height:320px;border-radius:10px;border:1px solid #e6eef8;box-shadow:0 6px 16px rgba(2,6,23,0.06);object-fit:cover;display:block}
 

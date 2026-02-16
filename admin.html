@@ -32,8 +32,8 @@
             <button id="level2Btn">Start Level 2 (Memory)</button>
             <button id="level3Btn">Start Level 3 (Word)</button>
           </div>
-          <label>Letter for Level 3 (optional)
-            <input id="letterInput" type="text" maxlength="1" placeholder="A-Z" class="small-input" />
+          <label>Letter for Level 3 (optional, English or Amharic)
+            <input id="letterInput" type="text" maxlength="1" placeholder="A-Z or ሀ-ፐ" class="small-input" />
           </label>
           <label>Memory items for Level 2 (optional: numbers/words, comma or new line)
             <textarea id="memoryItemsInput" rows="3" placeholder="1, 2, 3, 4\nOR\nCat\nDog\nTree\nCar"></textarea>
@@ -135,10 +135,11 @@
               <th>B L1/L2/L3</th>
               <th>B Total</th>
               <th>Winner</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody id="gameHistoryBody">
-            <tr><td colspan="8">No completed games yet.</td></tr>
+            <tr><td colspan="9">No completed games yet.</td></tr>
           </tbody>
         </table>
       </div>

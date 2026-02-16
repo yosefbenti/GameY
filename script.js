@@ -1158,6 +1158,7 @@ function evaluatePlayerInputs(playerInputs) {
     },
     names: { A: 'A', B: 'B' }
   };
+  let sendAdminControlMessage = null;
 
   function getTeamDisplayName(key){
     if(key === 'A') return adminState.names.A || 'A';
@@ -1265,7 +1266,7 @@ function evaluatePlayerInputs(playerInputs) {
     if(!rows.length){
       const tr = document.createElement('tr');
       const td = document.createElement('td');
-      td.colSpan = 8;
+      td.colSpan = 9;
       td.textContent = 'No completed games yet.';
       tr.appendChild(td);
       body.appendChild(tr);
@@ -1298,6 +1299,25 @@ function evaluatePlayerInputs(playerInputs) {
         td.textContent = value;
         tr.appendChild(td);
       });
+
+      const actionTd = document.createElement('td');
+      const deleteBtn = document.createElement('button');
+      deleteBtn.type = 'button';
+      deleteBtn.textContent = 'Delete';
+      deleteBtn.className = 'history-delete-btn';
+      deleteBtn.disabled = typeof sendAdminControlMessage !== 'function';
+      deleteBtn.addEventListener('click', ()=>{
+        if(typeof sendAdminControlMessage !== 'function') return;
+        const targetId = entry && entry.id;
+        if(targetId == null) return;
+        const targetLabel = `${teamAName} vs ${teamBName} (${timeText})`;
+        const ok = window.confirm(`Delete this game history entry?\n\n${targetLabel}`);
+        if(!ok) return;
+        sendAdminControlMessage({ type: 'deleteHistoryEntry', entryId: targetId });
+      });
+      actionTd.appendChild(deleteBtn);
+      tr.appendChild(actionTd);
+
       body.appendChild(tr);
     });
   }
@@ -1862,7 +1882,7 @@ function evaluatePlayerInputs(playerInputs) {
   function isValidWordForCategory(raw, categoryLabel, letter){
     const normalized = raw.toUpperCase();
     const startsOk = normalized.startsWith(letter);
-    const spellingOk = /^[A-Za-z][A-Za-z\s'’\-]*$/.test(raw);
+    const spellingOk = /^[\p{L}][\p{L}\p{M}\s'’\-]*$/u.test(raw);
     if(!startsOk || !spellingOk) return false;
     const key = normalizeWordCategory(categoryLabel);
     if(key && data[key] && data[key][letter]){
@@ -2214,6 +2234,7 @@ function evaluatePlayerInputs(playerInputs) {
         _adminQueue.push(payload);
       }
     }
+    sendAdminControlMessage = sendAdmin;
     adminWs.addEventListener('open', ()=>{
       console.log('admin ws open');
       try{ const s = document.getElementById('status'); if(s) s.textContent = 'Connected'; }catch(e){}
