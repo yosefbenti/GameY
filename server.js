@@ -34,6 +34,54 @@ function saveGameHistoryToDisk(history) {
   }
 }
 
+function getExtensionFromUpload(contentType, fileName, isVideoUpload) {
+  const normalizedType = String(contentType || '').toLowerCase();
+  const extByMime = isVideoUpload
+    ? {
+        'video/mp4': 'mp4',
+        'video/webm': 'webm',
+        'video/ogg': 'ogg',
+        'video/ogv': 'ogv',
+        'video/quicktime': 'mov',
+        'video/x-m4v': 'm4v',
+        'video/mpeg': 'mpeg',
+        'video/mpg': 'mpg',
+        'video/3gpp': '3gp',
+        'video/3gpp2': '3g2',
+        'video/x-msvideo': 'avi',
+        'video/x-ms-wmv': 'wmv',
+        'video/x-matroska': 'mkv',
+      }
+    : {
+        'image/jpeg': 'jpg',
+        'image/jpg': 'jpg',
+        'image/png': 'png',
+        'image/webp': 'webp',
+        'image/gif': 'gif',
+      };
+
+  const byMime = extByMime[normalizedType];
+  if (byMime) return byMime;
+
+  const extByName = isVideoUpload
+    ? {
+        mp4: 'mp4', webm: 'webm', ogg: 'ogg', ogv: 'ogv', mov: 'mov', qt: 'mov',
+        m4v: 'm4v', mpeg: 'mpeg', mpg: 'mpg', avi: 'avi', mkv: 'mkv',
+        '3gp': '3gp', '3g2': '3g2', wmv: 'wmv',
+      }
+    : {
+        jpg: 'jpg', jpeg: 'jpg', png: 'png', webp: 'webp', gif: 'gif',
+      };
+
+  const base = path.basename(String(fileName || '')).toLowerCase();
+  const dotIdx = base.lastIndexOf('.');
+  if (dotIdx > -1 && dotIdx < base.length - 1) {
+    const extRaw = base.slice(dotIdx + 1);
+    if (extByName[extRaw]) return extByName[extRaw];
+  }
+  return null;
+}
+
 function sendStaticFile(res, absPath) {
   if (!absPath.startsWith(STATIC_DIR)) {
     res.writeHead(403, { 'Content-Type': 'text/plain' });
@@ -59,6 +107,19 @@ function sendStaticFile(res, absPath) {
     '.gif': 'image/gif',
     '.svg': 'image/svg+xml',
     '.ico': 'image/x-icon',
+    '.mp4': 'video/mp4',
+    '.webm': 'video/webm',
+    '.ogg': 'video/ogg',
+    '.ogv': 'video/ogg',
+    '.mov': 'video/quicktime',
+    '.m4v': 'video/x-m4v',
+    '.mpeg': 'video/mpeg',
+    '.mpg': 'video/mpeg',
+    '.3gp': 'video/3gpp',
+    '.3g2': 'video/3gpp2',
+    '.avi': 'video/x-msvideo',
+    '.wmv': 'video/x-ms-wmv',
+    '.mkv': 'video/x-matroska',
   };
 
   res.writeHead(200, {
@@ -79,7 +140,7 @@ const httpServer = http.createServer((req, res) => {
       res.writeHead(204, {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Headers': 'Content-Type, X-Upload-File-Name',
       });
       res.end();
       return;
@@ -100,26 +161,21 @@ const httpServer = http.createServer((req, res) => {
       '/index.html': 'index.html',
     };
 
-    if (urlPath === '/upload' && req.method === 'POST') {
+    if ((urlPath === '/upload' || urlPath === '/upload-video') && req.method === 'POST') {
+      const isVideoUpload = urlPath === '/upload-video';
       const contentType = String(req.headers['content-type'] || '').split(';')[0].toLowerCase();
-      const extByMime = {
-        'image/jpeg': 'jpg',
-        'image/jpg': 'jpg',
-        'image/png': 'png',
-        'image/webp': 'webp',
-        'image/gif': 'gif',
-      };
-      const ext = extByMime[contentType];
+      const uploadedFileName = String(req.headers['x-upload-file-name'] || '').trim();
+      const ext = getExtensionFromUpload(contentType, uploadedFileName, isVideoUpload);
       if (!ext) {
         res.writeHead(400, {
           'Access-Control-Allow-Origin': '*',
           'Content-Type': 'application/json',
         });
-        res.end(JSON.stringify({ ok: false, error: 'Unsupported image type' }));
+        res.end(JSON.stringify({ ok: false, error: isVideoUpload ? 'Unsupported video type' : 'Unsupported image type' }));
         return;
       }
 
-      const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+      const MAX_UPLOAD_BYTES = isVideoUpload ? (120 * 1024 * 1024) : (10 * 1024 * 1024);
       let total = 0;
       const chunks = [];
 
@@ -130,7 +186,7 @@ const httpServer = http.createServer((req, res) => {
             'Access-Control-Allow-Origin': '*',
             'Content-Type': 'application/json',
           });
-          res.end(JSON.stringify({ ok: false, error: 'Upload too large (max 10MB)' }));
+          res.end(JSON.stringify({ ok: false, error: isVideoUpload ? 'Upload too large (max 120MB)' : 'Upload too large (max 10MB)' }));
           req.destroy();
           return;
         }
@@ -197,6 +253,19 @@ const httpServer = http.createServer((req, res) => {
         '.png': 'image/png',
         '.webp': 'image/webp',
         '.gif': 'image/gif',
+        '.mp4': 'video/mp4',
+        '.webm': 'video/webm',
+        '.ogg': 'video/ogg',
+        '.ogv': 'video/ogg',
+        '.mov': 'video/quicktime',
+        '.m4v': 'video/x-m4v',
+        '.mpeg': 'video/mpeg',
+        '.mpg': 'video/mpeg',
+        '.3gp': 'video/3gpp',
+        '.3g2': 'video/3gpp2',
+        '.avi': 'video/x-msvideo',
+        '.wmv': 'video/x-ms-wmv',
+        '.mkv': 'video/x-matroska',
       };
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
@@ -302,6 +371,7 @@ const state = {
     countdownEndAt: null,
     countdownTimeLimit: null,
     countdownSeconds: 0,
+    promoVideo: null,
   },
   puzzleStates: {
     A: null,
@@ -538,6 +608,7 @@ function buildGameStatePayload() {
     type: 'gameState',
     level: state.session.level || null,
     imageUrl: state.session.image && state.session.image.url ? state.session.image.url : null,
+    promoVideoUrl: state.session.promoVideo && state.session.promoVideo.url ? state.session.promoVideo.url : null,
     timer: {
       running: Boolean(state.session.start) && !state.session.paused && (remaining == null ? false : remaining > 0),
       paused: Boolean(state.session.paused),
@@ -653,6 +724,7 @@ function replayStateToClient(ws) {
   // game state snapshot
   if (state.session.level) sendToClient(ws, state.session.level);
   if (state.session.image) sendToClient(ws, state.session.image);
+  if (state.session.promoVideo) sendToClient(ws, state.session.promoVideo);
   if (state.session.start) {
     sendToClient(ws, {
       type: 'start',
@@ -926,6 +998,18 @@ wss.on('connection', (ws, req) => {
       state.session.image = { type: 'image', url: sharedUrl };
     }
 
+    if (data.type === 'promoVideo') {
+      const rawUrl = typeof data.url === 'string' ? data.url.trim() : '';
+      if (rawUrl) {
+        const sharedUrl = normalizeSharedImageUrl(rawUrl);
+        data.url = sharedUrl;
+        state.session.promoVideo = { type: 'promoVideo', url: sharedUrl };
+      } else {
+        data.url = '';
+        state.session.promoVideo = null;
+      }
+    }
+
     if (data.type === 'level') {
       clearPendingStartCountdown(true);
       if (data.mode === 'puzzle' && data.url) {
@@ -1071,7 +1155,7 @@ wss.on('connection', (ws, req) => {
     // Forward all other control messages as-is (start/reset/level/image/pause/etc.).
     console.log(`Broadcasting ${data.type} message`);
     broadcast(data);
-    if (['start', 'pause', 'image', 'level', 'next', 'reset'].includes(data.type)) {
+    if (['start', 'pause', 'image', 'promoVideo', 'level', 'next', 'reset'].includes(data.type)) {
       emitGameState();
     }
   });

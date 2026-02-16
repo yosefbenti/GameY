@@ -36,6 +36,10 @@
   const zoomInBtn = document.getElementById('zoomInBtn');
   const zoomResetBtn = document.getElementById('zoomResetBtn');
   const zoomValueEl = document.getElementById('zoomValue');
+  const promoVideoPlayerEl = document.getElementById('promoVideoPreview');
+  const promoVideoAdminPreviewEl = document.getElementById('promoVideoAdminPreview');
+  const promoVideoStatusEl = document.getElementById('promoVideoStatus');
+  const isPlayerPromoOnlyView = Boolean(promoVideoPlayerEl) && !promoVideoAdminPreviewEl;
 
   const ZOOM_MIN = 0.7;
   const ZOOM_MAX = 1.5;
@@ -128,6 +132,7 @@
   let levelMode = 'puzzle'; // 'puzzle' | 'memory' | 'word'
   let memoryState = null;
   let wordState = null;
+  let promoVideoUrl = null;
   let wsRecoveryScheduled = false;
   let lastAuthoritativeLevelSig = '';
   let winnerFromServer = false;
@@ -433,13 +438,13 @@
     }
   }
 
-  function getUploadEndpoint(){
+  function getUploadEndpoint(pathname = '/upload'){
     const wsSource = cfg.adminWs || cfg.ws;
     if(wsSource){
       try{
         const u = new URL(wsSource, window.location.href);
         u.protocol = u.protocol === 'wss:' ? 'https:' : 'http:';
-        u.pathname = '/upload';
+        u.pathname = pathname;
         u.search = '';
         u.hash = '';
         return u.toString();
@@ -447,14 +452,17 @@
     }
     const proto = window.location.protocol === 'https:' ? 'https:' : 'http:';
     const host = window.location.hostname || 'localhost';
-    return `${proto}://${host}:8000/upload`;
+    return `${proto}://${host}:8000${pathname}`;
   }
 
-  async function uploadImageFile(file){
-    const endpoint = getUploadEndpoint();
+  async function uploadBinaryFile(file, pathname = '/upload'){
+    const endpoint = getUploadEndpoint(pathname);
     const resp = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': file.type || 'application/octet-stream' },
+      headers: {
+        'Content-Type': file.type || 'application/octet-stream',
+        'X-Upload-File-Name': encodeURIComponent(file && file.name ? file.name : ''),
+      },
       body: file,
     });
     let data = null;
@@ -464,6 +472,14 @@
       throw new Error(errMsg);
     }
     return normalizeSharedImageUrl(data.url);
+  }
+
+  async function uploadImageFile(file){
+    return uploadBinaryFile(file, '/upload');
+  }
+
+  async function uploadPromoVideoFile(file){
+    return uploadBinaryFile(file, '/upload-video');
   }
   let solvedPreviewActive = false;
   let solvedPreviewSnapshot = null;
@@ -1403,6 +1419,7 @@ function evaluatePlayerInputs(playerInputs) {
         }
       }
       if(gs.imageUrl) applyImage(gs.imageUrl);
+      if(typeof gs.promoVideoUrl !== 'undefined') applyPromoVideo(gs.promoVideoUrl);
       if(gs.timer) applyAuthoritativeTimer(gs.timer);
       if(gs.scores){
         const totalAEl = document.getElementById('totalA');
@@ -1466,6 +1483,10 @@ function evaluatePlayerInputs(playerInputs) {
                 resetLocal();
               }
             }
+          } else if(msg.type === 'promoVideo'){
+            applyPromoVideo(msg.url || '');
+          } else if(msg.type === 'promoVideoControl'){
+            controlPromoVideo(msg.action || '');
           } else if(msg.type === 'timer'){
             // authoritative timer tick from server
             try{
@@ -1691,6 +1712,135 @@ function evaluatePlayerInputs(playerInputs) {
       populateBoard(board);
       updateScores();
     }
+  }
+
+  function applyPromoVideo(url){
+    const normalizedUrl = url ? normalizeSharedImageUrl(url) : '';
+    promoVideoUrl = normalizedUrl || null;
+
+    if(!promoVideoPlayerEl && !promoVideoAdminPreviewEl) return;
+
+    if(!normalizedUrl){
+      if(promoVideoPlayerEl){
+        try{
+          promoVideoPlayerEl.pause();
+          promoVideoPlayerEl.removeAttribute('src');
+          promoVideoPlayerEl.load();
+        }catch(e){}
+      }
+      if(promoVideoAdminPreviewEl){
+        try{
+          promoVideoAdminPreviewEl.removeAttribute('src');
+          promoVideoAdminPreviewEl.load();
+        }catch(e){}
+      }
+      if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'No promotion video uploaded yet.';
+      return;
+    }
+
+    const ext = (normalizedUrl.split('?')[0].split('.').pop() || '').toLowerCase();
+    const typeByExt = {
+      mp4: 'video/mp4', webm: 'video/webm', ogg: 'video/ogg', ogv: 'video/ogg',
+      mov: 'video/quicktime', m4v: 'video/x-m4v', mpeg: 'video/mpeg', mpg: 'video/mpeg',
+      '3gp': 'video/3gpp', '3g2': 'video/3gpp2', avi: 'video/x-msvideo', wmv: 'video/x-ms-wmv', mkv: 'video/x-matroska',
+    };
+    const guessedType = typeByExt[ext];
+
+    if(promoVideoPlayerEl){
+      try{
+        promoVideoPlayerEl.autoplay = true;
+        promoVideoPlayerEl.controls = false;
+        promoVideoPlayerEl.muted = false;
+        promoVideoPlayerEl.playsInline = true;
+        promoVideoPlayerEl.volume = 1;
+        promoVideoPlayerEl.src = normalizedUrl;
+        promoVideoPlayerEl.load();
+        const playAttempt = promoVideoPlayerEl.play();
+        if(playAttempt && typeof playAttempt.catch === 'function'){
+          playAttempt.catch(()=>{
+            if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'Video is live. If sound is blocked, tap once on player screen to enable audio.';
+          });
+        }
+      }catch(e){}
+    }
+
+    if(promoVideoAdminPreviewEl){
+      try{
+        if(typeof promoVideoAdminPreviewEl.canPlayType === 'function' && guessedType && !promoVideoAdminPreviewEl.canPlayType(guessedType)){
+          if(promoVideoStatusEl) promoVideoStatusEl.textContent = `Uploaded, but this browser may not play .${ext} directly. Try MP4 (H.264/AAC) or WebM.`;
+        }
+        promoVideoAdminPreviewEl.src = normalizedUrl;
+        promoVideoAdminPreviewEl.load();
+      }catch(e){}
+    }
+
+    if(promoVideoStatusEl && isPlayerPromoOnlyView) promoVideoStatusEl.textContent = 'Video is live and started on player board with sound.';
+    else if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'Promotion video is live.';
+  }
+
+  function controlPromoVideo(action){
+    const act = String(action || '').toLowerCase();
+    if(!act) return;
+
+    if(promoVideoPlayerEl){
+      try{
+        if(act === 'play'){
+          promoVideoPlayerEl.muted = false;
+          promoVideoPlayerEl.volume = 1;
+          const p = promoVideoPlayerEl.play();
+          if(p && typeof p.catch === 'function'){
+            p.catch(()=>{
+              if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'Play requested. Tap once on player screen if browser blocks sound autoplay.';
+            });
+          }
+        } else if(act === 'pause'){
+          promoVideoPlayerEl.pause();
+        } else if(act === 'stop'){
+          promoVideoPlayerEl.pause();
+          try{ promoVideoPlayerEl.currentTime = 0; }catch(e){}
+        }
+      }catch(e){}
+    }
+
+    if(promoVideoAdminPreviewEl){
+      try{
+        if(act === 'play'){
+          const p = promoVideoAdminPreviewEl.play();
+          if(p && typeof p.catch === 'function') p.catch(()=>{});
+        } else if(act === 'pause'){
+          promoVideoAdminPreviewEl.pause();
+        } else if(act === 'stop'){
+          promoVideoAdminPreviewEl.pause();
+          try{ promoVideoAdminPreviewEl.currentTime = 0; }catch(e){}
+        }
+      }catch(e){}
+    }
+
+    if(promoVideoStatusEl){
+      if(act === 'play') promoVideoStatusEl.textContent = 'Promotion video playing.';
+      if(act === 'pause') promoVideoStatusEl.textContent = 'Promotion video paused.';
+      if(act === 'stop') promoVideoStatusEl.textContent = 'Promotion video stopped.';
+    }
+  }
+
+  if(promoVideoPlayerEl && isPlayerPromoOnlyView){
+    promoVideoPlayerEl.autoplay = true;
+    promoVideoPlayerEl.controls = false;
+    promoVideoPlayerEl.muted = false;
+    promoVideoPlayerEl.playsInline = true;
+    promoVideoPlayerEl.volume = 1;
+
+    const unlockPlayerAudio = ()=>{
+      try{
+        if(!promoVideoPlayerEl || !promoVideoPlayerEl.src) return;
+        promoVideoPlayerEl.muted = false;
+        promoVideoPlayerEl.volume = 1;
+        const p = promoVideoPlayerEl.play();
+        if(p && typeof p.catch === 'function') p.catch(()=>{});
+      }catch(e){}
+    };
+    window.addEventListener('pointerdown', unlockPlayerAudio, { passive: true });
+    window.addEventListener('keydown', unlockPlayerAudio);
   }
 
   function showOnly(sectionId){
@@ -2253,6 +2403,14 @@ function evaluatePlayerInputs(playerInputs) {
     const imageFileInput = document.getElementById('imageFileInput');
     const uploadImageBtn = document.getElementById('uploadImageBtn');
     const imagePreview = document.getElementById('imagePreview');
+    const promoVideoFileInput = document.getElementById('promoVideoFileInput');
+    const promoVideoUrlInput = document.getElementById('promoVideoUrlInput');
+    const setPromoVideoBtn = document.getElementById('setPromoVideoBtn');
+    const uploadPromoVideoBtn = document.getElementById('uploadPromoVideoBtn');
+    const promoVideoPlayBtn = document.getElementById('promoVideoPlayBtn');
+    const promoVideoPauseBtn = document.getElementById('promoVideoPauseBtn');
+    const promoVideoStopBtn = document.getElementById('promoVideoStopBtn');
+    const promoVideoRemoveBtn = document.getElementById('promoVideoRemoveBtn');
     if(imagePreview && imageUrl) imagePreview.src = imageUrl;
 
     // admin level controls
@@ -2359,6 +2517,92 @@ function evaluatePlayerInputs(playerInputs) {
         if(imagePreview) imagePreview.onload = ()=> URL.revokeObjectURL(objUrl);
         handleImageUpload(f);
       });
+    }
+
+    if(uploadPromoVideoBtn && promoVideoFileInput){
+      let promoLocalPreviewUrl = null;
+
+      if(setPromoVideoBtn && promoVideoUrlInput){
+        setPromoVideoBtn.addEventListener('click', ()=>{
+          const rawUrl = (promoVideoUrlInput.value || '').trim();
+          const url = normalizeSharedImageUrl(rawUrl);
+          if(!url){
+            if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'Enter a valid video URL first.';
+            return;
+          }
+          sendAdmin({ type: 'promoVideo', url });
+          applyPromoVideo(url);
+          sendAdmin({ type: 'promoVideoControl', action: 'play' });
+          if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'Promotion video URL applied and playing on player board.';
+        });
+      }
+
+      promoVideoFileInput.addEventListener('change', ()=>{
+        const f = promoVideoFileInput.files && promoVideoFileInput.files[0];
+        if(!f) return;
+        if(promoLocalPreviewUrl){
+          try{ URL.revokeObjectURL(promoLocalPreviewUrl); }catch(e){}
+          promoLocalPreviewUrl = null;
+        }
+        promoLocalPreviewUrl = URL.createObjectURL(f);
+        if(promoVideoAdminPreviewEl) promoVideoAdminPreviewEl.src = promoLocalPreviewUrl;
+        if(promoVideoStatusEl) promoVideoStatusEl.textContent = `Selected: ${f.name}. Click Upload Video to go live.`;
+      });
+
+      uploadPromoVideoBtn.addEventListener('click', async ()=>{
+        const file = promoVideoFileInput.files && promoVideoFileInput.files[0];
+        if(!file){
+          if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'Choose a video file first.';
+          return;
+        }
+        if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'Uploading promotion video...';
+        try{
+          const uploadedUrl = await uploadPromoVideoFile(file);
+          sendAdmin({ type: 'promoVideo', url: uploadedUrl });
+          applyPromoVideo(uploadedUrl);
+          sendAdmin({ type: 'promoVideoControl', action: 'play' });
+          if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'Promotion video uploaded and live on player board.';
+        }catch(err){
+          console.error('promo video upload failed', err);
+          const msg = err && err.message ? err.message : 'Promotion video upload failed.';
+          if(promoVideoStatusEl) promoVideoStatusEl.textContent = `Promotion video upload failed: ${msg}`;
+        }
+      });
+
+      window.addEventListener('beforeunload', ()=>{
+        if(promoLocalPreviewUrl){
+          try{ URL.revokeObjectURL(promoLocalPreviewUrl); }catch(e){}
+          promoLocalPreviewUrl = null;
+        }
+      });
+
+      if(promoVideoPlayBtn){
+        promoVideoPlayBtn.addEventListener('click', ()=>{
+          sendAdmin({ type: 'promoVideoControl', action: 'play' });
+          controlPromoVideo('play');
+        });
+      }
+      if(promoVideoPauseBtn){
+        promoVideoPauseBtn.addEventListener('click', ()=>{
+          sendAdmin({ type: 'promoVideoControl', action: 'pause' });
+          controlPromoVideo('pause');
+        });
+      }
+      if(promoVideoStopBtn){
+        promoVideoStopBtn.addEventListener('click', ()=>{
+          sendAdmin({ type: 'promoVideoControl', action: 'stop' });
+          controlPromoVideo('stop');
+        });
+      }
+      if(promoVideoRemoveBtn){
+        promoVideoRemoveBtn.addEventListener('click', ()=>{
+          sendAdmin({ type: 'promoVideoControl', action: 'stop' });
+          sendAdmin({ type: 'promoVideo', url: '' });
+          applyPromoVideo('');
+          if(promoVideoFileInput) promoVideoFileInput.value = '';
+          if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'Promotion video removed from player board.';
+        });
+      }
     }
     startBtn.addEventListener('click', ()=>{
       const tl = parseInt(timeInput.value,10) || 120;

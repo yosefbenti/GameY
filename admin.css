@@ -18,13 +18,21 @@ html,body{height:100%}
   grid-template-columns:repeat(3, 1fr);
   grid-auto-rows:minmax(190px, auto);
   gap:16px;
-  align-items:stretch;
+  align-items:start;
   max-width:1600px;
   margin:0 auto 24px;
 }
 
 .admin-page .admin-time{grid-column:1 / span 2;grid-row:1}
 .admin-page .admin-connection{grid-column:3;grid-row:1}
+.admin-page #imageControlPanel{grid-column:1;grid-row:2}
+.admin-page #promoControlPanel{grid-column:2;grid-row:2}
+.admin-page #imageControlPanel,
+.admin-page #promoControlPanel{align-self:stretch}
+.admin-page #gameControlsPanel{grid-column:3;grid-row:2}
+.admin-page #teamAPanel{grid-column:1;grid-row:3}
+.admin-page #teamBPanel{grid-column:2;grid-row:3}
+.admin-page #totalsPanel{grid-column:3;grid-row:3}
 .admin-page #historyPanel{grid-column:1 / -1; min-height:320px}
 
 .admin-page .dual-row{
@@ -87,7 +95,15 @@ html,body{height:100%}
   border:1px solid #e6eef8;
   background:linear-gradient(180deg,#ffffff 0%,#f7fbff 100%);
   box-shadow:0 10px 24px rgba(12,20,40,0.08);
-  min-height:180px;
+  min-height:auto;
+}
+
+.admin-page #teamAPanel,
+.admin-page #teamBPanel,
+.admin-page #totalsPanel{
+  min-height:auto;
+  align-self:stretch;
+  width:100%;
 }
 
 .admin-page .box-title{
@@ -142,6 +158,7 @@ html,body{height:100%}
   box-shadow:0 6px 16px rgba(2,6,23,0.06);
   object-fit:cover;
 }
+
 
 .admin-page .level-label{font-size:14px;color:#546}
 .admin-page .winner{margin-top:8px;font-weight:700}
@@ -198,6 +215,14 @@ html,body{height:100%}
 
 /* Preview area */
 .admin-page #imagePreview{max-width:100%;max-height:320px;border-radius:10px;border:1px solid #e6eef8;box-shadow:0 6px 16px rgba(2,6,23,0.06);object-fit:cover;display:block}
+.admin-page .admin-promo-video{
+  width:100%;
+  max-height:260px;
+  border-radius:10px;
+  border:1px solid #e6eef8;
+  background:#0f172a;
+  box-shadow:0 6px 16px rgba(2,6,23,0.06);
+}
 
 /* Small screens — stack controls */
 
@@ -233,5 +258,12 @@ html,body{height:100%}
 }
 
 @media (max-width:720px){
+  .admin-page #imageControlPanel,
+  .admin-page #promoControlPanel,
+  .admin-page #gameControlsPanel,
+  .admin-page #rightPanelsStack,
+  .admin-page .admin-connection,
+  .admin-page .admin-time,
+  .admin-page #historyPanel{grid-column:1;grid-row:auto}
   .admin-page .level-display #currentLevel{ font-size:36px; }
 }

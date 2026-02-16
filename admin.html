@@ -59,7 +59,7 @@
       </div>
     </section>
 
-    <section class="admin-box preview-box">
+    <section class="admin-box preview-box" id="imageControlPanel">
       <div class="box-title">Image Control</div>
       <label>Image URL
         <div class="inline-row">
@@ -76,7 +76,31 @@
       <img id="imagePreview" alt="preview" />
     </section>
 
-    <section class="admin-box">
+    <section class="admin-box admin-promo-box" id="promoControlPanel">
+      <div class="box-title">Promotion Video Control</div>
+      <label>Video URL
+        <div class="inline-row">
+          <input id="promoVideoUrlInput" type="url" placeholder="https://.../promo-video.mp4" />
+          <button id="setPromoVideoBtn" type="button">Set Video</button>
+        </div>
+      </label>
+      <label>Upload promotion video
+        <div class="inline-row">
+          <input id="promoVideoFileInput" type="file" accept="video/*" />
+          <button id="uploadPromoVideoBtn">Upload Video</button>
+        </div>
+      </label>
+      <div class="inline-row" aria-label="Promotion video playback controls">
+        <button id="promoVideoPlayBtn" type="button">Play</button>
+        <button id="promoVideoPauseBtn" type="button" class="secondary">Pause</button>
+        <button id="promoVideoStopBtn" type="button" class="secondary">Stop</button>
+        <button id="promoVideoRemoveBtn" type="button" class="secondary">Remove Video</button>
+      </div>
+      <video id="promoVideoAdminPreview" class="admin-promo-video" controls playsinline preload="metadata"></video>
+      <div id="promoVideoStatus" class="help-text">No promotion video uploaded yet.</div>
+    </section>
+
+    <section id="gameControlsPanel" class="admin-box">
       <div class="box-title">Game Controls</div>
       <div class="button-grid">
         <button id="startBtn">Start</button>
@@ -112,7 +136,7 @@
       <div>Status: <span class="team-status">Waiting</span></div>
     </section>
 
-    <section class="admin-box">
+    <section id="totalsPanel" class="admin-box">
       <div class="box-title">Totals</div>
       <div>Team <span id="totalALabel">A</span>: <span id="totalA">0</span></div>
       <div>Team <span id="totalBLabel">B</span>: <span id="totalB">0</span></div>
