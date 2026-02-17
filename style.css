@@ -68,6 +68,59 @@ header h1{margin:0 0 12px}
 .timer-warn{color:#f59e0b !important}
 .timer-danger{color:#ef4444 !important}
 
+.live-scoreboard{
+  border:1px solid #dbe4ef;
+  border-radius:12px;
+  background:#f8fafc;
+  padding:12px;
+  width:min(460px, 38vw);
+  min-width:320px;
+  margin:0;
+}
+
+.live-scoreboard h2{
+  margin:0 0 8px;
+  font-size:1rem;
+}
+
+.live-score-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:.88rem;
+}
+
+.live-score-table th,
+.live-score-table td{
+  border:1px solid #dbe4ef;
+  padding:6px 8px;
+  text-align:center;
+}
+
+.live-score-table th:first-child,
+.live-score-table td:first-child{
+  text-align:left;
+  font-weight:700;
+}
+
+.live-score-table thead th{
+  background:#eaf2ff;
+}
+
+.live-score-table .total-row td{
+  font-weight:800;
+  background:#eefbf3;
+}
+
+.live-score-meta{
+  margin-top:8px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  flex-wrap:wrap;
+  color:#1f2937;
+  font-size:.86rem;
+}
+
 .game-winner-banner{
   position:fixed;
   top:18px;
@@ -142,16 +195,20 @@ footer{margin-top:12px;color:#444}
 }
 .category-row{
   display:grid;
-  grid-template-columns:160px 1fr;
+  grid-template-columns:130px minmax(0, 1fr);
   gap:10px;
   align-items:center;
 }
 .category-row label{font-weight:600}
 .word-input{
-  padding:8px 10px;
+  width:100%;
+  min-width:140px;
+  max-width:100%;
+  justify-self:start;
+  padding:6px 8px;
   border-radius:8px;
   border:1px solid #d1d5db;
-  font-size:14px;
+  font-size:13px;
 }
 .word-input.invalid{border-color:#ef4444;background:#fff1f2}
 .word-input.skipped{border-color:#f59e0b;background:#fffbeb}
@@ -216,7 +273,7 @@ footer{margin-top:12px;color:#444}
 /* Read-only embedded board shown on /dashboard (team pages with ?view=1) */
 .spectator-view{
   --board-base-size: min(86vmin, 980px);
-  --word-board-width: min(94vw, 1160px);
+  --word-board-width: min(90vw, 1020px);
   --word-board-height: min(56vh, 560px);
 }
 
@@ -263,6 +320,25 @@ footer{margin-top:12px;color:#444}
   display:none !important;
 }
 
+.spectator-view .live-scoreboard{
+  display:none !important;
+}
+
+.spectator-view header,
+.spectator-view .zoom-controls{
+  display:none !important;
+}
+
+.spectator-view .touch-hint,
+.spectator-view .score,
+.spectator-view .completion,
+.spectator-view .status,
+.spectator-view .word-status,
+.spectator-view .word-score,
+.spectator-view .word-completion{
+  display:none !important;
+}
+
 .spectator-view .team-page-layout{
   display:block;
 }
@@ -270,7 +346,9 @@ footer{margin-top:12px;color:#444}
 @media (max-width:800px){
   .team-page-layout{flex-wrap:wrap}
   .promo-panel{width:min(100%, 640px);min-width:0}
+  .live-scoreboard{width:min(100%, 640px);min-width:0}
   .boards{flex-direction:column}
+  .live-scoreboard{padding:10px}
   :root{--board-base-size:280px}
   .slot{touch-action:manipulation}
   .secondary, button{min-height:44px}

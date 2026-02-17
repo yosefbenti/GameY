@@ -161,6 +161,145 @@ const httpServer = http.createServer((req, res) => {
       '/index.html': 'index.html',
     };
 
+    if (urlPath === '/upload-image-url' && req.method === 'POST') {
+      const MAX_JSON_BYTES = 1024 * 1024;
+      let total = 0;
+      const chunks = [];
+
+      req.on('data', (chunk) => {
+        total += chunk.length;
+        if (total > MAX_JSON_BYTES) {
+          res.writeHead(413, {
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/json',
+          });
+          res.end(JSON.stringify({ ok: false, error: 'Request body too large' }));
+          req.destroy();
+          return;
+        }
+        chunks.push(chunk);
+      });
+
+      req.on('end', async () => {
+        try {
+          const raw = Buffer.concat(chunks).toString('utf8');
+          const body = raw ? JSON.parse(raw) : {};
+          const sourceUrl = String(body && body.url ? body.url : '').trim();
+          if (!sourceUrl) {
+            res.writeHead(400, {
+              'Access-Control-Allow-Origin': '*',
+              'Content-Type': 'application/json',
+            });
+            res.end(JSON.stringify({ ok: false, error: 'Missing image URL' }));
+            return;
+          }
+
+          let parsed;
+          try {
+            parsed = new URL(sourceUrl);
+          } catch (e) {
+            res.writeHead(400, {
+              'Access-Control-Allow-Origin': '*',
+              'Content-Type': 'application/json',
+            });
+            res.end(JSON.stringify({ ok: false, error: 'Invalid image URL' }));
+            return;
+          }
+
+          if (!['http:', 'https:'].includes(parsed.protocol)) {
+            res.writeHead(400, {
+              'Access-Control-Allow-Origin': '*',
+              'Content-Type': 'application/json',
+            });
+            res.end(JSON.stringify({ ok: false, error: 'Only http/https URLs are supported' }));
+            return;
+          }
+
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 15000);
+          let response;
+          try {
+            response = await fetch(parsed.toString(), {
+              method: 'GET',
+              redirect: 'follow',
+              signal: controller.signal,
+              headers: { 'User-Agent': 'GameY-Image-Fetcher/1.0' },
+            });
+          } finally {
+            clearTimeout(timeout);
+          }
+
+          if (!response || !response.ok) {
+            res.writeHead(400, {
+              'Access-Control-Allow-Origin': '*',
+              'Content-Type': 'application/json',
+            });
+            res.end(JSON.stringify({ ok: false, error: `Failed to fetch image URL (${response ? response.status : 'no response'})` }));
+            return;
+          }
+
+          const contentType = String(response.headers.get('content-type') || '').split(';')[0].toLowerCase();
+          const ext = getExtensionFromUpload(contentType, path.basename(parsed.pathname || ''), false);
+          if (!ext) {
+            res.writeHead(400, {
+              'Access-Control-Allow-Origin': '*',
+              'Content-Type': 'application/json',
+            });
+            res.end(JSON.stringify({ ok: false, error: 'URL is not a supported image type' }));
+            return;
+          }
+
+          const arr = await response.arrayBuffer();
+          const buf = Buffer.from(arr);
+          if (!buf.length) {
+            res.writeHead(400, {
+              'Access-Control-Allow-Origin': '*',
+              'Content-Type': 'application/json',
+            });
+            res.end(JSON.stringify({ ok: false, error: 'Downloaded image is empty' }));
+            return;
+          }
+
+          const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+          if (buf.length > MAX_IMAGE_BYTES) {
+            res.writeHead(413, {
+              'Access-Control-Allow-Origin': '*',
+              'Content-Type': 'application/json',
+            });
+            res.end(JSON.stringify({ ok: false, error: 'Image is too large (max 10MB)' }));
+            return;
+          }
+
+          const fileName = `current-${Date.now()}.${ext}`;
+          const absPath = path.join(UPLOAD_DIR, fileName);
+          fs.writeFileSync(absPath, buf);
+          const url = `http://${getPublicHost()}/uploads/${fileName}`;
+
+          res.writeHead(200, {
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store, max-age=0',
+          });
+          res.end(JSON.stringify({ ok: true, url }));
+        } catch (error) {
+          res.writeHead(500, {
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/json',
+          });
+          res.end(JSON.stringify({ ok: false, error: String(error && error.message ? error.message : error) }));
+        }
+      });
+
+      req.on('error', (error) => {
+        res.writeHead(500, {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json',
+        });
+        res.end(JSON.stringify({ ok: false, error: String(error) }));
+      });
+      return;
+    }
+
     if ((urlPath === '/upload' || urlPath === '/upload-video') && req.method === 'POST') {
       const isVideoUpload = urlPath === '/upload-video';
       const contentType = String(req.headers['content-type'] || '').split(';')[0].toLowerCase();
@@ -372,6 +511,11 @@ const state = {
     countdownTimeLimit: null,
     countdownSeconds: 0,
     promoVideo: null,
+    promoImage: null,
+    promoWidth: 380,
+    promoHeight: 430,
+    boardHeight: 620,
+    promoBoardMode: 'boards',
   },
   puzzleStates: {
     A: null,
@@ -609,6 +753,11 @@ function buildGameStatePayload() {
     level: state.session.level || null,
     imageUrl: state.session.image && state.session.image.url ? state.session.image.url : null,
     promoVideoUrl: state.session.promoVideo && state.session.promoVideo.url ? state.session.promoVideo.url : null,
+    promoImageUrl: state.session.promoImage && state.session.promoImage.url ? state.session.promoImage.url : null,
+    promoWidth: Math.max(280, Math.min(680, Math.round(Number(state.session.promoWidth) || 380))),
+    promoHeight: Math.max(320, Math.min(760, Math.round(Number(state.session.promoHeight) || 430))),
+    boardHeight: Math.max(470, Math.min(980, Math.round(Number(state.session.boardHeight) || 620))),
+    promoBoardMode: String(state.session.promoBoardMode || 'boards').toLowerCase() === 'video' ? 'video' : 'boards',
     timer: {
       running: Boolean(state.session.start) && !state.session.paused && (remaining == null ? false : remaining > 0),
       paused: Boolean(state.session.paused),
@@ -725,6 +874,7 @@ function replayStateToClient(ws) {
   if (state.session.level) sendToClient(ws, state.session.level);
   if (state.session.image) sendToClient(ws, state.session.image);
   if (state.session.promoVideo) sendToClient(ws, state.session.promoVideo);
+  if (state.session.promoImage) sendToClient(ws, state.session.promoImage);
   if (state.session.start) {
     sendToClient(ws, {
       type: 'start',
@@ -1010,6 +1160,42 @@ wss.on('connection', (ws, req) => {
       }
     }
 
+    if (data.type === 'promoImage') {
+      const rawUrl = typeof data.url === 'string' ? data.url.trim() : '';
+      if (rawUrl) {
+        const sharedUrl = normalizeSharedImageUrl(rawUrl);
+        data.url = sharedUrl;
+        state.session.promoImage = { type: 'promoImage', url: sharedUrl };
+      } else {
+        data.url = '';
+        state.session.promoImage = null;
+      }
+    }
+
+    if (data.type === 'promoWidth') {
+      const width = Math.max(280, Math.min(680, Math.round(Number(data.width) || 380)));
+      data.width = width;
+      state.session.promoWidth = width;
+    }
+
+    if (data.type === 'promoHeight') {
+      const height = Math.max(320, Math.min(760, Math.round(Number(data.height) || 430)));
+      data.height = height;
+      state.session.promoHeight = height;
+    }
+
+    if (data.type === 'boardHeight') {
+      const height = Math.max(470, Math.min(980, Math.round(Number(data.height) || 620)));
+      data.height = height;
+      state.session.boardHeight = height;
+    }
+
+    if (data.type === 'promoBoardMode') {
+      const mode = String(data.mode || '').toLowerCase();
+      data.mode = mode === 'video' ? 'video' : 'boards';
+      state.session.promoBoardMode = data.mode;
+    }
+
     if (data.type === 'level') {
       clearPendingStartCountdown(true);
       if (data.mode === 'puzzle' && data.url) {
@@ -1155,7 +1341,7 @@ wss.on('connection', (ws, req) => {
     // Forward all other control messages as-is (start/reset/level/image/pause/etc.).
     console.log(`Broadcasting ${data.type} message`);
     broadcast(data);
-    if (['start', 'pause', 'image', 'promoVideo', 'level', 'next', 'reset'].includes(data.type)) {
+    if (['start', 'pause', 'image', 'promoVideo', 'promoImage', 'promoWidth', 'promoHeight', 'boardHeight', 'promoBoardMode', 'level', 'next', 'reset'].includes(data.type)) {
       emitGameState();
     }
   });

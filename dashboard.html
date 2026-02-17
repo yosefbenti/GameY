@@ -11,6 +11,9 @@
       --card-border:#1f2937;
       --text:#e5e7eb;
       --muted:#94a3b8;
+      --board-panel-min-height:620px;
+      --promo-col-width:380px;
+      --promo-area-min-height:430px;
     }
     *{box-sizing:border-box}
     body{
@@ -19,10 +22,10 @@
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
       background:radial-gradient(circle at top,#1e293b 0%,var(--bg) 55%);
       color:var(--text);
-      padding:18px;
+      padding:clamp(10px,1.2vw,18px);
     }
     .dashboard{
-      max-width:1800px;
+      max-width:min(1800px, 100%);
       margin:0 auto;
       display:flex;
       flex-direction:column;
@@ -53,8 +56,9 @@
     }
     .status-grid{
       display:grid;
-      grid-template-columns:repeat(4,minmax(140px,1fr));
+      grid-template-columns:minmax(280px,var(--promo-col-width)) minmax(0,1fr);
       gap:10px;
+      align-items:stretch;
     }
     .pill{
       background:rgba(255,255,255,0.04);
@@ -62,6 +66,29 @@
       border-radius:12px;
       padding:10px 12px;
       min-height:62px;
+    }
+    .pill.dual{
+      display:flex;
+      align-items:stretch;
+      justify-content:flex-start;
+      gap:10px;
+    }
+    .status-connection-level{grid-column:1}
+    .status-title-pill{grid-column:2}
+    .pill.dual .block{min-width:0;flex:0 1 auto}
+    .pill.dual .block.right{
+      text-align:left;
+      border-left:1px dotted rgba(148,163,184,.55);
+      padding-left:12px;
+      margin-left:2px;
+    }
+    .status-title-pill .title{
+      margin:0;
+      font-size:clamp(1.2rem,2.2vw,1.8rem);
+      font-weight:800;
+      color:#f8fafc;
+      letter-spacing:.01em;
+      line-height:1.2;
     }
     .pill .k{
       color:var(--muted);
@@ -80,9 +107,77 @@
     .pill .v.bad{color:#ef4444}
     .boards{
       display:grid;
-      grid-template-columns:1fr 1fr;
+      grid-template-columns:repeat(2,minmax(320px,1fr));
       gap:14px;
-      min-height:calc(100vh - 130px);
+      min-height:0;
+    }
+    .promo-board-stage{
+      display:none;
+      grid-column:1 / -1;
+      align-items:center;
+      justify-content:center;
+      flex-direction:column;
+      gap:10px;
+      border:1px solid rgba(148,163,184,0.35);
+      border-radius:14px;
+      background:rgba(2,6,23,0.65);
+      padding:12px;
+      min-height:var(--board-panel-min-height);
+    }
+    .promo-board-video{
+      width:min(100%, 1280px);
+      max-height:calc(var(--board-panel-min-height) - 36px);
+      aspect-ratio:16/9;
+      border:1px solid rgba(148,163,184,.45);
+      border-radius:12px;
+      background:#020617;
+      object-fit:cover;
+    }
+    .promo-board-stage-note{
+      font-size:.9rem;
+      color:var(--muted);
+      text-align:center;
+      font-weight:600;
+    }
+    .boards.promo-video-mode > article{display:none}
+    .boards.promo-video-mode .promo-board-stage{display:flex}
+    .board-size-controls{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      background:rgba(255,255,255,0.04);
+      border:1px solid var(--card-border);
+      border-radius:12px;
+      padding:6px 8px;
+    }
+    .board-size-controls .label{
+      color:var(--muted);
+      font-size:0.8rem;
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:.05em;
+    }
+    .board-size-controls button{
+      min-width:34px;
+      min-height:32px;
+      border-radius:8px;
+      border:1px solid rgba(148,163,184,.35);
+      background:#0b1220;
+      color:#f8fafc;
+      font-size:1rem;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .board-size-controls button:disabled{
+      opacity:.45;
+      cursor:not-allowed;
+    }
+    .board-size-controls .value{
+      min-width:62px;
+      text-align:center;
+      font-weight:800;
+      color:#f8fafc;
+      font-size:.9rem;
     }
     .panel{
       background:var(--card);
@@ -91,7 +186,8 @@
       overflow:hidden;
       display:flex;
       flex-direction:column;
-      min-height:480px;
+      height:var(--board-panel-min-height);
+      min-height:var(--board-panel-min-height);
     }
     .panel h2{
       margin:0;
@@ -104,15 +200,19 @@
     }
     .panel-body{
       flex:1;
+      min-height:0;
       display:flex;
-      padding:0 10px 14px;
+      align-items:stretch;
+      justify-content:stretch;
+      padding:20px;
       overflow:hidden;
       border-top:1px solid rgba(255,255,255,0.04);
     }
     .board-frame{
       width:100%;
-      height:calc(100% + 74px);
-      transform:translateY(-54px);
+      height:100%;
+      aspect-ratio:auto;
+      transform:none;
       border:1px solid rgba(148,163,184,0.35);
       border-radius:10px;
       flex:1;
@@ -123,7 +223,174 @@
 
     .boards-wrap{
       position:relative;
-      min-height:calc(100vh - 220px);
+      min-height:calc(100vh - 205px);
+    }
+
+    .boards-layout{
+      display:grid;
+      grid-template-columns:minmax(280px,var(--promo-col-width)) minmax(0,1fr);
+      gap:14px;
+      align-items:stretch;
+    }
+
+    .promo-area{
+      background:var(--card);
+      border:1px solid var(--card-border);
+      border-radius:14px;
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      min-height:var(--promo-area-min-height);
+    }
+
+    .promo-area h3{
+      margin:0;
+      font-size:1rem;
+      font-weight:800;
+      color:#f8fafc;
+    }
+
+    .promo-score-card{
+      border:1px solid rgba(148,163,184,.35);
+      border-radius:10px;
+      background:rgba(15,23,42,.55);
+      padding:6px;
+    }
+
+    .promo-score-card h4{
+      margin:0 0 4px;
+      font-size:.8rem;
+      color:#f8fafc;
+      font-weight:800;
+      letter-spacing:.01em;
+    }
+
+    .promo-score-table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:.72rem;
+    }
+
+    .promo-score-table th,
+    .promo-score-table td{
+      border:1px solid rgba(148,163,184,.3);
+      padding:3px 5px;
+      text-align:center;
+      color:#e2e8f0;
+    }
+
+    .promo-score-table th:first-child,
+    .promo-score-table td:first-child{
+      text-align:left;
+      font-weight:700;
+    }
+
+    .promo-score-table thead th{
+      background:rgba(59,130,246,.2);
+      color:#f8fafc;
+      font-weight:800;
+    }
+
+    .promo-score-table .total-row td{
+      font-weight:800;
+      background:rgba(34,197,94,.12);
+      color:#f8fafc;
+    }
+
+    .promo-area p{
+      margin:0;
+      font-size:.9rem;
+      color:var(--muted);
+      line-height:1.45;
+    }
+
+    .promo-slot{
+      border:1px dashed rgba(148,163,184,.45);
+      border-radius:10px;
+      background:rgba(255,255,255,.02);
+      min-height:120px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      padding:10px;
+      color:#cbd5e1;
+      font-size:.88rem;
+      font-weight:700;
+    }
+
+    .promo-slot-video{
+      align-items:stretch;
+      justify-content:flex-start;
+      text-align:left;
+      flex-direction:column;
+      gap:8px;
+      font-weight:600;
+      min-height:auto;
+    }
+    .promo-slot-swap-boards{
+      display:none;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      margin-top:2px;
+    }
+    .promo-slot-swap-boards.show{display:grid}
+    .promo-slot-team-name{
+      width:100%;
+      min-height:64px;
+      border:1px solid rgba(148,163,184,.45);
+      border-radius:10px;
+      background:rgba(2,6,23,.8);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      font-size:1rem;
+      font-weight:800;
+      color:#e2e8f0;
+      letter-spacing:.01em;
+    }
+
+    .promo-slot-image{
+      align-items:stretch;
+      justify-content:flex-start;
+      text-align:left;
+      flex-direction:column;
+      gap:8px;
+      font-weight:600;
+      min-height:auto;
+    }
+
+    .promo-video-live{
+      width:100%;
+      aspect-ratio:16/9;
+      min-height:210px;
+      max-height:320px;
+      object-fit:cover;
+      border:1px solid rgba(148,163,184,.45);
+      border-radius:10px;
+      background:#020617;
+    }
+    .promo-video-embed{display:none}
+
+    .promo-video-status{
+      font-size:.8rem;
+      color:var(--muted);
+      line-height:1.35;
+      font-weight:600;
+    }
+
+    .promo-image-live{
+      width:100%;
+      min-height:180px;
+      max-height:260px;
+      aspect-ratio:16/10;
+      object-fit:cover;
+      border:1px solid rgba(148,163,184,.45);
+      border-radius:10px;
+      background:#020617;
+      display:block;
     }
 
     .winner-banner{
@@ -153,9 +420,13 @@
     }
 
     @media (max-width: 1080px){
-      .status-grid{grid-template-columns:repeat(2,minmax(140px,1fr))}
+      .status-grid{grid-template-columns:1fr}
+      .status-connection-level{grid-column:1}
+      .status-title-pill{grid-column:1}
+      .boards-layout{grid-template-columns:1fr}
       .boards{grid-template-columns:1fr;min-height:auto}
-      .panel{min-height:420px}
+      .panel{min-height:580px}
+      .promo-area{min-height:var(--promo-area-min-height)}
     }
   </style>
 </head>
@@ -164,48 +435,104 @@
     <header class="top">
       <div>
         <div class="title-row">
-          <h1>Live Dashboard — Team A vs Team B</h1>
           <span id="winnerBanner" class="winner-banner" aria-live="polite"></span>
         </div>
-        <div class="sub">Read-only spectator view (updates automatically)</div>
       </div>
-      <div class="note" id="lastUpdate">Waiting for live data…</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+        <div class="note" id="lastUpdate">Waiting for live data…</div>
+      </div>
     </header>
 
     <section class="status-grid" aria-label="Live status summary">
-      <div class="pill">
-        <div class="k">Connection</div>
-        <div class="v warn" id="connectionState">Connecting…</div>
+      <div class="pill dual status-connection-level">
+        <div class="block left">
+          <div class="k">Connection</div>
+          <div class="v warn" id="connectionState">Connecting…</div>
+        </div>
+        <div class="block right">
+          <div class="k">Current level</div>
+          <div class="v" id="levelState">—</div>
+        </div>
       </div>
-      <div class="pill">
-        <div class="k">Current level</div>
-        <div class="v" id="levelState">—</div>
-      </div>
-      <div class="pill">
-        <div class="k">Timer</div>
-        <div class="v" id="timerState">00:00</div>
-      </div>
-      <div class="pill">
-        <div class="k">Totals</div>
-        <div class="v" id="totalsState">A: 0 | B: 0</div>
+      <div class="pill status-title-pill" aria-label="Dashboard title">
+        <h2 class="title" id="dashboardTitle">Live Dashboard — Team A vs Team B</h2>
       </div>
     </section>
 
     <section class="boards-wrap" aria-label="Boards with winner banner">
-      <section class="boards" aria-label="Team boards side by side">
-        <article class="panel" aria-label="Team A board">
-          <h2 id="teamAHeader">Team A — 0% — Score 0</h2>
-          <div class="panel-body">
-            <iframe class="board-frame" src="/teamA?view=1" title="Team A live board" loading="eager" sandbox="allow-scripts allow-same-origin"></iframe>
+      <div class="boards-layout">
+        <aside class="promo-area" aria-label="Promotions area">
+          <section class="promo-score-card" aria-label="Current team scores">
+            <h4>Current Score (Levels + Total)</h4>
+            <table class="promo-score-table">
+              <thead>
+                <tr>
+                  <th>Level</th>
+                  <th id="scoreTeamAName">Team A</th>
+                  <th id="scoreTeamBName">Team B</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>L1</td>
+                  <td id="scoreA1">0</td>
+                  <td id="scoreB1">0</td>
+                </tr>
+                <tr>
+                  <td>L2</td>
+                  <td id="scoreA2">0</td>
+                  <td id="scoreB2">0</td>
+                </tr>
+                <tr>
+                  <td>L3</td>
+                  <td id="scoreA3">0</td>
+                  <td id="scoreB3">0</td>
+                </tr>
+                <tr class="total-row">
+                  <td>Total</td>
+                  <td id="scoreATotal">0</td>
+                  <td id="scoreBTotal">0</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <h3>Promotions</h3>
+          <div class="promo-slot promo-slot-video" aria-label="Promotion Slot 1 live video">
+            <video id="promoSlot1Video" class="promo-video-live" playsinline preload="metadata" controls></video>
+            <iframe id="promoSlot1VideoEmbed" class="promo-video-live promo-video-embed" title="Promotion Slot 1 embedded video" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+            <div id="promoSlot1Status" class="promo-video-status">Waiting for admin to upload a promotion video.</div>
+            <div id="promoSlot1BoardsSwap" class="promo-slot-swap-boards" aria-label="Team boards preview while promotion video is on main board">
+              <div class="promo-slot-team-name" id="promoSlotTeamAName">Team A</div>
+              <div class="promo-slot-team-name" id="promoSlotTeamBName">Team B</div>
+            </div>
           </div>
-        </article>
-        <article class="panel" aria-label="Team B board">
-          <h2 id="teamBHeader">Team B — 0% — Score 0</h2>
-          <div class="panel-body">
-            <iframe class="board-frame" src="/teamB?view=1" title="Team B live board" loading="eager" sandbox="allow-scripts allow-same-origin"></iframe>
+          <div class="promo-slot promo-slot-image" aria-label="Promotion Slot 2 live image">
+            <img id="promoSlot2Image" class="promo-image-live" alt="" aria-label="Promotion slot 2" />
+            <div id="promoSlot2Status" class="promo-video-status">Waiting for admin to upload a promotion image.</div>
           </div>
-        </article>
-      </section>
+        </aside>
+
+        <section class="boards" id="boardsArea" aria-label="Team boards side by side">
+          <article class="panel" aria-label="Team A board">
+            <h2 id="teamAHeader">Team A — 0% — Score 0</h2>
+            <div class="panel-body">
+              <iframe class="board-frame" src="/teamA?view=1" title="Team A live board" loading="eager" sandbox="allow-scripts allow-same-origin"></iframe>
+            </div>
+          </article>
+          <article class="panel" aria-label="Team B board">
+            <h2 id="teamBHeader">Team B — 0% — Score 0</h2>
+            <div class="panel-body">
+              <iframe class="board-frame" src="/teamB?view=1" title="Team B live board" loading="eager" sandbox="allow-scripts allow-same-origin"></iframe>
+            </div>
+          </article>
+          <div id="promoBoardStage" class="promo-board-stage" aria-label="Promotion video on main board area">
+            <video id="promoBoardVideo" class="promo-board-video" playsinline preload="metadata" controls></video>
+            <iframe id="promoBoardVideoEmbed" class="promo-board-video promo-video-embed" title="Promotion video embedded in board area" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+            <div id="promoBoardStageNote" class="promo-board-stage-note">No promotion video is active right now.</div>
+          </div>
+        </section>
+      </div>
     </section>
   </main>
 
@@ -219,6 +546,94 @@
       const elA = document.getElementById('teamAHeader');
       const elB = document.getElementById('teamBHeader');
       const elWinner = document.getElementById('winnerBanner');
+      const elDashboardTitle = document.getElementById('dashboardTitle');
+      const promoVideoEl = document.getElementById('promoSlot1Video');
+      const promoVideoEmbedEl = document.getElementById('promoSlot1VideoEmbed');
+      const promoStatusEl = document.getElementById('promoSlot1Status');
+      const promoSlot1BoardsSwapEl = document.getElementById('promoSlot1BoardsSwap');
+      const promoImageEl = document.getElementById('promoSlot2Image');
+      const promoImageStatusEl = document.getElementById('promoSlot2Status');
+      const boardsAreaEl = document.getElementById('boardsArea');
+      const promoBoardVideoEl = document.getElementById('promoBoardVideo');
+      const promoBoardVideoEmbedEl = document.getElementById('promoBoardVideoEmbed');
+      const promoBoardStageNoteEl = document.getElementById('promoBoardStageNote');
+      const scoreTeamANameEl = document.getElementById('scoreTeamAName');
+      const scoreTeamBNameEl = document.getElementById('scoreTeamBName');
+      const promoSlotTeamANameEl = document.getElementById('promoSlotTeamAName');
+      const promoSlotTeamBNameEl = document.getElementById('promoSlotTeamBName');
+      const scoreA1El = document.getElementById('scoreA1');
+      const scoreA2El = document.getElementById('scoreA2');
+      const scoreA3El = document.getElementById('scoreA3');
+      const scoreB1El = document.getElementById('scoreB1');
+      const scoreB2El = document.getElementById('scoreB2');
+      const scoreB3El = document.getElementById('scoreB3');
+      const scoreATotalEl = document.getElementById('scoreATotal');
+      const scoreBTotalEl = document.getElementById('scoreBTotal');
+      const boardHeightDecreaseBtn = document.getElementById('boardHeightDecreaseBtn');
+      const boardHeightIncreaseBtn = document.getElementById('boardHeightIncreaseBtn');
+      const boardHeightValueEl = document.getElementById('boardHeightValue');
+
+      const PROMO_WIDTH_MIN = 280;
+      const PROMO_WIDTH_MAX = 680;
+      const BOARD_HEIGHT_MIN = 470;
+      const BOARD_HEIGHT_MAX = 980;
+      const BOARD_HEIGHT_STEP = 30;
+      const BOARD_HEIGHT_KEY = 'dashboard:boardPanelMinHeight';
+      const PROMO_HEIGHT_MIN = 320;
+      const PROMO_HEIGHT_MAX = 760;
+
+      function clampPromoWidth(value){
+        const n = Number(value);
+        if(!Number.isFinite(n)) return 380;
+        return Math.max(PROMO_WIDTH_MIN, Math.min(PROMO_WIDTH_MAX, Math.round(n)));
+      }
+
+      function applyPromoWidth(value){
+        const next = clampPromoWidth(value);
+        document.documentElement.style.setProperty('--promo-col-width', `${next}px`);
+      }
+
+      function clampPromoHeight(value){
+        const n = Number(value);
+        if(!Number.isFinite(n)) return 430;
+        return Math.max(PROMO_HEIGHT_MIN, Math.min(PROMO_HEIGHT_MAX, Math.round(n)));
+      }
+
+      function applyPromoHeight(value){
+        const next = clampPromoHeight(value);
+        document.documentElement.style.setProperty('--promo-area-min-height', `${next}px`);
+      }
+
+      applyPromoWidth(380);
+      applyPromoHeight(430);
+
+      function clampBoardHeight(value){
+        const n = Number(value);
+        if(!Number.isFinite(n)) return 620;
+        return Math.max(BOARD_HEIGHT_MIN, Math.min(BOARD_HEIGHT_MAX, Math.round(n)));
+      }
+
+      function applyBoardHeight(value, persist = true){
+        const next = clampBoardHeight(value);
+        document.documentElement.style.setProperty('--board-panel-min-height', `${next}px`);
+        if(boardHeightValueEl) boardHeightValueEl.textContent = `${next}px`;
+        if(boardHeightDecreaseBtn) boardHeightDecreaseBtn.disabled = next <= BOARD_HEIGHT_MIN;
+        if(boardHeightIncreaseBtn) boardHeightIncreaseBtn.disabled = next >= BOARD_HEIGHT_MAX;
+        if(persist){
+          try{ localStorage.setItem(BOARD_HEIGHT_KEY, String(next)); }catch(e){}
+        }
+      }
+
+      (function initBoardHeightControls(){
+        let initial = 620;
+        try{
+          const raw = localStorage.getItem(BOARD_HEIGHT_KEY);
+          if(raw != null) initial = clampBoardHeight(raw);
+        }catch(e){}
+        applyBoardHeight(initial, false);
+        if(boardHeightDecreaseBtn) boardHeightDecreaseBtn.addEventListener('click', ()=> applyBoardHeight((parseInt(String(boardHeightValueEl && boardHeightValueEl.textContent || '620'), 10) || 620) - BOARD_HEIGHT_STEP));
+        if(boardHeightIncreaseBtn) boardHeightIncreaseBtn.addEventListener('click', ()=> applyBoardHeight((parseInt(String(boardHeightValueEl && boardHeightValueEl.textContent || '620'), 10) || 620) + BOARD_HEIGHT_STEP));
+      })();
 
       const state = {
         names: { A: 'Team A', B: 'Team B' },
@@ -227,8 +642,97 @@
           A: { matched: 0, pairs: 0, score: 0 },
           B: { matched: 0, pairs: 0, score: 0 },
         },
+        levelScores: {
+          A: { 1: 0, 2: 0, 3: 0 },
+          B: { 1: 0, 2: 0, 3: 0 },
+        },
         levelText: '—',
+        promoBoardMode: 'boards',
+        promoVideoUrl: '',
+        promoVideoIsEmbed: false,
       };
+
+      function toYouTubeEmbedUrl(rawUrl){
+        if(!rawUrl || typeof rawUrl !== 'string') return '';
+        let u = null;
+        try{ u = new URL(rawUrl, window.location.href); }catch(e){ return ''; }
+        const host = (u.hostname || '').toLowerCase();
+        let vid = '';
+        if(host === 'youtu.be'){
+          vid = (u.pathname || '').replace(/^\//,'').split('/')[0] || '';
+        }else if(host.includes('youtube.com')){
+          if((u.pathname || '').startsWith('/watch')) vid = u.searchParams.get('v') || '';
+          else if((u.pathname || '').startsWith('/embed/')) vid = (u.pathname.split('/')[2] || '').trim();
+          else if((u.pathname || '').startsWith('/shorts/')) vid = (u.pathname.split('/')[2] || '').trim();
+        }
+        vid = String(vid || '').trim();
+        if(!vid) return '';
+        const params = new URLSearchParams({ autoplay: '0', mute: '1', rel: '0', modestbranding: '1', playsinline: '1', enablejsapi: '1', origin: window.location.origin });
+        return `https://www.youtube.com/embed/${encodeURIComponent(vid)}?${params.toString()}`;
+      }
+
+      function sendYouTubeCommand(iframeEl, func, args = []){
+        if(!iframeEl || !iframeEl.contentWindow) return;
+        try{
+          const safeArgs = Array.isArray(args) ? args : [args];
+          iframeEl.contentWindow.postMessage(JSON.stringify({ event:'command', func, args: safeArgs }), '*');
+        }catch(e){}
+      }
+
+      function safePlayVideo(videoEl, preferMuted = false){
+        if(!videoEl) return;
+        try{
+          if(preferMuted){
+            videoEl.muted = true;
+            videoEl.volume = 0;
+          }
+          const p = videoEl.play();
+          if(p && typeof p.catch === 'function'){
+            p.catch(()=>{
+              if(!preferMuted) return;
+              try{
+                videoEl.muted = true;
+                videoEl.volume = 0;
+                const p2 = videoEl.play();
+                if(p2 && typeof p2.catch === 'function') p2.catch(()=>{});
+              }catch(e){}
+            });
+          }
+        }catch(e){}
+      }
+
+      function playMainBoardVideo(){
+        if(!promoBoardVideoEl || !promoBoardVideoEl.src) return;
+        try{
+          safePlayVideo(promoBoardVideoEl, false);
+        }catch(e){}
+      }
+
+      function applyPromoBoardMode(mode){
+        const m = String(mode || '').toLowerCase() === 'video' ? 'video' : 'boards';
+        if(state.promoBoardMode === m) return;
+        state.promoBoardMode = m;
+        if(boardsAreaEl) boardsAreaEl.classList.toggle('promo-video-mode', m === 'video');
+         if(m === 'video'){
+          if(promoVideoEl){
+            try{ promoVideoEl.pause(); promoVideoEl.currentTime = 0; }catch(e){}
+          }
+          if(promoVideoEmbedEl) sendYouTubeCommand(promoVideoEmbedEl, 'pauseVideo');
+           if(promoVideoEl) promoVideoEl.style.display = 'none';
+           if(promoVideoEmbedEl) promoVideoEmbedEl.style.display = 'none';
+           if(promoStatusEl) promoStatusEl.style.display = 'none';
+         }else{
+           if(promoStatusEl) promoStatusEl.style.display = '';
+           if(state.promoVideoIsEmbed){
+             if(promoVideoEl) promoVideoEl.style.display = 'none';
+             if(promoVideoEmbedEl && promoVideoEmbedEl.getAttribute('src')) promoVideoEmbedEl.style.display = 'block';
+           }else{
+             if(promoVideoEmbedEl) promoVideoEmbedEl.style.display = 'none';
+             if(promoVideoEl) promoVideoEl.style.display = '';
+           }
+         }
+        if(promoSlot1BoardsSwapEl) promoSlot1BoardsSwapEl.classList.toggle('show', m === 'video');
+      }
 
       function markConnection(label, tone){
         if(!elConn) return;
@@ -262,9 +766,39 @@
         const b = state.progress.B;
         const aPct = a.pairs > 0 ? Math.round((a.matched / a.pairs) * 100) : 0;
         const bPct = b.pairs > 0 ? Math.round((b.matched / b.pairs) * 100) : 0;
+        if(elDashboardTitle) elDashboardTitle.textContent = `Live Dashboard — ${state.names.A} vs ${state.names.B}`;
         if(elA) elA.textContent = `${state.names.A} — ${aPct}% — Score ${a.score}`;
         if(elB) elB.textContent = `${state.names.B} — ${bPct}% — Score ${b.score}`;
         if(elTotals) elTotals.textContent = `A: ${state.totals.A} | B: ${state.totals.B}`;
+        renderPromoScores();
+      }
+
+      function renderPromoScores(){
+        const aLevels = state.levelScores.A || {};
+        const bLevels = state.levelScores.B || {};
+        const a1 = Number(aLevels[1]) || 0;
+        const a2 = Number(aLevels[2]) || 0;
+        const a3 = Number(aLevels[3]) || 0;
+        const b1 = Number(bLevels[1]) || 0;
+        const b2 = Number(bLevels[2]) || 0;
+        const b3 = Number(bLevels[3]) || 0;
+
+        if(scoreTeamANameEl) scoreTeamANameEl.textContent = state.names.A || 'Team A';
+        if(scoreTeamBNameEl) scoreTeamBNameEl.textContent = state.names.B || 'Team B';
+        if(promoSlotTeamANameEl) promoSlotTeamANameEl.textContent = state.names.A || 'Team A';
+        if(promoSlotTeamBNameEl) promoSlotTeamBNameEl.textContent = state.names.B || 'Team B';
+
+        if(scoreA1El) scoreA1El.textContent = String(a1);
+        if(scoreA2El) scoreA2El.textContent = String(a2);
+        if(scoreA3El) scoreA3El.textContent = String(a3);
+        if(scoreB1El) scoreB1El.textContent = String(b1);
+        if(scoreB2El) scoreB2El.textContent = String(b2);
+        if(scoreB3El) scoreB3El.textContent = String(b3);
+
+        const totalA = Number(state.totals.A) || (a1 + a2 + a3);
+        const totalB = Number(state.totals.B) || (b1 + b2 + b3);
+        if(scoreATotalEl) scoreATotalEl.textContent = String(totalA);
+        if(scoreBTotalEl) scoreBTotalEl.textContent = String(totalB);
       }
 
       function setWinnerBanner(text){
@@ -291,6 +825,288 @@
         else if(mode === 'puzzle') state.levelText = `Level ${level || 1} — Puzzle`;
         else if(level) state.levelText = `Level ${level}`;
         if(elLevel && state.levelText) elLevel.textContent = state.levelText;
+      }
+
+      function normalizeSharedMediaUrl(url){
+        if(!url || typeof url !== 'string') return '';
+        try{
+          const u = new URL(url, window.location.href);
+          if(u.hostname === 'localhost' || u.hostname === '127.0.0.1'){
+            u.hostname = window.location.hostname;
+          }
+          return u.toString();
+        }catch(e){
+          return String(url || '');
+        }
+      }
+
+      function applyPromoVideo(url){
+        if(!promoVideoEl) return;
+        const normalizedUrl = normalizeSharedMediaUrl(url);
+        const ytEmbedUrl = toYouTubeEmbedUrl(normalizedUrl);
+        const useEmbed = Boolean(ytEmbedUrl);
+        if(state.promoVideoUrl === normalizedUrl && state.promoVideoIsEmbed === useEmbed) return;
+        state.promoVideoUrl = normalizedUrl;
+        state.promoVideoIsEmbed = useEmbed;
+        const mainBoardMode = state.promoBoardMode === 'video';
+
+        if(!normalizedUrl){
+          try{
+            promoVideoEl.pause();
+            promoVideoEl.removeAttribute('src');
+            promoVideoEl.load();
+          }catch(e){}
+          if(promoVideoEmbedEl){
+            promoVideoEmbedEl.style.display = 'none';
+            promoVideoEmbedEl.removeAttribute('src');
+          }
+          promoVideoEl.style.display = '';
+          if(promoBoardVideoEl){
+            try{
+              promoBoardVideoEl.pause();
+              promoBoardVideoEl.removeAttribute('src');
+              promoBoardVideoEl.load();
+            }catch(e){}
+          }
+          if(promoBoardVideoEmbedEl){
+            promoBoardVideoEmbedEl.style.display = 'none';
+            promoBoardVideoEmbedEl.removeAttribute('src');
+          }
+          if(promoBoardVideoEl) promoBoardVideoEl.style.display = '';
+          if(promoBoardStageNoteEl) promoBoardStageNoteEl.textContent = 'No promotion video is active right now.';
+          if(promoStatusEl) promoStatusEl.textContent = 'No promotion video is active right now.';
+          return;
+        }
+
+        if(useEmbed){
+          if(promoVideoEl){
+            try{ promoVideoEl.pause(); promoVideoEl.removeAttribute('src'); promoVideoEl.load(); }catch(e){}
+            promoVideoEl.style.display = 'none';
+          }
+          if(promoVideoEmbedEl){
+            if(mainBoardMode){
+              sendYouTubeCommand(promoVideoEmbedEl, 'pauseVideo');
+              promoVideoEmbedEl.removeAttribute('src');
+              promoVideoEmbedEl.style.display = 'none';
+            }else{
+              promoVideoEmbedEl.src = ytEmbedUrl;
+              promoVideoEmbedEl.style.display = 'block';
+            }
+          }
+
+          if(promoBoardVideoEl){
+            try{ promoBoardVideoEl.pause(); promoBoardVideoEl.removeAttribute('src'); promoBoardVideoEl.load(); }catch(e){}
+            promoBoardVideoEl.style.display = 'none';
+          }
+          if(promoBoardVideoEmbedEl){
+            if(mainBoardMode){
+              promoBoardVideoEmbedEl.src = ytEmbedUrl;
+              promoBoardVideoEmbedEl.style.display = 'block';
+              setTimeout(()=>{ sendYouTubeCommand(promoBoardVideoEmbedEl, 'pauseVideo'); }, 250);
+            }else{
+              sendYouTubeCommand(promoBoardVideoEmbedEl, 'pauseVideo');
+              promoBoardVideoEmbedEl.removeAttribute('src');
+              promoBoardVideoEmbedEl.style.display = 'none';
+            }
+          }
+
+          if(promoBoardStageNoteEl) promoBoardStageNoteEl.textContent = 'Promotion video is live in the board area.';
+          if(promoStatusEl) promoStatusEl.textContent = 'Promotion video is live.';
+          return;
+        }
+
+        if(promoVideoEmbedEl){
+          promoVideoEmbedEl.style.display = 'none';
+          promoVideoEmbedEl.removeAttribute('src');
+        }
+        promoVideoEl.style.display = mainBoardMode ? 'none' : '';
+
+        if(mainBoardMode){
+          try{ promoVideoEl.pause(); promoVideoEl.removeAttribute('src'); promoVideoEl.load(); }catch(e){}
+        }else{
+          try{
+            promoVideoEl.src = normalizedUrl;
+            promoVideoEl.load();
+            promoVideoEl.pause();
+          }catch(e){}
+        }
+
+        if(promoBoardVideoEl){
+          promoBoardVideoEl.style.display = '';
+          try{
+            promoBoardVideoEl.src = normalizedUrl;
+            promoBoardVideoEl.load();
+            promoBoardVideoEl.pause();
+          }catch(e){}
+        }
+        if(promoBoardVideoEmbedEl){
+          promoBoardVideoEmbedEl.style.display = 'none';
+          promoBoardVideoEmbedEl.removeAttribute('src');
+        }
+
+        if(promoBoardStageNoteEl) promoBoardStageNoteEl.textContent = 'Promotion video is live in the board area.';
+
+        if(promoStatusEl) promoStatusEl.textContent = 'Promotion video is live.';
+      }
+
+      function controlPromoVideo(action){
+        if(!promoVideoEl) return;
+        const act = String(action || '').toLowerCase();
+        if(!act) return;
+        const mainBoardMode = state.promoBoardMode === 'video';
+
+        function setVideoMonitorStatus(label){
+          if(promoStatusEl) promoStatusEl.textContent = label;
+          if(promoBoardStageNoteEl) promoBoardStageNoteEl.textContent = label;
+        }
+
+        if(act === 'autoplaywithsound'){
+          if(state.promoVideoIsEmbed){
+            const targetEmbed = mainBoardMode ? promoBoardVideoEmbedEl : promoVideoEmbedEl;
+            if(targetEmbed){
+              sendYouTubeCommand(targetEmbed, 'mute');
+              sendYouTubeCommand(targetEmbed, 'setVolume', [100]);
+              sendYouTubeCommand(targetEmbed, 'playVideo');
+            }
+            setVideoMonitorStatus('Promotion video auto-started muted. Use Unmute to enable audio.');
+            return;
+          }
+
+          const targetVideo = mainBoardMode ? promoBoardVideoEl : promoVideoEl;
+          if(targetVideo){
+            try{
+              targetVideo.muted = true;
+              targetVideo.volume = 0;
+            }catch(e){}
+            safePlayVideo(targetVideo, true);
+          }
+          setVideoMonitorStatus('Promotion video auto-started muted. Use Unmute to enable audio.');
+          return;
+        }
+
+        if(state.promoVideoIsEmbed){
+          if(act === 'play'){
+            if(!mainBoardMode){
+              sendYouTubeCommand(promoVideoEmbedEl, 'mute');
+              sendYouTubeCommand(promoVideoEmbedEl, 'playVideo');
+            }
+            if(mainBoardMode){
+              sendYouTubeCommand(promoBoardVideoEmbedEl, 'mute');
+              sendYouTubeCommand(promoBoardVideoEmbedEl, 'playVideo');
+            }
+            setVideoMonitorStatus('Promotion video playing (muted).');
+          }else if(act === 'pause'){
+            if(!mainBoardMode) sendYouTubeCommand(promoVideoEmbedEl, 'pauseVideo');
+            if(mainBoardMode) sendYouTubeCommand(promoBoardVideoEmbedEl, 'pauseVideo');
+            setVideoMonitorStatus('Promotion video paused.');
+          }else if(act === 'stop'){
+            if(!mainBoardMode) sendYouTubeCommand(promoVideoEmbedEl, 'pauseVideo');
+            if(mainBoardMode) sendYouTubeCommand(promoBoardVideoEmbedEl, 'pauseVideo');
+            setVideoMonitorStatus('Promotion video stopped.');
+          }else if(act === 'volumeup'){
+            if(!mainBoardMode){
+              sendYouTubeCommand(promoVideoEmbedEl, 'setVolume', [100]);
+              sendYouTubeCommand(promoVideoEmbedEl, 'unMute');
+            }
+            if(mainBoardMode){
+              sendYouTubeCommand(promoBoardVideoEmbedEl, 'setVolume', [100]);
+              sendYouTubeCommand(promoBoardVideoEmbedEl, 'unMute');
+            }
+            setVideoMonitorStatus('Promotion video volume: high.');
+          }else if(act === 'volumedown'){
+            if(!mainBoardMode){
+              sendYouTubeCommand(promoVideoEmbedEl, 'setVolume', [30]);
+              sendYouTubeCommand(promoVideoEmbedEl, 'unMute');
+            }
+            if(mainBoardMode){
+              sendYouTubeCommand(promoBoardVideoEmbedEl, 'setVolume', [30]);
+              sendYouTubeCommand(promoBoardVideoEmbedEl, 'unMute');
+            }
+            setVideoMonitorStatus('Promotion video volume: low.');
+          }else if(act === 'mute'){
+            if(!mainBoardMode) sendYouTubeCommand(promoVideoEmbedEl, 'mute');
+            if(mainBoardMode) sendYouTubeCommand(promoBoardVideoEmbedEl, 'mute');
+            setVideoMonitorStatus('Promotion video muted.');
+          }else if(act === 'unmute'){
+            if(!mainBoardMode) sendYouTubeCommand(promoVideoEmbedEl, 'unMute');
+            if(mainBoardMode) sendYouTubeCommand(promoBoardVideoEmbedEl, 'unMute');
+            setVideoMonitorStatus('Promotion video unmuted.');
+          }
+          return;
+        }
+        try{
+          if(act === 'play'){
+            if(!mainBoardMode){
+              promoVideoEl.muted = true;
+              if(promoVideoEl.volume <= 0.01) promoVideoEl.volume = 0;
+              safePlayVideo(promoVideoEl, true);
+            }
+             if(mainBoardMode && promoBoardVideoEl){
+               promoBoardVideoEl.muted = true;
+               if(promoBoardVideoEl.volume <= 0.01) promoBoardVideoEl.volume = 0;
+               safePlayVideo(promoBoardVideoEl, true);
+             }
+            setVideoMonitorStatus('Promotion video playing (muted).');
+          }else if(act === 'pause'){
+            if(!mainBoardMode) promoVideoEl.pause();
+            if(mainBoardMode && promoBoardVideoEl) promoBoardVideoEl.pause();
+            setVideoMonitorStatus('Promotion video paused.');
+          }else if(act === 'stop'){
+            if(!mainBoardMode){
+              promoVideoEl.pause();
+              promoVideoEl.currentTime = 0;
+            }
+            if(mainBoardMode && promoBoardVideoEl){
+               promoBoardVideoEl.pause();
+               promoBoardVideoEl.currentTime = 0;
+             }
+            setVideoMonitorStatus('Promotion video stopped.');
+          }else if(act === 'volumeup'){
+            if(!mainBoardMode){
+              promoVideoEl.muted = false;
+              promoVideoEl.volume = 1;
+            }
+            if(mainBoardMode && promoBoardVideoEl){
+              promoBoardVideoEl.muted = false;
+              promoBoardVideoEl.volume = 1;
+            }
+            setVideoMonitorStatus('Promotion video volume: high.');
+          }else if(act === 'volumedown'){
+            if(!mainBoardMode){
+              promoVideoEl.muted = false;
+              promoVideoEl.volume = 0.3;
+            }
+            if(mainBoardMode && promoBoardVideoEl){
+              promoBoardVideoEl.muted = false;
+              promoBoardVideoEl.volume = 0.3;
+            }
+            setVideoMonitorStatus('Promotion video volume: low.');
+          }else if(act === 'mute'){
+            if(!mainBoardMode) promoVideoEl.muted = true;
+            if(mainBoardMode && promoBoardVideoEl) promoBoardVideoEl.muted = true;
+            setVideoMonitorStatus('Promotion video muted.');
+          }else if(act === 'unmute'){
+            if(!mainBoardMode){
+              promoVideoEl.muted = false;
+            }
+            if(mainBoardMode && promoBoardVideoEl){
+              promoBoardVideoEl.muted = false;
+            }
+            setVideoMonitorStatus('Promotion video unmuted.');
+          }
+        }catch(e){}
+      }
+
+      function applyPromoImage(url){
+        if(!promoImageEl) return;
+        const normalizedUrl = normalizeSharedMediaUrl(url);
+        if(!normalizedUrl){
+          promoImageEl.removeAttribute('src');
+          if(promoImageStatusEl) promoImageStatusEl.textContent = 'No promotion image is active right now.';
+          return;
+        }
+        promoImageEl.src = normalizedUrl;
+        if(promoImageStatusEl) promoImageStatusEl.textContent = 'Promotion image is live.';
       }
 
       function connect(){
@@ -326,13 +1142,70 @@
               state.totals.A = Number(msg.scores.A) || 0;
               state.totals.B = Number(msg.scores.B) || 0;
             }
+            if(msg.levelScores && typeof msg.levelScores === 'object'){
+              state.levelScores.A = msg.levelScores.A || state.levelScores.A;
+              state.levelScores.B = msg.levelScores.B || state.levelScores.B;
+            }
+            if(typeof msg.promoWidth !== 'undefined') applyPromoWidth(msg.promoWidth);
+            if(typeof msg.promoHeight !== 'undefined') applyPromoHeight(msg.promoHeight);
+            if(typeof msg.boardHeight !== 'undefined') applyBoardHeight(msg.boardHeight, false);
+            if(typeof msg.promoBoardMode !== 'undefined') applyPromoBoardMode(msg.promoBoardMode);
             if(msg.level) applyLevel(msg.level);
             if(msg.timer && typeof msg.timer.remaining !== 'undefined' && elTimer){
               elTimer.textContent = formatTime(msg.timer.remaining);
             }
             if(typeof msg.winnerName === 'string') setWinnerBanner(msg.winnerName);
+            if(typeof msg.promoVideoUrl !== 'undefined') applyPromoVideo(msg.promoVideoUrl);
+            if(typeof msg.promoImageUrl !== 'undefined') applyPromoImage(msg.promoImageUrl);
             updateHeaders();
             touch();
+            return;
+          }
+
+          if(msg.type === 'promoVideo'){
+            applyPromoVideo(msg.url || '');
+            touch();
+            return;
+          }
+
+          if(msg.type === 'promoVideoControl'){
+            controlPromoVideo(msg.action || '');
+            touch();
+            return;
+          }
+
+          if(msg.type === 'promoImage'){
+            applyPromoImage(msg.url || '');
+            touch();
+            return;
+          }
+
+          if(msg.type === 'promoWidth'){
+            applyPromoWidth(msg.width);
+            touch();
+            return;
+          }
+
+          if(msg.type === 'promoHeight'){
+            applyPromoHeight(msg.height);
+            touch();
+            return;
+          }
+
+          if(msg.type === 'boardHeight'){
+            applyBoardHeight(msg.height, false);
+            touch();
+            return;
+          }
+
+          if(msg.type === 'promoBoardMode'){
+            applyPromoBoardMode(msg.mode);
+            touch();
+            return;
+          }
+
+          if(msg.type === 'refreshDashboard'){
+            window.location.reload();
             return;
           }
 
@@ -348,6 +1221,10 @@
             const t = msg.totals || {};
             state.totals.A = Number(t.A) || 0;
             state.totals.B = Number(t.B) || 0;
+            if(msg.levelScores && typeof msg.levelScores === 'object'){
+              state.levelScores.A = msg.levelScores.A || state.levelScores.A;
+              state.levelScores.B = msg.levelScores.B || state.levelScores.B;
+            }
             if(typeof msg.winnerName === 'string') setWinnerBanner(msg.winnerName);
             updateHeaders();
             touch();

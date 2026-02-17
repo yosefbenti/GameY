@@ -23,17 +23,16 @@ html,body{height:100%}
   margin:0 auto 24px;
 }
 
-.admin-page .admin-time{grid-column:1 / span 2;grid-row:1}
+.admin-page .admin-time{grid-column:1 / span 2;grid-row:1;gap:0}
 .admin-page .admin-connection{grid-column:3;grid-row:1}
 .admin-page #imageControlPanel{grid-column:1;grid-row:2}
-.admin-page #promoControlPanel{grid-column:2;grid-row:2}
+.admin-page #promoControlPanel{grid-column:2 / span 2;grid-row:2}
 .admin-page #imageControlPanel,
 .admin-page #promoControlPanel{align-self:stretch}
-.admin-page #gameControlsPanel{grid-column:3;grid-row:2}
-.admin-page #teamAPanel{grid-column:1;grid-row:3}
-.admin-page #teamBPanel{grid-column:2;grid-row:3}
-.admin-page #totalsPanel{grid-column:3;grid-row:3}
-.admin-page #historyPanel{grid-column:1 / -1; min-height:320px}
+.admin-page #gameControlsPanel{grid-column:3;grid-row:2;align-self:start}
+.admin-page #teamAPanel{grid-column:3;grid-row:1}
+.admin-page #teamBPanel{grid-column:3;grid-row:1}
+.admin-page #historyPanel{grid-column:1 / -1; grid-row:4; min-height:320px}
 
 .admin-page .dual-row{
   display:grid;
@@ -46,6 +45,35 @@ html,body{height:100%}
   display:flex;
   flex-direction:column;
   gap:10px;
+}
+
+.admin-page .control-subbox{
+  border:1px solid #e3eefc;
+  border-radius:12px;
+  padding:10px;
+  background:#ffffff;
+}
+
+.admin-page .subbox-title{
+  font-size:12px;
+  font-weight:800;
+  color:#334155;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  margin-bottom:4px;
+}
+
+.admin-page .connection-inline{
+  margin-top:0;
+  width:100%;
+}
+
+.admin-page .totals-inline{
+  margin-top:8px;
+}
+
+.admin-page .admin-time > .dual-row{
+  margin-top:10px;
 }
 
 /* Controls panel */
@@ -106,6 +134,9 @@ html,body{height:100%}
   width:100%;
 }
 
+.admin-page #teamAPanel{align-self:start}
+.admin-page #teamBPanel{align-self:end}
+
 .admin-page .box-title{
   font-weight:800;
   font-size:13px;
@@ -119,6 +150,15 @@ html,body{height:100%}
   gap:10px;
   align-items:center;
   flex-wrap:wrap;
+}
+
+.admin-page .inline-row > input[type="url"],
+.admin-page .inline-row > input[type="text"],
+.admin-page .inline-row > input[type="number"],
+.admin-page .inline-row > input[type="file"]{
+  flex:1 1 220px;
+  min-width:0;
+  width:auto;
 }
 
 .admin-page .small-input{max-width:90px}
@@ -213,8 +253,33 @@ html,body{height:100%}
   cursor:not-allowed;
 }
 
+.admin-page .admin-promo-box .promo-split{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:12px;
+  align-items:start;
+}
+
+.admin-page .admin-promo-box .promo-col{
+  border:1px solid #e6eef8;
+  border-radius:10px;
+  padding:10px;
+  background:#fff;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  min-height:100%;
+}
+
+.admin-page .admin-promo-box .promo-col:nth-child(2){
+  margin-top:150px;
+  min-height:auto;
+  height:fit-content;
+}
+
 /* Preview area */
 .admin-page #imagePreview{max-width:100%;max-height:320px;border-radius:10px;border:1px solid #e6eef8;box-shadow:0 6px 16px rgba(2,6,23,0.06);object-fit:cover;display:block}
+.admin-page #promoImageAdminPreview{max-width:100%;max-height:220px;border-radius:10px;border:1px solid #e6eef8;box-shadow:0 6px 16px rgba(2,6,23,0.06);object-fit:cover;display:block}
 .admin-page .admin-promo-video{
   width:100%;
   max-height:260px;
@@ -265,5 +330,7 @@ html,body{height:100%}
   .admin-page .admin-connection,
   .admin-page .admin-time,
   .admin-page #historyPanel{grid-column:1;grid-row:auto}
+  .admin-page .admin-promo-box .promo-split{grid-template-columns:1fr}
   .admin-page .level-display #currentLevel{ font-size:36px; }
+  .admin-page .connection-inline{width:100%}
 }

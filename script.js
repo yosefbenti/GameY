@@ -39,13 +39,112 @@
   const promoVideoPlayerEl = document.getElementById('promoVideoPreview');
   const promoVideoAdminPreviewEl = document.getElementById('promoVideoAdminPreview');
   const promoVideoStatusEl = document.getElementById('promoVideoStatus');
+  const promoImageAdminPreviewEl = document.getElementById('promoImageAdminPreview');
+  const promoImageStatusEl = document.getElementById('promoImageStatus');
+  const promoWidthValueEl = document.getElementById('promoWidthValue');
+  const promoHeightValueEl = document.getElementById('promoHeightValue');
+  const boardHeightValueEl = document.getElementById('boardHeightValue');
   const isPlayerPromoOnlyView = Boolean(promoVideoPlayerEl) && !promoVideoAdminPreviewEl;
+  const DEFAULT_PROMO_IMAGE_PREVIEW_SRC = `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0f172a"/><stop offset="100%" stop-color="#1e293b"/></linearGradient></defs><rect width="1200" height="630" fill="url(#g)"/><rect x="24" y="24" width="1152" height="582" rx="26" fill="none" stroke="#64748b" stroke-opacity="0.6" stroke-width="4" stroke-dasharray="14 12"/><g fill="#cbd5e1" fill-opacity="0.95"><circle cx="535" cy="280" r="28"/><path d="M610 252l50 56-44 49h-167l78-87 31 35z"/></g><text x="600" y="430" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="44" font-weight="700" fill="#e2e8f0">Promotion Image Preview</text><text x="600" y="476" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="26" fill="#94a3b8">Default image shown until you upload or set a URL</text></svg>')}`;
 
   const ZOOM_MIN = 0.7;
   const ZOOM_MAX = 1.5;
   const ZOOM_STEP = 0.1;
+  const PROMO_WIDTH_MIN = 280;
+  const PROMO_WIDTH_MAX = 680;
+  const PROMO_HEIGHT_MIN = 320;
+  const PROMO_HEIGHT_MAX = 760;
+  const BOARD_HEIGHT_MIN = 470;
+  const BOARD_HEIGHT_MAX = 980;
   const zoomStorageKey = `gameBoardZoom:${cfg.team || 'global'}`;
   let boardZoom = 1;
+  let promoVideoIsEmbed = false;
+
+  function ensurePromoVideoEmbed(videoEl, id){
+    if(!videoEl || !videoEl.parentNode) return null;
+    let iframe = document.getElementById(id);
+    if(iframe) return iframe;
+    iframe = document.createElement('iframe');
+    iframe.id = id;
+    iframe.title = 'Promotion embedded video';
+    iframe.loading = 'lazy';
+    iframe.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+    iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+    iframe.className = videoEl.className || '';
+    iframe.style.display = 'none';
+    videoEl.insertAdjacentElement('afterend', iframe);
+    return iframe;
+  }
+
+  const promoVideoPlayerEmbedEl = ensurePromoVideoEmbed(promoVideoPlayerEl, 'promoVideoPreviewEmbed');
+  const promoVideoAdminEmbedEl = ensurePromoVideoEmbed(promoVideoAdminPreviewEl, 'promoVideoAdminPreviewEmbed');
+
+  function toYouTubeEmbedUrl(rawUrl){
+    if(!rawUrl || typeof rawUrl !== 'string') return '';
+    let u = null;
+    try{ u = new URL(rawUrl, window.location.href); }catch(e){ return ''; }
+    const host = (u.hostname || '').toLowerCase();
+    let vid = '';
+    if(host === 'youtu.be'){
+      vid = (u.pathname || '').replace(/^\//,'').split('/')[0] || '';
+    }else if(host.includes('youtube.com')){
+      if((u.pathname || '').startsWith('/watch')) vid = u.searchParams.get('v') || '';
+      else if((u.pathname || '').startsWith('/embed/')) vid = (u.pathname.split('/')[2] || '').trim();
+      else if((u.pathname || '').startsWith('/shorts/')) vid = (u.pathname.split('/')[2] || '').trim();
+    }
+    vid = String(vid || '').trim();
+    if(!vid) return '';
+    const params = new URLSearchParams({ autoplay: '1', mute: '1', rel: '0', modestbranding: '1', playsinline: '1', enablejsapi: '1', origin: window.location.origin });
+    return `https://www.youtube.com/embed/${encodeURIComponent(vid)}?${params.toString()}`;
+  }
+
+  function sendYouTubeCommand(iframeEl, func, args = []){
+    if(!iframeEl || !iframeEl.contentWindow) return;
+    try{
+      const safeArgs = Array.isArray(args) ? args : [args];
+      iframeEl.contentWindow.postMessage(JSON.stringify({ event:'command', func, args: safeArgs }), '*');
+    }catch(e){}
+  }
+
+  function clampPromoWidth(v){
+    const n = Number(v);
+    if(!Number.isFinite(n)) return 380;
+    return Math.max(PROMO_WIDTH_MIN, Math.min(PROMO_WIDTH_MAX, Math.round(n)));
+  }
+
+  function applyDashboardPromoWidth(v){
+    const next = clampPromoWidth(v);
+    document.documentElement.style.setProperty('--promo-col-width', `${next}px`);
+    if(promoWidthValueEl) promoWidthValueEl.textContent = `${next}px`;
+  }
+
+  function clampPromoHeight(v){
+    const n = Number(v);
+    if(!Number.isFinite(n)) return 430;
+    return Math.max(PROMO_HEIGHT_MIN, Math.min(PROMO_HEIGHT_MAX, Math.round(n)));
+  }
+
+  function applyDashboardPromoHeight(v){
+    const next = clampPromoHeight(v);
+    document.documentElement.style.setProperty('--promo-area-min-height', `${next}px`);
+    if(promoHeightValueEl) promoHeightValueEl.textContent = `${next}px`;
+  }
+
+  function clampBoardHeight(v){
+    const n = Number(v);
+    if(!Number.isFinite(n)) return 620;
+    return Math.max(BOARD_HEIGHT_MIN, Math.min(BOARD_HEIGHT_MAX, Math.round(n)));
+  }
+
+  function applyDashboardBoardHeight(v){
+    const next = clampBoardHeight(v);
+    document.documentElement.style.setProperty('--board-panel-min-height', `${next}px`);
+    if(boardHeightValueEl) boardHeightValueEl.textContent = `${next}px`;
+  }
+
+  applyDashboardPromoWidth(380);
+  applyDashboardPromoHeight(430);
+  applyDashboardBoardHeight(620);
 
   function clampBoardZoom(v){
     const n = Number(v);
@@ -127,12 +226,14 @@
   let interval = null;
   let started = false;
   let finished = false;
+  let roundLocked = false;
   let pubWs = null;
   let scoreRecorded = false;
   let levelMode = 'puzzle'; // 'puzzle' | 'memory' | 'word'
   let memoryState = null;
   let wordState = null;
   let promoVideoUrl = null;
+  let promoImageUrl = null;
   let wsRecoveryScheduled = false;
   let lastAuthoritativeLevelSig = '';
   let winnerFromServer = false;
@@ -476,6 +577,22 @@
 
   async function uploadImageFile(file){
     return uploadBinaryFile(file, '/upload');
+  }
+
+  async function importImageFromUrl(sourceUrl){
+    const endpoint = getUploadEndpoint('/upload-image-url');
+    const resp = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: sourceUrl }),
+    });
+    let data = null;
+    try{ data = await resp.json(); }catch(e){}
+    if(!resp.ok || !data || !data.url){
+      const errMsg = data && data.error ? data.error : `Image URL import failed (${resp.status})`;
+      throw new Error(errMsg);
+    }
+    return normalizeSharedImageUrl(data.url);
   }
 
   async function uploadPromoVideoFile(file){
@@ -999,6 +1116,7 @@ function evaluatePlayerInputs(playerInputs) {
   function endGame(winner, remainingSec){
     if(isSpectator) return;
     finished = true;
+    roundLocked = true;
     stopHeartbeatSound();
     clearInterval(interval);
     if(statusEl) statusEl.textContent = `${winner} completed the puzzle!`;
@@ -1107,6 +1225,7 @@ function evaluatePlayerInputs(playerInputs) {
   function startLocalTimer(atStartTimestamp, limitSeconds){
     // Server is authoritative for timer synchronization across different devices.
     hideStartCountdown();
+    roundLocked = false;
     timeLimit = limitSeconds;
     remaining = timeLimit;
     started = true; finished = false;
@@ -1133,6 +1252,7 @@ function evaluatePlayerInputs(playerInputs) {
     hideStartCountdown();
     clearInterval(interval);
     started = false; finished = false;
+    roundLocked = false;
     scoreRecorded = false;
     timeLimit = cfg.timeLimit || 120;
     remaining = timeLimit;
@@ -1266,6 +1386,33 @@ function evaluatePlayerInputs(playerInputs) {
     setLastRound(`Leading: Tie — ${scoreA} vs ${scoreB}`);
   }
 
+  function renderLevelScores(levelScores){
+    const byTeam = levelScores && typeof levelScores === 'object' ? levelScores : {};
+    const aLevels = byTeam.A || {};
+    const bLevels = byTeam.B || {};
+
+    const a1 = Number(aLevels[1]) || 0;
+    const a2 = Number(aLevels[2]) || 0;
+    const a3 = Number(aLevels[3]) || 0;
+    const b1 = Number(bLevels[1]) || 0;
+    const b2 = Number(bLevels[2]) || 0;
+    const b3 = Number(bLevels[3]) || 0;
+
+    const scoreA1El = document.getElementById('scoreA1');
+    const scoreA2El = document.getElementById('scoreA2');
+    const scoreA3El = document.getElementById('scoreA3');
+    const scoreB1El = document.getElementById('scoreB1');
+    const scoreB2El = document.getElementById('scoreB2');
+    const scoreB3El = document.getElementById('scoreB3');
+
+    if(scoreA1El) scoreA1El.textContent = String(a1);
+    if(scoreA2El) scoreA2El.textContent = String(a2);
+    if(scoreA3El) scoreA3El.textContent = String(a3);
+    if(scoreB1El) scoreB1El.textContent = String(b1);
+    if(scoreB2El) scoreB2El.textContent = String(b2);
+    if(scoreB3El) scoreB3El.textContent = String(b3);
+  }
+
   function formatHistoryLevelTriplet(levels, teamKey){
     const byTeam = levels && levels[teamKey] ? levels[teamKey] : {};
     const l1 = Number(byTeam[1]) || 0;
@@ -1380,7 +1527,7 @@ function evaluatePlayerInputs(playerInputs) {
 
       if(timer.running){
         started = true;
-        if(finished){
+        if(finished && !roundLocked){
           finished = false;
           enableMoves();
           enableWordInputs();
@@ -1389,6 +1536,7 @@ function evaluatePlayerInputs(playerInputs) {
         const ls = document.getElementById('levelStatus'); if(ls) ls.textContent = 'Running';
       } else if(Number.isFinite(remaining) && remaining <= 0){
         finished = true;
+        roundLocked = true;
         clearInterval(interval);
         disableMoves();
         disableWordInputs();
@@ -1420,7 +1568,12 @@ function evaluatePlayerInputs(playerInputs) {
       }
       if(gs.imageUrl) applyImage(gs.imageUrl);
       if(typeof gs.promoVideoUrl !== 'undefined') applyPromoVideo(gs.promoVideoUrl);
+      if(typeof gs.promoImageUrl !== 'undefined') applyPromoImage(gs.promoImageUrl);
+      if(typeof gs.promoWidth !== 'undefined') applyDashboardPromoWidth(gs.promoWidth);
+      if(typeof gs.promoHeight !== 'undefined') applyDashboardPromoHeight(gs.promoHeight);
+      if(typeof gs.boardHeight !== 'undefined') applyDashboardBoardHeight(gs.boardHeight);
       if(gs.timer) applyAuthoritativeTimer(gs.timer);
+      if(gs.levelScores) renderLevelScores(gs.levelScores);
       if(gs.scores){
         const totalAEl = document.getElementById('totalA');
         const totalBEl = document.getElementById('totalB');
@@ -1485,6 +1638,14 @@ function evaluatePlayerInputs(playerInputs) {
             }
           } else if(msg.type === 'promoVideo'){
             applyPromoVideo(msg.url || '');
+          } else if(msg.type === 'promoImage'){
+            applyPromoImage(msg.url || '');
+          } else if(msg.type === 'promoWidth'){
+            applyDashboardPromoWidth(msg.width);
+          } else if(msg.type === 'promoHeight'){
+            applyDashboardPromoHeight(msg.height);
+          } else if(msg.type === 'boardHeight'){
+            applyDashboardBoardHeight(msg.height);
           } else if(msg.type === 'promoVideoControl'){
             controlPromoVideo(msg.action || '');
           } else if(msg.type === 'timer'){
@@ -1494,7 +1655,7 @@ function evaluatePlayerInputs(playerInputs) {
                 remaining = msg.remaining;
                 if(typeof msg.timeLimit !== 'undefined') timeLimit = Number(msg.timeLimit) || timeLimit;
                 if(remaining > 0 && msg.status !== 'paused'){
-                  if(finished){
+                  if(finished && !roundLocked){
                     finished = false;
                     enableMoves();
                     enableWordInputs();
@@ -1504,7 +1665,7 @@ function evaluatePlayerInputs(playerInputs) {
               }
               // if server says finished, handle it
               if(msg.status === 'finished' || remaining <= 0){
-                finished = true; clearInterval(interval); disableMoves(); if(statusEl) statusEl.textContent = 'Time is up';
+                finished = true; roundLocked = true; clearInterval(interval); disableMoves(); if(statusEl) statusEl.textContent = 'Time is up';
                 stopHeartbeatSound();
                 if(levelMode === 'word') disableWordInputs();
                 // Make sure timeout score is added to previous levels (L1+L2+L3 total).
@@ -1517,7 +1678,7 @@ function evaluatePlayerInputs(playerInputs) {
             try{ const ls = document.getElementById('levelStatus'); if(ls) ls.textContent = 'Paused'; }catch(e){}
           } else if(msg.type === 'timerFinished'){
             // authoritative finish
-            try{ finished = true; clearInterval(interval); disableMoves(); if(statusEl) statusEl.textContent = msg.reason ? `Ended (${msg.reason})` : 'Time finished'; }catch(e){}
+            try{ finished = true; roundLocked = true; clearInterval(interval); disableMoves(); if(statusEl) statusEl.textContent = msg.reason ? `Ended (${msg.reason})` : 'Time finished'; }catch(e){}
             stopHeartbeatSound();
             try{ if(levelMode === 'word') disableWordInputs(); }catch(e){}
             // Also submit this team's final score on timeout/force-end so totals accumulate.
@@ -1613,6 +1774,7 @@ function evaluatePlayerInputs(playerInputs) {
               if(totalAEl) totalAEl.textContent = String(a);
               if(totalBEl) totalBEl.textContent = String(b);
               if(totalSumEl) totalSumEl.textContent = String(totalAll);
+              renderLevelScores(msg.levelScores);
               try{
                 const aNameEl = document.getElementById('teamAName');
                 const bNameEl = document.getElementById('teamBName');
@@ -1661,6 +1823,7 @@ function evaluatePlayerInputs(playerInputs) {
           } else if(msg.type === 'roundComplete'){
             // another client completed the round — freeze this client
             try{
+              roundLocked = true;
               if(!finished){
                 finished = true;
                 clearInterval(interval);
@@ -1716,7 +1879,10 @@ function evaluatePlayerInputs(playerInputs) {
 
   function applyPromoVideo(url){
     const normalizedUrl = url ? normalizeSharedImageUrl(url) : '';
+    const ytEmbedUrl = toYouTubeEmbedUrl(normalizedUrl);
+    const useEmbed = Boolean(ytEmbedUrl);
     promoVideoUrl = normalizedUrl || null;
+    promoVideoIsEmbed = useEmbed;
 
     if(!promoVideoPlayerEl && !promoVideoAdminPreviewEl) return;
 
@@ -1728,15 +1894,59 @@ function evaluatePlayerInputs(playerInputs) {
           promoVideoPlayerEl.load();
         }catch(e){}
       }
+      if(promoVideoPlayerEmbedEl){
+        promoVideoPlayerEmbedEl.style.display = 'none';
+        promoVideoPlayerEmbedEl.removeAttribute('src');
+      }
+      if(promoVideoPlayerEl) promoVideoPlayerEl.style.display = '';
       if(promoVideoAdminPreviewEl){
         try{
           promoVideoAdminPreviewEl.removeAttribute('src');
           promoVideoAdminPreviewEl.load();
         }catch(e){}
       }
+      if(promoVideoAdminEmbedEl){
+        promoVideoAdminEmbedEl.style.display = 'none';
+        promoVideoAdminEmbedEl.removeAttribute('src');
+      }
+      if(promoVideoAdminPreviewEl) promoVideoAdminPreviewEl.style.display = '';
       if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'No promotion video uploaded yet.';
       return;
     }
+
+    if(useEmbed){
+      if(promoVideoPlayerEl){
+        try{ promoVideoPlayerEl.pause(); promoVideoPlayerEl.removeAttribute('src'); promoVideoPlayerEl.load(); }catch(e){}
+        promoVideoPlayerEl.style.display = 'none';
+      }
+      if(promoVideoPlayerEmbedEl){
+        promoVideoPlayerEmbedEl.src = ytEmbedUrl;
+        promoVideoPlayerEmbedEl.style.display = 'block';
+      }
+
+      if(promoVideoAdminPreviewEl){
+        try{ promoVideoAdminPreviewEl.pause(); promoVideoAdminPreviewEl.removeAttribute('src'); promoVideoAdminPreviewEl.load(); }catch(e){}
+        promoVideoAdminPreviewEl.style.display = 'none';
+      }
+      if(promoVideoAdminEmbedEl){
+        promoVideoAdminEmbedEl.src = ytEmbedUrl;
+        promoVideoAdminEmbedEl.style.display = 'block';
+      }
+
+      if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'Promotion video is live.';
+      return;
+    }
+
+    if(promoVideoPlayerEmbedEl){
+      promoVideoPlayerEmbedEl.style.display = 'none';
+      promoVideoPlayerEmbedEl.removeAttribute('src');
+    }
+    if(promoVideoPlayerEl) promoVideoPlayerEl.style.display = '';
+    if(promoVideoAdminEmbedEl){
+      promoVideoAdminEmbedEl.style.display = 'none';
+      promoVideoAdminEmbedEl.removeAttribute('src');
+    }
+    if(promoVideoAdminPreviewEl) promoVideoAdminPreviewEl.style.display = '';
 
     const ext = (normalizedUrl.split('?')[0].split('.').pop() || '').toLowerCase();
     const typeByExt = {
@@ -1750,15 +1960,15 @@ function evaluatePlayerInputs(playerInputs) {
       try{
         promoVideoPlayerEl.autoplay = true;
         promoVideoPlayerEl.controls = false;
-        promoVideoPlayerEl.muted = false;
+        promoVideoPlayerEl.muted = true;
         promoVideoPlayerEl.playsInline = true;
-        promoVideoPlayerEl.volume = 1;
+        promoVideoPlayerEl.volume = 0;
         promoVideoPlayerEl.src = normalizedUrl;
         promoVideoPlayerEl.load();
         const playAttempt = promoVideoPlayerEl.play();
         if(playAttempt && typeof playAttempt.catch === 'function'){
           playAttempt.catch(()=>{
-            if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'Video is live. If sound is blocked, tap once on player screen to enable audio.';
+            if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'Video is live (muted). Use Unmute to enable audio remotely.';
           });
         }
       }catch(e){}
@@ -1774,23 +1984,76 @@ function evaluatePlayerInputs(playerInputs) {
       }catch(e){}
     }
 
-    if(promoVideoStatusEl && isPlayerPromoOnlyView) promoVideoStatusEl.textContent = 'Video is live and started on player board with sound.';
-    else if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'Promotion video is live.';
+    if(promoVideoStatusEl && isPlayerPromoOnlyView) promoVideoStatusEl.textContent = 'Video is live and started muted on player board.';
+    else if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'Promotion video is live (muted autoplay enabled).';
   }
 
   function controlPromoVideo(action){
     const act = String(action || '').toLowerCase();
     if(!act) return;
 
+    if(promoVideoIsEmbed){
+      if(act === 'play'){
+        sendYouTubeCommand(promoVideoPlayerEmbedEl, 'mute');
+        sendYouTubeCommand(promoVideoPlayerEmbedEl, 'playVideo');
+        sendYouTubeCommand(promoVideoAdminEmbedEl, 'mute');
+        sendYouTubeCommand(promoVideoAdminEmbedEl, 'playVideo');
+      } else if(act === 'pause'){
+        sendYouTubeCommand(promoVideoPlayerEmbedEl, 'pauseVideo');
+        sendYouTubeCommand(promoVideoAdminEmbedEl, 'pauseVideo');
+      } else if(act === 'stop'){
+        sendYouTubeCommand(promoVideoPlayerEmbedEl, 'pauseVideo');
+        sendYouTubeCommand(promoVideoPlayerEmbedEl, 'seekTo', [0, true]);
+        sendYouTubeCommand(promoVideoAdminEmbedEl, 'pauseVideo');
+        sendYouTubeCommand(promoVideoAdminEmbedEl, 'seekTo', [0, true]);
+      } else if(act === 'volumeup'){
+        sendYouTubeCommand(promoVideoPlayerEmbedEl, 'setVolume', [100]);
+        sendYouTubeCommand(promoVideoPlayerEmbedEl, 'unMute');
+        sendYouTubeCommand(promoVideoAdminEmbedEl, 'setVolume', [100]);
+        sendYouTubeCommand(promoVideoAdminEmbedEl, 'unMute');
+      } else if(act === 'volumedown'){
+        sendYouTubeCommand(promoVideoPlayerEmbedEl, 'setVolume', [30]);
+        sendYouTubeCommand(promoVideoPlayerEmbedEl, 'unMute');
+        sendYouTubeCommand(promoVideoAdminEmbedEl, 'setVolume', [30]);
+        sendYouTubeCommand(promoVideoAdminEmbedEl, 'unMute');
+      } else if(act === 'mute'){
+        sendYouTubeCommand(promoVideoPlayerEmbedEl, 'mute');
+        sendYouTubeCommand(promoVideoAdminEmbedEl, 'mute');
+      } else if(act === 'unmute'){
+        sendYouTubeCommand(promoVideoPlayerEmbedEl, 'unMute');
+        sendYouTubeCommand(promoVideoPlayerEmbedEl, 'setVolume', [100]);
+        sendYouTubeCommand(promoVideoAdminEmbedEl, 'unMute');
+        sendYouTubeCommand(promoVideoAdminEmbedEl, 'setVolume', [100]);
+      } else if(act === 'autoplaywithsound'){
+        sendYouTubeCommand(promoVideoPlayerEmbedEl, 'mute');
+        sendYouTubeCommand(promoVideoPlayerEmbedEl, 'setVolume', [100]);
+        sendYouTubeCommand(promoVideoPlayerEmbedEl, 'playVideo');
+        sendYouTubeCommand(promoVideoAdminEmbedEl, 'mute');
+        sendYouTubeCommand(promoVideoAdminEmbedEl, 'setVolume', [100]);
+        sendYouTubeCommand(promoVideoAdminEmbedEl, 'playVideo');
+      }
+      if(promoVideoStatusEl){
+        if(act === 'play') promoVideoStatusEl.textContent = 'Promotion video playing (muted).';
+        if(act === 'pause') promoVideoStatusEl.textContent = 'Promotion video paused.';
+        if(act === 'stop') promoVideoStatusEl.textContent = 'Promotion video stopped.';
+        if(act === 'volumeup') promoVideoStatusEl.textContent = 'Promotion video volume: high.';
+        if(act === 'volumedown') promoVideoStatusEl.textContent = 'Promotion video volume: low.';
+        if(act === 'mute') promoVideoStatusEl.textContent = 'Promotion video muted.';
+        if(act === 'unmute') promoVideoStatusEl.textContent = 'Promotion video unmuted.';
+        if(act === 'autoplaywithsound') promoVideoStatusEl.textContent = 'Promotion video auto-started muted. Use Unmute to enable audio.';
+      }
+      return;
+    }
+
     if(promoVideoPlayerEl){
       try{
         if(act === 'play'){
-          promoVideoPlayerEl.muted = false;
-          promoVideoPlayerEl.volume = 1;
+          promoVideoPlayerEl.muted = true;
+          if(promoVideoPlayerEl.volume <= 0.01) promoVideoPlayerEl.volume = 0;
           const p = promoVideoPlayerEl.play();
           if(p && typeof p.catch === 'function'){
             p.catch(()=>{
-              if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'Play requested. Tap once on player screen if browser blocks sound autoplay.';
+              if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'Play requested (muted). Use Unmute to enable audio remotely.';
             });
           }
         } else if(act === 'pause'){
@@ -1798,6 +2061,22 @@ function evaluatePlayerInputs(playerInputs) {
         } else if(act === 'stop'){
           promoVideoPlayerEl.pause();
           try{ promoVideoPlayerEl.currentTime = 0; }catch(e){}
+        } else if(act === 'volumeup'){
+          promoVideoPlayerEl.muted = false;
+          promoVideoPlayerEl.volume = 1;
+        } else if(act === 'volumedown'){
+          promoVideoPlayerEl.muted = false;
+          promoVideoPlayerEl.volume = 0.3;
+        } else if(act === 'mute'){
+          promoVideoPlayerEl.muted = true;
+        } else if(act === 'unmute'){
+          promoVideoPlayerEl.muted = false;
+          if(promoVideoPlayerEl.volume <= 0.01) promoVideoPlayerEl.volume = 1;
+        } else if(act === 'autoplaywithsound'){
+          promoVideoPlayerEl.muted = true;
+          promoVideoPlayerEl.volume = 1;
+          const p = promoVideoPlayerEl.play();
+          if(p && typeof p.catch === 'function') p.catch(()=>{});
         }
       }catch(e){}
     }
@@ -1805,6 +2084,8 @@ function evaluatePlayerInputs(playerInputs) {
     if(promoVideoAdminPreviewEl){
       try{
         if(act === 'play'){
+          promoVideoAdminPreviewEl.muted = false;
+          if(promoVideoAdminPreviewEl.volume <= 0.01) promoVideoAdminPreviewEl.volume = 1;
           const p = promoVideoAdminPreviewEl.play();
           if(p && typeof p.catch === 'function') p.catch(()=>{});
         } else if(act === 'pause'){
@@ -1812,29 +2093,68 @@ function evaluatePlayerInputs(playerInputs) {
         } else if(act === 'stop'){
           promoVideoAdminPreviewEl.pause();
           try{ promoVideoAdminPreviewEl.currentTime = 0; }catch(e){}
+        } else if(act === 'volumeup'){
+          promoVideoAdminPreviewEl.muted = false;
+          promoVideoAdminPreviewEl.volume = 1;
+        } else if(act === 'volumedown'){
+          promoVideoAdminPreviewEl.muted = false;
+          promoVideoAdminPreviewEl.volume = 0.3;
+        } else if(act === 'mute'){
+          promoVideoAdminPreviewEl.muted = true;
+        } else if(act === 'unmute'){
+          promoVideoAdminPreviewEl.muted = false;
+          if(promoVideoAdminPreviewEl.volume <= 0.01) promoVideoAdminPreviewEl.volume = 1;
+        } else if(act === 'autoplaywithsound'){
+          promoVideoAdminPreviewEl.muted = true;
+          promoVideoAdminPreviewEl.volume = 1;
+          const p = promoVideoAdminPreviewEl.play();
+          if(p && typeof p.catch === 'function') p.catch(()=>{});
         }
       }catch(e){}
     }
 
     if(promoVideoStatusEl){
-      if(act === 'play') promoVideoStatusEl.textContent = 'Promotion video playing.';
+      if(act === 'play') promoVideoStatusEl.textContent = 'Promotion video playing (muted).';
       if(act === 'pause') promoVideoStatusEl.textContent = 'Promotion video paused.';
       if(act === 'stop') promoVideoStatusEl.textContent = 'Promotion video stopped.';
+      if(act === 'volumeup') promoVideoStatusEl.textContent = 'Promotion video volume: high.';
+      if(act === 'volumedown') promoVideoStatusEl.textContent = 'Promotion video volume: low.';
+      if(act === 'mute') promoVideoStatusEl.textContent = 'Promotion video muted.';
+      if(act === 'unmute') promoVideoStatusEl.textContent = 'Promotion video unmuted.';
+      if(act === 'autoplaywithsound') promoVideoStatusEl.textContent = 'Promotion video auto-started muted. Use Unmute to enable audio.';
     }
+  }
+
+  function applyPromoImage(url){
+    const normalizedUrl = url ? normalizeSharedImageUrl(url) : '';
+    promoImageUrl = normalizedUrl || null;
+
+    if(promoImageAdminPreviewEl){
+      if(normalizedUrl) promoImageAdminPreviewEl.src = normalizedUrl;
+      else promoImageAdminPreviewEl.src = DEFAULT_PROMO_IMAGE_PREVIEW_SRC;
+    }
+
+    if(promoImageStatusEl){
+      promoImageStatusEl.textContent = normalizedUrl ? 'Promotion image is live for dashboard slot 2.' : 'No promotion image uploaded yet.';
+    }
+  }
+
+  if(promoImageAdminPreviewEl && !promoImageAdminPreviewEl.getAttribute('src')){
+    promoImageAdminPreviewEl.src = DEFAULT_PROMO_IMAGE_PREVIEW_SRC;
   }
 
   if(promoVideoPlayerEl && isPlayerPromoOnlyView){
     promoVideoPlayerEl.autoplay = true;
     promoVideoPlayerEl.controls = false;
-    promoVideoPlayerEl.muted = false;
+    promoVideoPlayerEl.muted = true;
     promoVideoPlayerEl.playsInline = true;
-    promoVideoPlayerEl.volume = 1;
+    promoVideoPlayerEl.volume = 0;
 
     const unlockPlayerAudio = ()=>{
       try{
         if(!promoVideoPlayerEl || !promoVideoPlayerEl.src) return;
-        promoVideoPlayerEl.muted = false;
-        promoVideoPlayerEl.volume = 1;
+        promoVideoPlayerEl.muted = true;
+        promoVideoPlayerEl.volume = 0;
         const p = promoVideoPlayerEl.play();
         if(p && typeof p.catch === 'function') p.catch(()=>{});
       }catch(e){}
@@ -2410,7 +2730,25 @@ function evaluatePlayerInputs(playerInputs) {
     const promoVideoPlayBtn = document.getElementById('promoVideoPlayBtn');
     const promoVideoPauseBtn = document.getElementById('promoVideoPauseBtn');
     const promoVideoStopBtn = document.getElementById('promoVideoStopBtn');
+    const promoVideoVolDownBtn = document.getElementById('promoVideoVolDownBtn');
+    const promoVideoVolUpBtn = document.getElementById('promoVideoVolUpBtn');
+    const promoVideoMuteBtn = document.getElementById('promoVideoMuteBtn');
+    const promoVideoUnmuteBtn = document.getElementById('promoVideoUnmuteBtn');
     const promoVideoRemoveBtn = document.getElementById('promoVideoRemoveBtn');
+    const showPromoOnDashboardBtn = document.getElementById('showPromoOnDashboardBtn');
+    const restoreDefaultBoardBtn = document.getElementById('restoreDefaultBoardBtn');
+    const refreshDashboardBtn = document.getElementById('refreshDashboardBtn');
+    const promoImageUrlInput = document.getElementById('promoImageUrlInput');
+    const promoImageFileInput = document.getElementById('promoImageFileInput');
+    const setPromoImageBtn = document.getElementById('setPromoImageBtn');
+    const uploadPromoImageBtn = document.getElementById('uploadPromoImageBtn');
+    const promoImageRemoveBtn = document.getElementById('promoImageRemoveBtn');
+    const promoWidthDecreaseBtn = document.getElementById('promoWidthDecreaseBtn');
+    const promoWidthIncreaseBtn = document.getElementById('promoWidthIncreaseBtn');
+    const promoHeightDecreaseBtn = document.getElementById('promoHeightDecreaseBtn');
+    const promoHeightIncreaseBtn = document.getElementById('promoHeightIncreaseBtn');
+    const boardHeightDecreaseBtn = document.getElementById('boardHeightDecreaseBtn');
+    const boardHeightIncreaseBtn = document.getElementById('boardHeightIncreaseBtn');
     if(imagePreview && imageUrl) imagePreview.src = imageUrl;
 
     // admin level controls
@@ -2478,10 +2816,22 @@ function evaluatePlayerInputs(playerInputs) {
     }
 
     if(setImageBtn && imageInput){
-      setImageBtn.addEventListener('click', ()=>{
-        const url = normalizeSharedImageUrl(imageInput.value && imageInput.value.trim());
+      setImageBtn.addEventListener('click', async ()=>{
+        const rawUrl = imageInput.value && imageInput.value.trim();
+        const url = normalizeSharedImageUrl(rawUrl);
         if(!url) return;
-        sendAdmin({type:'image', url});
+        try{ const s = document.getElementById('status'); if(s) s.textContent = 'Importing image URL...'; }catch(e){}
+
+        let finalUrl = url;
+        try{
+          finalUrl = await importImageFromUrl(url);
+        }catch(err){
+          console.warn('image URL import fallback to direct URL:', err);
+        }
+
+        if(imageInput) imageInput.value = finalUrl;
+        applyImage(finalUrl);
+        sendAdmin({type:'image', url: finalUrl});
         try{ const s = document.getElementById('status'); if(s) s.textContent = 'Image queued'; }catch(e){}
       });
     }
@@ -2532,8 +2882,7 @@ function evaluatePlayerInputs(playerInputs) {
           }
           sendAdmin({ type: 'promoVideo', url });
           applyPromoVideo(url);
-          sendAdmin({ type: 'promoVideoControl', action: 'play' });
-          if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'Promotion video URL applied and playing on player board.';
+          if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'Promotion video URL applied to dashboard. Press Play to start.';
         });
       }
 
@@ -2560,8 +2909,7 @@ function evaluatePlayerInputs(playerInputs) {
           const uploadedUrl = await uploadPromoVideoFile(file);
           sendAdmin({ type: 'promoVideo', url: uploadedUrl });
           applyPromoVideo(uploadedUrl);
-          sendAdmin({ type: 'promoVideoControl', action: 'play' });
-          if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'Promotion video uploaded and live on player board.';
+          if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'Promotion video uploaded to dashboard. Press Play to start.';
         }catch(err){
           console.error('promo video upload failed', err);
           const msg = err && err.message ? err.message : 'Promotion video upload failed.';
@@ -2594,6 +2942,30 @@ function evaluatePlayerInputs(playerInputs) {
           controlPromoVideo('stop');
         });
       }
+      if(promoVideoVolDownBtn){
+        promoVideoVolDownBtn.addEventListener('click', ()=>{
+          sendAdmin({ type: 'promoVideoControl', action: 'volumeDown' });
+          controlPromoVideo('volumeDown');
+        });
+      }
+      if(promoVideoVolUpBtn){
+        promoVideoVolUpBtn.addEventListener('click', ()=>{
+          sendAdmin({ type: 'promoVideoControl', action: 'volumeUp' });
+          controlPromoVideo('volumeUp');
+        });
+      }
+      if(promoVideoMuteBtn){
+        promoVideoMuteBtn.addEventListener('click', ()=>{
+          sendAdmin({ type: 'promoVideoControl', action: 'mute' });
+          controlPromoVideo('mute');
+        });
+      }
+      if(promoVideoUnmuteBtn){
+        promoVideoUnmuteBtn.addEventListener('click', ()=>{
+          sendAdmin({ type: 'promoVideoControl', action: 'unmute' });
+          controlPromoVideo('unmute');
+        });
+      }
       if(promoVideoRemoveBtn){
         promoVideoRemoveBtn.addEventListener('click', ()=>{
           sendAdmin({ type: 'promoVideoControl', action: 'stop' });
@@ -2603,6 +2975,127 @@ function evaluatePlayerInputs(playerInputs) {
           if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'Promotion video removed from player board.';
         });
       }
+
+      if(showPromoOnDashboardBtn){
+        showPromoOnDashboardBtn.addEventListener('click', ()=>{
+          sendAdmin({ type: 'promoBoardMode', mode: 'video' });
+          if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'Promotion video is shown in the dashboard board area.';
+        });
+      }
+
+      if(restoreDefaultBoardBtn){
+        restoreDefaultBoardBtn.addEventListener('click', ()=>{
+          sendAdmin({ type: 'promoBoardMode', mode: 'boards' });
+          if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'Dashboard board area restored to Team A and Team B.';
+        });
+      }
+
+      if(refreshDashboardBtn){
+        refreshDashboardBtn.addEventListener('click', ()=>{
+          sendAdmin({ type: 'refreshDashboard' });
+          if(promoVideoStatusEl) promoVideoStatusEl.textContent = 'Dashboard refresh requested.';
+        });
+      }
+    }
+
+    if(setPromoImageBtn && promoImageUrlInput){
+      setPromoImageBtn.addEventListener('click', ()=>{
+        const rawUrl = (promoImageUrlInput.value || '').trim();
+        const url = normalizeSharedImageUrl(rawUrl);
+        if(!url){
+          if(promoImageStatusEl) promoImageStatusEl.textContent = 'Enter a valid image URL first.';
+          return;
+        }
+        sendAdmin({ type: 'promoImage', url });
+        applyPromoImage(url);
+      });
+    }
+
+    if(uploadPromoImageBtn && promoImageFileInput){
+      uploadPromoImageBtn.addEventListener('click', async ()=>{
+        const file = promoImageFileInput.files && promoImageFileInput.files[0];
+        if(!file){
+          if(promoImageStatusEl) promoImageStatusEl.textContent = 'Choose an image file first.';
+          return;
+        }
+        if(promoImageStatusEl) promoImageStatusEl.textContent = 'Uploading promotion image...';
+        try{
+          const uploadedUrl = await uploadImageFile(file);
+          if(promoImageUrlInput) promoImageUrlInput.value = uploadedUrl;
+          sendAdmin({ type: 'promoImage', url: uploadedUrl });
+          applyPromoImage(uploadedUrl);
+        }catch(err){
+          console.error('promo image upload failed', err);
+          const msg = err && err.message ? err.message : 'Promotion image upload failed.';
+          if(promoImageStatusEl) promoImageStatusEl.textContent = `Promotion image upload failed: ${msg}`;
+        }
+      });
+
+      promoImageFileInput.addEventListener('change', ()=>{
+        const f = promoImageFileInput.files && promoImageFileInput.files[0];
+        if(!f || !promoImageAdminPreviewEl) return;
+        const objUrl = URL.createObjectURL(f);
+        promoImageAdminPreviewEl.src = objUrl;
+        promoImageAdminPreviewEl.onload = ()=> URL.revokeObjectURL(objUrl);
+      });
+    }
+
+    if(promoImageRemoveBtn){
+      promoImageRemoveBtn.addEventListener('click', ()=>{
+        sendAdmin({ type: 'promoImage', url: '' });
+        applyPromoImage('');
+        if(promoImageUrlInput) promoImageUrlInput.value = '';
+        if(promoImageFileInput) promoImageFileInput.value = '';
+      });
+    }
+
+    if(promoWidthDecreaseBtn){
+      promoWidthDecreaseBtn.addEventListener('click', ()=>{
+        const current = clampPromoWidth(parseInt(String((promoWidthValueEl && promoWidthValueEl.textContent) || '380'), 10));
+        const next = clampPromoWidth(current - 20);
+        sendAdmin({ type: 'promoWidth', width: next });
+        applyDashboardPromoWidth(next);
+      });
+    }
+    if(promoWidthIncreaseBtn){
+      promoWidthIncreaseBtn.addEventListener('click', ()=>{
+        const current = clampPromoWidth(parseInt(String((promoWidthValueEl && promoWidthValueEl.textContent) || '380'), 10));
+        const next = clampPromoWidth(current + 20);
+        sendAdmin({ type: 'promoWidth', width: next });
+        applyDashboardPromoWidth(next);
+      });
+    }
+    if(promoHeightDecreaseBtn){
+      promoHeightDecreaseBtn.addEventListener('click', ()=>{
+        const current = clampPromoHeight(parseInt(String((promoHeightValueEl && promoHeightValueEl.textContent) || '430'), 10));
+        const next = clampPromoHeight(current - 20);
+        sendAdmin({ type: 'promoHeight', height: next });
+        applyDashboardPromoHeight(next);
+      });
+    }
+    if(promoHeightIncreaseBtn){
+      promoHeightIncreaseBtn.addEventListener('click', ()=>{
+        const current = clampPromoHeight(parseInt(String((promoHeightValueEl && promoHeightValueEl.textContent) || '430'), 10));
+        const next = clampPromoHeight(current + 20);
+        sendAdmin({ type: 'promoHeight', height: next });
+        applyDashboardPromoHeight(next);
+      });
+    }
+    if(boardHeightDecreaseBtn){
+      boardHeightDecreaseBtn.addEventListener('click', ()=>{
+        const current = clampBoardHeight(parseInt(String((boardHeightValueEl && boardHeightValueEl.textContent) || '620'), 10));
+        const next = clampBoardHeight(current - 30);
+        sendAdmin({ type: 'boardHeight', height: next });
+        applyDashboardBoardHeight(next);
+      });
+    }
+    if(boardHeightIncreaseBtn){
+      boardHeightIncreaseBtn.addEventListener('click', ()=>{
+        const current = clampBoardHeight(parseInt(String((boardHeightValueEl && boardHeightValueEl.textContent) || '620'), 10));
+        const next = clampBoardHeight(current + 30);
+        sendAdmin({ type: 'boardHeight', height: next });
+        applyDashboardBoardHeight(next);
+      });
     }
     startBtn.addEventListener('click', ()=>{
       const tl = parseInt(timeInput.value,10) || 120;

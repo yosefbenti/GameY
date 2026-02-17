@@ -17,11 +17,43 @@
     <button id="zoomResetBtn" type="button" aria-label="Reset zoom">Reset</button>
   </section>
   <main class="team-page-layout">
-    <aside class="promo-panel" aria-label="Promotion video test upload">
-      <h2>Promotion Video (Test)</h2>
-      <p class="promo-help">Admin uploads from control panel. Live video appears here automatically.</p>
-      <video id="promoVideoPreview" class="promo-video" playsinline preload="metadata"></video>
-      <div id="promoVideoStatus" class="promo-status">Waiting for admin upload</div>
+    <aside class="live-scoreboard" aria-label="Live score summary">
+      <h2>Live Scores (All Levels)</h2>
+      <table class="live-score-table">
+        <thead>
+          <tr>
+            <th>Level</th>
+            <th><span id="teamAName">Team A</span></th>
+            <th><span id="teamBName">Team B</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Level 1</td>
+            <td id="scoreA1">0</td>
+            <td id="scoreB1">0</td>
+          </tr>
+          <tr>
+            <td>Level 2</td>
+            <td id="scoreA2">0</td>
+            <td id="scoreB2">0</td>
+          </tr>
+          <tr>
+            <td>Level 3</td>
+            <td id="scoreA3">0</td>
+            <td id="scoreB3">0</td>
+          </tr>
+          <tr class="total-row">
+            <td>Total</td>
+            <td id="totalA">0</td>
+            <td id="totalB">0</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="live-score-meta">
+        <div><strong>Winner:</strong> <span id="winner">Pending (complete all 3 levels)</span></div>
+        <div id="lastRound">Leading: —</div>
+      </div>
     </aside>
 
     <section class="boards">

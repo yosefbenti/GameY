@@ -16,7 +16,47 @@
     <button id="zoomInBtn" type="button" aria-label="Zoom in">+</button>
     <button id="zoomResetBtn" type="button" aria-label="Reset zoom">Reset</button>
   </section>
-  <main class="boards">
+  <main class="team-page-layout">
+    <aside class="live-scoreboard" aria-label="Live score summary">
+      <h2>Live Scores (All Levels)</h2>
+      <table class="live-score-table">
+        <thead>
+          <tr>
+            <th>Level</th>
+            <th><span id="teamAName">Team A</span></th>
+            <th><span id="teamBName">Team B</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Level 1</td>
+            <td id="scoreA1">0</td>
+            <td id="scoreB1">0</td>
+          </tr>
+          <tr>
+            <td>Level 2</td>
+            <td id="scoreA2">0</td>
+            <td id="scoreB2">0</td>
+          </tr>
+          <tr>
+            <td>Level 3</td>
+            <td id="scoreA3">0</td>
+            <td id="scoreB3">0</td>
+          </tr>
+          <tr class="total-row">
+            <td>Total</td>
+            <td id="totalA">0</td>
+            <td id="totalB">0</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="live-score-meta">
+        <div><strong>Winner:</strong> <span id="winner">Pending (complete all 3 levels)</span></div>
+        <div id="lastRound">Leading: —</div>
+      </div>
+    </aside>
+
+    <section class="boards">
     <div class="team">
       <section class="level-section level-puzzle" id="levelPuzzle">
         <h2>Team <span data-team-name>B</span> <span class="timer" id="timerB">00:00</span></h2>
@@ -62,6 +102,7 @@
         <div class="completion word-completion">Completion: 0%</div>
       </section>
     </div>
+    </section>
   </main>
   <script>
     (function(){

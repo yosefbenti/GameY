@@ -13,15 +13,34 @@
   </header>
   <main class="admin-grid">
     <section class="admin-box admin-time">
-      <div class="box-title">Time & Level</div>
+      <div class="box-title">Time & Level Controls</div>
       <div class="dual-row">
-        <div class="dual-col">
+        <div class="dual-col control-subbox">
+          <div class="subbox-title">Time Control</div>
           <label>Time (seconds)
             <input id="timeInput" type="number" value="120" min="10" />
           </label>
           <div>Current timer: <span id="globalTimer">00:00</span></div>
+          <div class="control-subbox connection-inline">
+            <div class="subbox-title">Connection</div>
+            <div class="status" id="status">Not connected</div>
+            <div class="help-text">Status updates when the server connects.</div>
+            <div>Level status: <span id="levelStatus">Idle</span></div>
+            <div class="help-text">
+              Spectator dashboard:
+              <a href="/dashboard" target="_blank" rel="noopener">Open live view</a>
+            </div>
+          </div>
+          <div id="totalsPanel" class="control-subbox totals-inline">
+            <div class="subbox-title">Totals</div>
+            <div>Team <span id="totalALabel">A</span>: <span id="totalA">0</span></div>
+            <div>Team <span id="totalBLabel">B</span>: <span id="totalB">0</span></div>
+            <div class="winner">Winner: <span id="winner">—</span></div>
+            <div id="lastRound" class="last-round">Leading: —</div>
+          </div>
         </div>
-        <div class="dual-col">
+        <div class="dual-col control-subbox">
+          <div class="subbox-title">Level Control</div>
           <div class="level-display" id="levelBox">
             <div class="level-label">Current level</div>
             <div id="currentLevel">—</div>
@@ -48,17 +67,6 @@
       </div>
     </section>
 
-    <section class="admin-box admin-connection">
-      <div class="box-title">Connection</div>
-      <div class="status" id="status">Not connected</div>
-      <div class="help-text">Status updates when the server connects.</div>
-      <div>Level status: <span id="levelStatus">Idle</span></div>
-      <div class="help-text">
-        Spectator dashboard:
-        <a href="/dashboard" target="_blank" rel="noopener">Open live view</a>
-      </div>
-    </section>
-
     <section class="admin-box preview-box" id="imageControlPanel">
       <div class="box-title">Image Control</div>
       <label>Image URL
@@ -77,27 +85,75 @@
     </section>
 
     <section class="admin-box admin-promo-box" id="promoControlPanel">
-      <div class="box-title">Promotion Video Control</div>
-      <label>Video URL
-        <div class="inline-row">
-          <input id="promoVideoUrlInput" type="url" placeholder="https://.../promo-video.mp4" />
-          <button id="setPromoVideoBtn" type="button">Set Video</button>
+      <div class="promo-split">
+        <div class="promo-col">
+          <div class="box-title">Promotion Video Control</div>
+          <label>Dashboard promo width
+            <div class="inline-row" aria-label="Dashboard promo width controls">
+              <button id="promoWidthDecreaseBtn" type="button" class="secondary">−</button>
+              <span id="promoWidthValue">380px</span>
+              <button id="promoWidthIncreaseBtn" type="button" class="secondary">+</button>
+            </div>
+          </label>
+          <label>Board height
+            <div class="inline-row" aria-label="Dashboard board height controls">
+              <button id="boardHeightDecreaseBtn" type="button" class="secondary">−</button>
+              <span id="boardHeightValue">620px</span>
+              <button id="boardHeightIncreaseBtn" type="button" class="secondary">+</button>
+            </div>
+          </label>
+          <label>Video URL
+            <div class="inline-row">
+              <input id="promoVideoUrlInput" type="url" placeholder="https://.../promo-video.mp4" />
+              <button id="setPromoVideoBtn" type="button">Set Video</button>
+            </div>
+          </label>
+          <label>Upload promotion video
+            <div class="inline-row">
+              <input id="promoVideoFileInput" type="file" accept="video/*" />
+              <button id="uploadPromoVideoBtn">Upload Video</button>
+            </div>
+          </label>
+          <div class="inline-row" aria-label="Promotion video playback controls">
+            <button id="promoVideoPlayBtn" type="button">Play</button>
+            <button id="promoVideoPauseBtn" type="button" class="secondary">Pause</button>
+            <button id="promoVideoStopBtn" type="button" class="secondary">Stop</button>
+            <button id="promoVideoVolDownBtn" type="button" class="secondary">Volume -</button>
+            <button id="promoVideoVolUpBtn" type="button" class="secondary">Volume +</button>
+            <button id="promoVideoMuteBtn" type="button" class="secondary">Mute</button>
+            <button id="promoVideoUnmuteBtn" type="button" class="secondary">Unmute</button>
+            <button id="promoVideoRemoveBtn" type="button" class="secondary">Remove Video</button>
+          </div>
+          <div class="inline-row" aria-label="Dashboard promotion display controls">
+            <button id="showPromoOnDashboardBtn" type="button">Show Promotion Video on Dashboard</button>
+            <button id="restoreDefaultBoardBtn" type="button" class="secondary">Restore Default Board</button>
+            <button id="refreshDashboardBtn" type="button" class="secondary">Refresh Dashboard</button>
+          </div>
+          <video id="promoVideoAdminPreview" class="admin-promo-video" controls playsinline preload="metadata"></video>
+          <div id="promoVideoStatus" class="help-text">No promotion video uploaded yet.</div>
         </div>
-      </label>
-      <label>Upload promotion video
-        <div class="inline-row">
-          <input id="promoVideoFileInput" type="file" accept="video/*" />
-          <button id="uploadPromoVideoBtn">Upload Video</button>
+
+        <div class="promo-col">
+          <div class="box-title">Promotion Image Control (Slot 2)</div>
+          <label>Image URL
+            <div class="inline-row">
+              <input id="promoImageUrlInput" type="url" placeholder="https://.../promo-image.jpg" />
+              <button id="setPromoImageBtn" type="button">Set Image</button>
+            </div>
+          </label>
+          <label>Upload promotion image
+            <div class="inline-row">
+              <input id="promoImageFileInput" type="file" accept="image/*" />
+              <button id="uploadPromoImageBtn" type="button">Upload Image</button>
+            </div>
+          </label>
+          <div class="inline-row" aria-label="Promotion image controls">
+            <button id="promoImageRemoveBtn" type="button" class="secondary">Remove Image</button>
+          </div>
+          <img id="promoImageAdminPreview" alt="Promotion image preview" />
+          <div id="promoImageStatus" class="help-text">No promotion image uploaded yet.</div>
         </div>
-      </label>
-      <div class="inline-row" aria-label="Promotion video playback controls">
-        <button id="promoVideoPlayBtn" type="button">Play</button>
-        <button id="promoVideoPauseBtn" type="button" class="secondary">Pause</button>
-        <button id="promoVideoStopBtn" type="button" class="secondary">Stop</button>
-        <button id="promoVideoRemoveBtn" type="button" class="secondary">Remove Video</button>
       </div>
-      <video id="promoVideoAdminPreview" class="admin-promo-video" controls playsinline preload="metadata"></video>
-      <div id="promoVideoStatus" class="help-text">No promotion video uploaded yet.</div>
     </section>
 
     <section id="gameControlsPanel" class="admin-box">
@@ -134,14 +190,6 @@
       <div>Completion: <span class="completion">0%</span></div>
       <div class="score">Score: 0</div>
       <div>Status: <span class="team-status">Waiting</span></div>
-    </section>
-
-    <section id="totalsPanel" class="admin-box">
-      <div class="box-title">Totals</div>
-      <div>Team <span id="totalALabel">A</span>: <span id="totalA">0</span></div>
-      <div>Team <span id="totalBLabel">B</span>: <span id="totalB">0</span></div>
-      <div class="winner">Winner: <span id="winner">—</span></div>
-      <div id="lastRound" class="last-round">Leading: —</div>
     </section>
 
     <section id="historyPanel" class="admin-box">
