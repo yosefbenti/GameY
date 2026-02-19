@@ -20,7 +20,7 @@
       margin:0;
       min-height:100vh;
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-      background:radial-gradient(circle at top,#1e293b 0%,var(--bg) 55%);
+      background:#000;
       color:var(--text);
       padding:clamp(10px,1.2vw,18px);
     }
@@ -266,10 +266,13 @@
       letter-spacing:.01em;
     }
 
+
     .promo-score-table{
       width:100%;
       border-collapse:collapse;
       font-size:.72rem;
+      background:#fff;
+      color:#000;
     }
 
     .promo-score-table th,
@@ -277,25 +280,26 @@
       border:1px solid rgba(148,163,184,.3);
       padding:3px 5px;
       text-align:center;
-      color:#e2e8f0;
+      color:#000;
+      background:#fff;
+      font-weight:400;
     }
 
     .promo-score-table th:first-child,
     .promo-score-table td:first-child{
       text-align:left;
-      font-weight:700;
     }
 
     .promo-score-table thead th{
-      background:rgba(59,130,246,.2);
-      color:#f8fafc;
-      font-weight:800;
+      background:#fff;
+      color:#000;
+      font-weight:400;
     }
 
     .promo-score-table .total-row td{
-      font-weight:800;
-      background:rgba(34,197,94,.12);
-      color:#f8fafc;
+      font-weight:400;
+      background:#fff;
+      color:#000;
     }
 
     .promo-area p{
@@ -488,6 +492,11 @@
                   <td id="scoreA3">0</td>
                   <td id="scoreB3">0</td>
                 </tr>
+                <tr>
+                  <td>L4</td>
+                  <td id="scoreA4">0</td>
+                  <td id="scoreB4">0</td>
+                </tr>
                 <tr class="total-row">
                   <td>Total</td>
                   <td id="scoreATotal">0</td>
@@ -564,9 +573,11 @@
       const scoreA1El = document.getElementById('scoreA1');
       const scoreA2El = document.getElementById('scoreA2');
       const scoreA3El = document.getElementById('scoreA3');
+      const scoreA4El = document.getElementById('scoreA4');
       const scoreB1El = document.getElementById('scoreB1');
       const scoreB2El = document.getElementById('scoreB2');
       const scoreB3El = document.getElementById('scoreB3');
+      const scoreB4El = document.getElementById('scoreB4');
       const scoreATotalEl = document.getElementById('scoreATotal');
       const scoreBTotalEl = document.getElementById('scoreBTotal');
       const boardHeightDecreaseBtn = document.getElementById('boardHeightDecreaseBtn');
@@ -779,9 +790,11 @@
         const a1 = Number(aLevels[1]) || 0;
         const a2 = Number(aLevels[2]) || 0;
         const a3 = Number(aLevels[3]) || 0;
+        const a4 = Number(aLevels[4]) || 0;
         const b1 = Number(bLevels[1]) || 0;
         const b2 = Number(bLevels[2]) || 0;
         const b3 = Number(bLevels[3]) || 0;
+        const b4 = Number(bLevels[4]) || 0;
 
         if(scoreTeamANameEl) scoreTeamANameEl.textContent = state.names.A || 'Team A';
         if(scoreTeamBNameEl) scoreTeamBNameEl.textContent = state.names.B || 'Team B';
@@ -791,12 +804,14 @@
         if(scoreA1El) scoreA1El.textContent = String(a1);
         if(scoreA2El) scoreA2El.textContent = String(a2);
         if(scoreA3El) scoreA3El.textContent = String(a3);
+        if(scoreA4El) scoreA4El.textContent = String(a4);
         if(scoreB1El) scoreB1El.textContent = String(b1);
         if(scoreB2El) scoreB2El.textContent = String(b2);
         if(scoreB3El) scoreB3El.textContent = String(b3);
+        if(scoreB4El) scoreB4El.textContent = String(b4);
 
-        const totalA = Number(state.totals.A) || (a1 + a2 + a3);
-        const totalB = Number(state.totals.B) || (b1 + b2 + b3);
+        const totalA = Number(state.totals.A) || (a1 + a2 + a3 + a4);
+        const totalB = Number(state.totals.B) || (b1 + b2 + b3 + b4);
         if(scoreATotalEl) scoreATotalEl.textContent = String(totalA);
         if(scoreBTotalEl) scoreBTotalEl.textContent = String(totalB);
       }
