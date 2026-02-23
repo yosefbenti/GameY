@@ -8,7 +8,8 @@
 </head>
 <body>
   <header>
-    <h1>Level 1 – Picture Jigsaw Puzzle (Easy)</h1>
+    <h1 id="levelTitle">Level 1 – Picture Jigsaw Puzzle (Easy)</h1>
+    <div id="winnerBanner" class="winner-banner" style="display:none"></div>
   </header>
 
   <section class="controls">
@@ -24,12 +25,14 @@
         <h2>Team A <span class="timer" id="timerA">00:00</span></h2>
         <div class="board" id="boardA"></div>
         <div class="score" id="scoreA">Score: 0%</div>
+        <div class="score" id="scoreATotal">Total: 0</div>
       </div>
 
       <div class="team">
         <h2>Team B <span class="timer" id="timerB">00:00</span></h2>
         <div class="board" id="boardB"></div>
         <div class="score" id="scoreB">Score: 0%</div>
+        <div class="score" id="scoreBTotal">Total: 0</div>
       </div>
     </main>
 
@@ -43,9 +46,14 @@
     <p>Game description for memory level.</p>
   </section>
 
+
   <section id="wordLevel" class="hidden">
     <h2>Word Level</h2>
     <p>Game description for word level.</p>
+  </section>
+
+  <section id="wordSearchLevel" class="hidden">
+    <iframe src="level5.html" style="width:100%;min-height:700px;border:none;background:#111;"></iframe>
   </section>
 
   <script>
@@ -54,6 +62,28 @@
       const wsHost = window.location.host || 'localhost:8000';
       const wsUrl = `${wsProto}://${wsHost}`;
       window.GAME_CONFIG = { ws: wsUrl };
+      const ws = new WebSocket(wsUrl);
+      ws.onmessage = function(evt){
+        try{
+          const msg = JSON.parse(evt.data);
+          if(msg.type === 'gameState'){
+            if(msg.level && msg.level.mode){
+              document.getElementById('levelTitle').textContent = `Level ${msg.level.level || ''} – ${msg.level.mode.charAt(0).toUpperCase() + msg.level.mode.slice(1)}`;
+            }
+            if(typeof msg.winnerName === 'string'){
+              const winnerBanner = document.getElementById('winnerBanner');
+              if(winnerBanner){
+                winnerBanner.textContent = msg.winnerName;
+                winnerBanner.style.display = msg.winnerName && !msg.winnerName.toLowerCase().includes('pending') ? 'block' : 'none';
+              }
+            }
+            if(msg.scores){
+              document.getElementById('scoreATotal').textContent = `Total: ${msg.scores.A}`;
+              document.getElementById('scoreBTotal').textContent = `Total: ${msg.scores.B}`;
+            }
+          }
+        }catch(e){}
+      };
     })();
   </script>
   <script src="script.js?v=20260215c"></script>

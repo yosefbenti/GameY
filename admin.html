@@ -33,6 +33,7 @@
           </div>
           <div id="totalsPanel" class="control-subbox totals-inline">
             <div class="subbox-title">Totals</div>
+            <div>Current Level: <span id="adminLevelCounter">—</span></div>
             <div>Team <span id="totalALabel">A</span>: <span id="totalA">0</span></div>
             <div>Team <span id="totalBLabel">B</span>: <span id="totalB">0</span></div>
             <div class="winner">Winner: <span id="winner">—</span></div>
@@ -50,12 +51,23 @@
             <button id="level1Btn">Start Level 1 (Puzzle)</button>
             <button id="level2Btn">Start Level 2 (Memory)</button>
             <button id="level3Btn">Start Level 3 (Word)</button>
+            <button id="level4Btn" class="level-btn">Start Level 4 (Pipe/Path)</button>
+            <button id="level5Btn" class="level-btn">Start Level 5 (Word Search)</button>
+            <button id="level6Btn" class="level-btn">Start Level 6 (Dot Connect)</button>
           </div>
           <label>Letter for Level 3 (optional, English or Amharic)
             <input id="letterInput" type="text" maxlength="1" placeholder="A-Z or ሀ-ፐ" class="small-input" />
           </label>
           <label>Memory items for Level 2 (optional: numbers/words, comma or new line)
             <textarea id="memoryItemsInput" rows="3" placeholder="1, 2, 3, 4\nOR\nCat\nDog\nTree\nCar"></textarea>
+          </label>
+          <label>Level 6 Dot Pairs (more pairs = more dots)
+            <div class="inline-row">
+              <button id="connectPairsDecreaseBtn" type="button" class="secondary">−</button>
+              <input id="connectPairCountInput" type="number" min="2" max="8" step="1" value="4" class="small-input" />
+              <button id="connectPairsIncreaseBtn" type="button" class="secondary">+</button>
+              <span class="help-text">Dots = pairs x 2</span>
+            </div>
           </label>
           <label>Start level number
             <div class="inline-row">
@@ -194,17 +206,17 @@
 
     <section id="historyPanel" class="admin-box">
       <div class="box-title">Game History</div>
-      <div class="help-text">Saved completed games (Team names + Level 1/2/3 scores + totals).</div>
+      <div class="help-text">Saved completed games (Team names + Level scores + totals).</div>
       <div class="history-wrap">
         <table class="history-table" id="gameHistoryTable">
           <thead>
             <tr>
               <th>Time</th>
               <th>Team A</th>
-              <th>A L1/L2/L3</th>
+              <th>A L1/L2/L3/L4/L5/L6</th>
               <th>A Total</th>
               <th>Team B</th>
-              <th>B L1/L2/L3</th>
+              <th>B L1/L2/L3/L4/L5/L6</th>
               <th>B Total</th>
               <th>Winner</th>
               <th>Action</th>

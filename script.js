@@ -364,6 +364,22 @@ function resetWordsearchLevel() {
         snap.memory = { cards: captureMemorySnapshot() || [], matched: (memoryState && memoryState.matched) || 0, pairs: (memoryState && memoryState.pairs) || 0, timeLimit: (memoryState && memoryState.timeLimit) || timeLimit };
       } else if(snap.mode === 'word'){
         snap.word = { letter: (wordState && wordState.letter) || '', categories: (wordState && Array.isArray(wordState.categories) ? wordState.categories.slice() : []), inputs: collectWordInputs(), correctCount: (wordState && Number(wordState.correctCount)) || 0, total: (wordState && Number(wordState.total)) || 0 };
+      } else if(snap.mode === 'pipe'){
+        snap.pipe = {
+          rows: (pipeState && Number(pipeState.rows)) || 5,
+          cols: (pipeState && Number(pipeState.cols)) || 5,
+          timeLimit: Number(timeLimit) || 75,
+          tiles: (pipeState && Array.isArray(pipeState.tiles))
+            ? pipeState.tiles.map(t=>({
+                base: Array.isArray(t.base) ? t.base.slice() : [],
+                rot: Number(t.rot) || 0,
+                isPath: Boolean(t.isPath),
+                isStart: Boolean(t.isStart),
+                isEnd: Boolean(t.isEnd),
+                playable: Boolean(t.playable),
+              }))
+            : [],
+        };
       } else if(snap.mode === 'wordsearch'){
         snap.wordsearch = {
           grid: (wordSearchState && Array.isArray(wordSearchState.grid)) ? wordSearchState.grid.slice() : null,
@@ -371,6 +387,15 @@ function resetWordsearchLevel() {
           found: (wordSearchState && wordSearchState.found) ? Array.from(wordSearchState.found) : [],
           foundCellsByWord: (wordSearchState && wordSearchState.foundCellsByWord) ? wordSearchState.foundCellsByWord : {},
           selectedTiles: (wordSearchState && Array.isArray(wordSearchState.selectedTiles)) ? wordSearchState.selectedTiles.slice() : []
+        };
+      } else if(snap.mode === 'connect'){
+        snap.connect = {
+          nodes: (connectState && Array.isArray(connectState.nodes)) ? connectState.nodes.map(n=> ({ ...n })) : [],
+          colors: (connectState && Array.isArray(connectState.colors)) ? connectState.colors.slice() : [],
+          lines: (connectState && connectState.lines && typeof connectState.lines === 'object') ? connectState.lines : {},
+          totalPairs: (connectState && Number(connectState.totalPairs)) || 0,
+          matched: (connectState && Number(connectState.matched)) || 0,
+          canvasSize: (connectState && Number(connectState.canvasSize)) || 520
         };
       }
       localStorage.setItem(key, JSON.stringify(snap));
@@ -492,6 +517,61 @@ function resetWordsearchLevel() {
                         try{ startLocalTimer(Date.now(), Number(timeLimit) || remaining); }catch(e){}
                       }
                     }
+                  } else if(snap.mode === 'pipe'){
+                    if(typeof setupPipeLevel === 'function'){
+                      setupPipeLevel({
+                        mode: 'pipe',
+                        level: snap.level || 4,
+                        rows: (snap.pipe && snap.pipe.rows) || 5,
+                        cols: (snap.pipe && snap.pipe.cols) || 5,
+                        timeLimit: (snap.pipe && snap.pipe.timeLimit) || 75,
+                        tiles: (snap.pipe && snap.pipe.tiles) || [],
+                      });
+                    }
+                    if (typeof pipeLevelSection !== 'undefined' && pipeLevelSection) pipeLevelSection.classList.remove('hidden');
+                    if (typeof puzzleSection !== 'undefined' && puzzleSection) puzzleSection.classList.add('hidden');
+                    if (typeof wordLevelSection !== 'undefined' && wordLevelSection) wordLevelSection.classList.add('hidden');
+                    if (typeof wordSearchSection !== 'undefined' && wordSearchSection) wordSearchSection.classList.add('hidden');
+                    if (typeof connectLevelSection !== 'undefined' && connectLevelSection) connectLevelSection.classList.add('hidden');
+                    if(typeof snap.remaining !== 'undefined'){
+                      remaining = Number(snap.remaining) || remaining;
+                      timeLimit = Number(snap.timeLimit) || timeLimit;
+                      updateTimerDisplays(remaining, timeLimit);
+                      if(statusEl) statusEl.textContent = 'Restored from local session';
+                      if(Boolean(snap.started)){
+                        try{ startLocalTimer(Date.now(), Number(timeLimit) || remaining); }catch(e){}
+                      }
+                    }
+                  } else if(snap.mode === 'connect'){
+                    if(typeof setupConnectLevel === 'function') setupConnectLevel({
+                      mode: 'connect',
+                      level: snap.level,
+                      nodes: (snap.connect && snap.connect.nodes) || undefined,
+                      canvasSize: (snap.connect && snap.connect.canvasSize) || undefined,
+                    });
+                    if(snap.connect && typeof applyConnectSnapshot === 'function'){
+                      applyConnectSnapshot({
+                        nodes: (snap.connect && snap.connect.nodes) || [],
+                        lines: (snap.connect && snap.connect.lines) || {},
+                        totalPairs: (snap.connect && snap.connect.totalPairs) || 0,
+                        matched: (snap.connect && snap.connect.matched) || 0,
+                        finished: Boolean(finished),
+                      });
+                    }
+                    if (typeof connectLevelSection !== 'undefined' && connectLevelSection) connectLevelSection.classList.remove('hidden');
+                    if (typeof puzzleSection !== 'undefined' && puzzleSection) puzzleSection.classList.add('hidden');
+                    if (typeof wordLevelSection !== 'undefined' && wordLevelSection) wordLevelSection.classList.add('hidden');
+                    if (typeof pipeLevelSection !== 'undefined' && pipeLevelSection) pipeLevelSection.classList.add('hidden');
+                    if (typeof wordSearchSection !== 'undefined' && wordSearchSection) wordSearchSection.classList.add('hidden');
+                    if(typeof snap.remaining !== 'undefined'){
+                      remaining = Number(snap.remaining) || remaining;
+                      timeLimit = Number(snap.timeLimit) || timeLimit;
+                      updateTimerDisplays(remaining, timeLimit);
+                      if(statusEl) statusEl.textContent = 'Restored from local session';
+                      if(Boolean(snap.started)){
+                        try{ startLocalTimer(Date.now(), Number(timeLimit) || remaining); }catch(e){}
+                      }
+                    }
                   }
                 }catch(e){ console.error('restore session snapshot failed', e); }
               }, 50);
@@ -513,6 +593,9 @@ function resetWordsearchLevel() {
             } else if(m === 'pipe' && typeof setupPipeLevel === 'function'){
               try{ setupPipeLevel({ mode: 'pipe', level: currentLevel }); }catch(e){}
               levelMode = 'pipe';
+            } else if(m === 'connect' && typeof setupConnectLevel === 'function'){
+              try{ setupConnectLevel({ mode: 'connect', level: currentLevel }); }catch(e){}
+              levelMode = 'connect';
             } else if(m === 'puzzle'){
               levelMode = 'puzzle';
               if(typeof resetLocal === 'function') try{ resetLocal(); }catch(e){}
@@ -536,19 +619,26 @@ function resetWordsearchLevel() {
   const wordLevelSection = document.getElementById('wordLevel');
   const pipeLevelSection = document.getElementById('pipeLevel');
   const wordSearchSection = document.getElementById('wordSearchLevel');
+  const connectLevelSection = document.getElementById('connectLevel');
   const puzzleTimerEl = document.querySelector('.timer');
   const wordTimerEl = document.querySelector('.word-timer') || document.querySelector('.wordsearch-timer');
   const pipeTimerEl = document.querySelector('.pipe-timer');
   const wordsearchTimerEl = document.querySelector('.wordsearch-timer');
+  const connectTimerEl = document.querySelector('.connect-timer');
   const puzzleScoreEl = document.querySelector('.score');
   const wordScoreEl = document.querySelector('.word-score');
   const pipeScoreEl = document.querySelector('.pipe-score');
+  const connectScoreEl = document.querySelector('.connect-score');
   const puzzleCompletionEl = document.querySelector('.completion');
   const wordCompletionEl = document.querySelector('.word-completion');
   const pipeCompletionEl = document.querySelector('.pipe-completion');
+  const connectCompletionEl = document.querySelector('.connect-completion');
   const pipeSection = document.getElementById('pipeChallenge');
   const pipeGridEl = document.getElementById('pipeGrid');
   const pipeStatusEl = document.getElementById('pipeStatus');
+  const connectSection = document.getElementById('connectChallenge');
+  const connectCanvasEl = document.getElementById('connectCanvas');
+  const connectStatusEl = document.getElementById('connectStatus');
   const holdShowBtn = document.getElementById('holdShowBtn');
   const teamANameEl = document.getElementById('teamAName');
   const teamBNameEl = document.getElementById('teamBName');
@@ -756,12 +846,13 @@ function resetWordsearchLevel() {
   let roundLocked = false;
   let pubWs = null;
   let scoreRecorded = false;
-  let levelMode = 'puzzle'; // 'puzzle' | 'memory' | 'word' | 'pipe' | 'wordsearch'
+  let levelMode = 'puzzle'; // 'puzzle' | 'memory' | 'word' | 'pipe' | 'wordsearch' | 'connect'
     // Level 5 (Word Search) logic
 
   let memoryState = null;
   let wordState = null;
   let pipeState = null;
+  let connectState = null;
   let promoVideoUrl = null;
   let promoImageUrl = null;
   let wsRecoveryScheduled = false;
@@ -903,6 +994,11 @@ function resetWordsearchLevel() {
         setWordLetterVisible(true);
         countdownMaskedLetter = null;
       }
+    }
+
+    if(levelMode === 'connect'){
+      if(isMasked) disableConnectInputs();
+      else if(!isSpectator && !finished) enableConnectInputs();
     }
   }
 
@@ -1310,6 +1406,7 @@ function evaluatePlayerInputs(playerInputs) {
   let pendingMemorySnapshot = null;
   let pendingWordSnapshot = null;
   let pendingPipeSnapshot = null;
+  let pendingConnectSnapshot = null;
   let wordStateBroadcastTimer = null;
 
   function formatTime(sec){
@@ -1355,6 +1452,10 @@ function evaluatePlayerInputs(playerInputs) {
         pipeTimerEl.textContent = text;
         applyTimerTone(pipeTimerEl, tone);
       }
+      if(connectTimerEl){
+        connectTimerEl.textContent = text;
+        applyTimerTone(connectTimerEl, tone);
+      }
       try{
         const g = document.getElementById('globalTimer');
         if(g){
@@ -1364,12 +1465,12 @@ function evaluatePlayerInputs(playerInputs) {
       }catch(e){}
 
       // --- Winner trigger logic for admin.html ---
-      // Only declare winner if both teams have completed all 5 levels
+      // Only declare winner if both teams have completed all 6 levels
       try {
         if(document.body && document.body.classList.contains('admin-page')) {
-          if(completedLevels['A'] && completedLevels['B'] && completedLevels['A'].size === 5 && completedLevels['B'].size === 5) {
-            const totalA = [1,2,3,4,5].reduce((sum, lvl) => sum + (Number(levelScores['A'][lvl]) || 0), 0);
-            const totalB = [1,2,3,4,5].reduce((sum, lvl) => sum + (Number(levelScores['B'][lvl]) || 0), 0);
+          if(completedLevels['A'] && completedLevels['B'] && completedLevels['A'].size === 6 && completedLevels['B'].size === 6) {
+            const totalA = [1,2,3,4,5,6].reduce((sum, lvl) => sum + (Number(levelScores['A'][lvl]) || 0), 0);
+            const totalB = [1,2,3,4,5,6].reduce((sum, lvl) => sum + (Number(levelScores['B'][lvl]) || 0), 0);
             const nameA = typeof getTeamDisplayName === 'function' ? getTeamDisplayName('A') : 'A';
             const nameB = typeof getTeamDisplayName === 'function' ? getTeamDisplayName('B') : 'B';
             let winnerText = '';
@@ -1574,6 +1675,15 @@ function evaluatePlayerInputs(playerInputs) {
     try{ saveGameSession(); }catch(e){}
   }
 
+  function playMemoryRevealFlip(card){
+    if(!card) return;
+    try{
+      card.classList.remove('memory-reveal');
+      void card.offsetWidth;
+      card.classList.add('memory-reveal');
+    }catch(e){}
+  }
+
   function collectWordInputs(){
     const inputs = wordSection ? Array.from(wordSection.querySelectorAll('input.word-input')) : [];
     return inputs.map((input)=>({
@@ -1713,7 +1823,7 @@ function evaluatePlayerInputs(playerInputs) {
 
   function computeAndSetTotals(){
     try{
-      const levels = [1,2,3,4,5];
+      const levels = [1,2,3,4,5,6];
       let aSum = 0, bSum = 0;
       levels.forEach(i=>{
         const aEl = document.getElementById('scoreA'+i);
@@ -1746,7 +1856,7 @@ function evaluatePlayerInputs(playerInputs) {
       try{
         const correct = checkCompletionForContainer(board);
         const points = correct * 10;
-        const inferredLevel = Number(currentLevel) || (levelMode === 'memory' ? 2 : (levelMode === 'word' ? 3 : (levelMode === 'pipe' ? 4 : 1)));
+        const inferredLevel = Number(currentLevel) || (levelMode === 'memory' ? 2 : (levelMode === 'word' ? 3 : (levelMode === 'pipe' ? 4 : (levelMode === 'wordsearch' ? 5 : (levelMode === 'connect' ? 6 : 1)))));
         const entry = { team: cfg.team || 'unknown', level: inferredLevel, matched: correct, pairs: TOTAL, score: points, bonus: 0, remaining: Math.max(0, Math.floor(Number(remaining) || 0)), reason: 'complete', timestamp: Date.now() };
         if(pubWs && pubWs.readyState === WebSocket.OPEN) pubWs.send(JSON.stringify({ type: 'roundComplete', payload: entry }));
       }catch(e){console.error('send immediate roundComplete failed', e)}
@@ -1755,6 +1865,7 @@ function evaluatePlayerInputs(playerInputs) {
   }
 
   function disableMoves(){
+    if(levelMode === 'connect') disableConnectInputs();
     if(!board) return;
     clearTapSelection();
     const pieces = board.querySelectorAll('.piece');
@@ -1764,6 +1875,7 @@ function evaluatePlayerInputs(playerInputs) {
   }
 
   function enableMoves(){
+    if(levelMode === 'connect') enableConnectInputs();
     if(!board) return;
     if(isSpectator){ disableMoves(); return; }
     clearTapSelection();
@@ -1831,6 +1943,13 @@ function evaluatePlayerInputs(playerInputs) {
           }
         } catch(e) { console.error('[WordSearch][FORCE] Failed to send roundComplete for Team B', e); }
       }
+    } else if(levelMode === 'connect' && connectState){
+      matched = Number(connectState.matched) || 0;
+      pairs = Number(connectState.totalPairs) || 4;
+      score = matched * 20;
+      if(matched === pairs && finished && Number(remaining) >= Math.ceil(effectiveTimeLimit/2)) {
+        bonus = Math.max(0, Math.floor(Number(remaining)));
+      }
     } else {
       matched = checkCompletionForContainer(board);
       pairs = TOTAL;
@@ -1839,7 +1958,7 @@ function evaluatePlayerInputs(playerInputs) {
         bonus = Math.max(0, Math.floor(Number(remaining)));
       }
     }
-    const inferredLevel = Number(currentLevel) || (levelMode === 'memory' ? 2 : (levelMode === 'word' ? 3 : (levelMode === 'pipe' ? 4 : 1)));
+    const inferredLevel = Number(currentLevel) || (levelMode === 'memory' ? 2 : (levelMode === 'word' ? 3 : (levelMode === 'pipe' ? 4 : (levelMode === 'wordsearch' ? 5 : (levelMode === 'connect' ? 6 : 1)))));
     const entry = { team: cfg.team || 'unknown', level: inferredLevel, matched, pairs, score, bonus, remaining: Math.max(0, Math.floor(Number(remaining) || 0)), reason, timestamp: Date.now() };
     try{
       const existing = JSON.parse(localStorage.getItem('puzzle_scores')||'[]');
@@ -1861,9 +1980,9 @@ function evaluatePlayerInputs(playerInputs) {
     // Update local scoreboard display for level 5 immediately when recording
     try{
       const inferredLevelNum = Number(entry.level) || inferredLevel;
-      if(inferredLevelNum === 5){
-        const aEl = document.getElementById('scoreA5');
-        const bEl = document.getElementById('scoreB5');
+      if(inferredLevelNum >= 1 && inferredLevelNum <= 6){
+        const aEl = document.getElementById('scoreA' + inferredLevelNum);
+        const bEl = document.getElementById('scoreB' + inferredLevelNum);
         if(entry.team === 'A'){
           if(aEl) aEl.textContent = String(entry.score + (entry.bonus || 0));
         } else if(entry.team === 'B'){
@@ -1873,10 +1992,10 @@ function evaluatePlayerInputs(playerInputs) {
       }
     }catch(e){}
 
-    // Winner logic: Only after all 5 levels completed for both teams
-    if(completedLevels['A'].size === 5 && completedLevels['B'].size === 5){
-      const totalA = [1,2,3,4,5].reduce((sum, lvl) => sum + (Number(levelScores['A'][lvl]) || 0), 0);
-      const totalB = [1,2,3,4,5].reduce((sum, lvl) => sum + (Number(levelScores['B'][lvl]) || 0), 0);
+    // Winner logic: Only after all 6 levels completed for both teams
+    if(completedLevels['A'].size === 6 && completedLevels['B'].size === 6){
+      const totalA = [1,2,3,4,5,6].reduce((sum, lvl) => sum + (Number(levelScores['A'][lvl]) || 0), 0);
+      const totalB = [1,2,3,4,5,6].reduce((sum, lvl) => sum + (Number(levelScores['B'][lvl]) || 0), 0);
       const nameA = getTeamDisplayName('A');
       const nameB = getTeamDisplayName('B');
       let winnerText = '';
@@ -1925,6 +2044,8 @@ function evaluatePlayerInputs(playerInputs) {
         // disable further wordsearch interactions
         try{ wordSearchEnabled = false; }catch(e){}
         try{ if(typeof renderWordSearchPuzzle === 'function' && wordSearchState) renderWordSearchPuzzle(wordSearchState); }catch(e){}
+      } else if(levelMode === 'connect'){
+        disableConnectInputs();
       }
       disableMoves();
       recordScoreAndAdvance('timeout');
@@ -1942,9 +2063,11 @@ function evaluatePlayerInputs(playerInputs) {
       levelMode === 'word' ? 'word'
       : (levelMode === 'memory' ? 'memory'
       : (levelMode === 'pipe' ? 'pipe'
-      : (levelMode === 'wordsearch' ? 'wordsearch' : 'puzzle')))
+      : (levelMode === 'wordsearch' ? 'wordsearch'
+      : (levelMode === 'connect' ? 'connect' : 'puzzle'))))
     );
     if(levelMode === 'wordsearch') wordSearchEnabled = true;
+    if(levelMode === 'connect') enableConnectInputs();
     if(statusEl) statusEl.textContent = 'Game started';
     updateTimerDisplays(remaining, timeLimit);
     try{ saveGameSession(); }catch(e){}
@@ -1956,6 +2079,12 @@ function evaluatePlayerInputs(playerInputs) {
       if(isSpectator) disableMoves();
       else runMemoryInitialPreview();
       disableWordInputs();
+      return;
+    }
+
+    if(levelMode === 'connect'){
+      if(isSpectator) disableConnectInputs();
+      else enableConnectInputs();
       return;
     }
 
@@ -1985,9 +2114,12 @@ function evaluatePlayerInputs(playerInputs) {
     }
     memoryState = null;
     wordState = null;
+    connectState = null;
     pendingMemorySnapshot = null;
     pendingWordSnapshot = null;
+    pendingConnectSnapshot = null;
     resetWordUI();
+    resetConnectUI();
     if(statusEl) statusEl.textContent = 'Waiting to start';
     updateTimerDisplays(remaining, timeLimit);
     if(board){
@@ -2080,7 +2212,7 @@ function evaluatePlayerInputs(playerInputs) {
 
   function updateWinnerFromTotals(){
     if(!winnerFromServer){
-      setWinner('Pending (complete all 5 levels)');
+      setWinner('Pending (complete all 6 levels)');
     }
   }
    // manula winer test
@@ -2141,7 +2273,7 @@ function evaluatePlayerInputs(playerInputs) {
     const aLevels = byTeam.A || {};
     const bLevels = byTeam.B || {};
 
-    const allLevels = [1,2,3,4,5];
+    const allLevels = [1,2,3,4,5,6];
     const completedA = allLevels.filter(l => Number(aLevels[l]) > 0);
     const completedB = allLevels.filter(l => Number(bLevels[l]) > 0);
     const missingA = allLevels.filter(l => !completedA.includes(l));
@@ -2152,20 +2284,24 @@ function evaluatePlayerInputs(playerInputs) {
     const a3 = Number(aLevels[3]) || 0;
     const a4 = Number(aLevels[4]) || 0;
     const a5 = Number(aLevels[5]) || 0;
+    const a6 = Number(aLevels[6]) || 0;
     const b1 = Number(bLevels[1]) || 0;
     const b2 = Number(bLevels[2]) || 0;
     const b3 = Number(bLevels[3]) || 0;
     const b4 = Number(bLevels[4]) || 0;
     const b5 = Number(bLevels[5]) || 0;
+    const b6 = Number(bLevels[6]) || 0;
 
     const scoreA1El = document.getElementById('scoreA1');
     const scoreA2El = document.getElementById('scoreA2');
     const scoreA3El = document.getElementById('scoreA3');
     const scoreA4El = document.getElementById('scoreA4');
+    const scoreA6El = document.getElementById('scoreA6');
     const scoreB1El = document.getElementById('scoreB1');
     const scoreB2El = document.getElementById('scoreB2');
     const scoreB3El = document.getElementById('scoreB3');
     const scoreB4El = document.getElementById('scoreB4');
+    const scoreB6El = document.getElementById('scoreB6');
 
     if(scoreA1El) scoreA1El.textContent = String(a1);
     if(scoreA2El) scoreA2El.textContent = String(a2);
@@ -2174,11 +2310,13 @@ function evaluatePlayerInputs(playerInputs) {
     const scoreA5El = document.getElementById('scoreA5');
     const scoreB5El = document.getElementById('scoreB5');
     if(scoreA5El) scoreA5El.textContent = String(a5);
+    if(scoreA6El) scoreA6El.textContent = String(a6);
     if(scoreB1El) scoreB1El.textContent = String(b1);
     if(scoreB2El) scoreB2El.textContent = String(b2);
     if(scoreB3El) scoreB3El.textContent = String(b3);
     if(scoreB4El) scoreB4El.textContent = String(b4);
     if(scoreB5El) scoreB5El.textContent = String(b5);
+    if(scoreB6El) scoreB6El.textContent = String(b6);
 
     // Show missing levels for each team
     const missingAEl = document.getElementById('missingLevelsA');
@@ -2193,7 +2331,9 @@ function evaluatePlayerInputs(playerInputs) {
     const l2 = Number(byTeam[2]) || 0;
     const l3 = Number(byTeam[3]) || 0;
     const l4 = Number(byTeam[4]) || 0;
-    return `${l1}/${l2}/${l3}/${l4}`;
+    const l5 = Number(byTeam[5]) || 0;
+    const l6 = Number(byTeam[6]) || 0;
+    return `${l1}/${l2}/${l3}/${l4}/${l5}/${l6}`;
   }
 
   function renderGameHistory(history){
@@ -2312,6 +2452,9 @@ function evaluatePlayerInputs(playerInputs) {
           enableMoves();
           enableWordInputs();
         }
+        if(levelMode === 'word' && !finished){
+          enableWordInputs();
+        }
         if(statusEl) statusEl.textContent = 'Game started';
         const ls = document.getElementById('levelStatus'); if(ls) ls.textContent = 'Running';
       } else if(Number.isFinite(remaining) && remaining <= 0){
@@ -2341,6 +2484,8 @@ function evaluatePlayerInputs(playerInputs) {
           if(cfgLevel.mode === 'memory') setupMemoryLevel(cfgLevel);
           else if(cfgLevel.mode === 'word') setupWordLevel(cfgLevel);
           else if(cfgLevel.mode === 'wordsearch') setupWordSearchLevel(cfgLevel);
+          else if(cfgLevel.mode === 'pipe') setupPipeLevel(cfgLevel);
+          else if(cfgLevel.mode === 'connect') setupConnectLevel(cfgLevel);
           else if(cfgLevel.mode === 'puzzle'){
             levelMode = 'puzzle';
             resetLocal();
@@ -2389,6 +2534,7 @@ function evaluatePlayerInputs(playerInputs) {
             try{
               if(levelMode === 'memory') sendMemoryState('sync', true);
               else if(levelMode === 'word') sendWordState('sync', true);
+              else if(levelMode === 'connect') sendConnectState('sync', true);
               else sendPuzzleState('sync', true);
             }catch(e){}
           }, 120);
@@ -2418,10 +2564,6 @@ function evaluatePlayerInputs(playerInputs) {
           } else if(msg.type === 'image'){
             if(msg.url){
               applyImage(msg.url);
-              if(levelMode !== 'puzzle'){
-                levelMode = 'puzzle';
-                resetLocal();
-              }
             }
           } else if(msg.type === 'promoVideo'){
             applyPromoVideo(msg.url || '');
@@ -2451,6 +2593,9 @@ function evaluatePlayerInputs(playerInputs) {
                     enableMoves();
                     enableWordInputs();
                   }
+                  if(levelMode === 'word' && !finished){
+                    enableWordInputs();
+                  }
                 }
                 updateTimerDisplays(remaining, timeLimit);
               }
@@ -2475,11 +2620,14 @@ function evaluatePlayerInputs(playerInputs) {
               const p = msg.payload || {};
               let team = p.team || '';
               const matched = p.matched || 0; const pairs = p.pairs || 0;
+              const levelNum = Number(p.level) || 0;
               const pct = pairs>0 ? Math.round((matched/pairs)*100) : 0;
               const teamKey = normalizeTeamKey(team);
               if(teamKey === 'A' || teamKey === 'B') adminState.progress[teamKey] = { matched, pairs };
               const el = (teamKey ? document.getElementById('team' + teamKey + 'Panel') : null) || document.getElementById('team' + team + 'Panel') || document.getElementById('team' + team + 'Panel');
               let scoreDisplay = matched * 10;
+              if(levelNum === 5) scoreDisplay = matched * 30;
+              if(levelNum === 6) scoreDisplay = matched * 20;
               if(el){
                 const matchedEl = el.querySelector('.matched');
                 const pctEl = el.querySelector('.completion');
@@ -2510,10 +2658,14 @@ function evaluatePlayerInputs(playerInputs) {
             }catch(e){ console.error('apply puzzleState failed', e); }
           } else if(msg.type === 'memoryState'){
             try{
-              if(!isSpectator) return;
               const payload = msg.payload || {};
               const teamKey = normalizeTeamKey(payload.team || payload.teamDisplay);
               if(cfg.team && teamKey && cfg.team !== teamKey) return;
+              // For active player boards, ignore live echo snapshots during play;
+              // they can reset local opened-card tracking and break touch matching.
+              if(!isSpectator && cfg.team && teamKey === cfg.team && levelMode === 'memory' && board && board.querySelector('.card')){
+                return;
+              }
               if(levelMode !== 'memory' || !board || !board.querySelector('.card')){
                 pendingMemorySnapshot = payload;
                 return;
@@ -2522,10 +2674,13 @@ function evaluatePlayerInputs(playerInputs) {
             }catch(e){ console.error('apply memoryState failed', e); }
           } else if(msg.type === 'wordState'){
             try{
-              if(!isSpectator) return;
               const payload = msg.payload || {};
               const teamKey = normalizeTeamKey(payload.team || payload.teamDisplay);
               if(cfg.team && teamKey && cfg.team !== teamKey) return;
+              // Ignore live echo snapshots on active player board to avoid input flicker/caret jumps.
+              if(!isSpectator && cfg.team && teamKey === cfg.team && levelMode === 'word' && wordSection){
+                return;
+              }
               pendingWordSnapshot = payload;
               if(levelMode === 'word' && wordSection){
                 applyWordSnapshot(payload);
@@ -2534,7 +2689,6 @@ function evaluatePlayerInputs(playerInputs) {
             }catch(e){ console.error('apply wordState failed', e); }
           } else if(msg.type === 'pipeState'){
             try{
-              if(!isSpectator) return;
               const payload = msg.payload || {};
               const teamKey = normalizeTeamKey(payload.team || payload.teamDisplay);
               if(cfg.team && teamKey && cfg.team !== teamKey) return;
@@ -2544,6 +2698,17 @@ function evaluatePlayerInputs(playerInputs) {
                 pendingPipeSnapshot = null;
               }
             }catch(e){ console.error('apply pipeState failed', e); }
+          } else if(msg.type === 'connectState'){
+            try{
+              const payload = msg.payload || {};
+              const teamKey = normalizeTeamKey(payload.team || payload.teamDisplay);
+              if(cfg.team && teamKey && cfg.team !== teamKey) return;
+              pendingConnectSnapshot = payload;
+              if(levelMode === 'connect' && typeof applyConnectSnapshot === 'function'){
+                applyConnectSnapshot(payload);
+                pendingConnectSnapshot = null;
+              }
+            }catch(e){ console.error('apply connectState failed', e); }
           } else if(msg.type === 'scoreUpdate'){
             try{
               const totals = msg.totals || {};
@@ -2624,6 +2789,10 @@ function evaluatePlayerInputs(playerInputs) {
                 setCurrentMode('pipe');
                 resetPipeLocal();
                 setupPipeLevel(cfgLevel);
+              } else if(cfgLevel.mode === 'connect'){
+                setCurrentLevel(Number(cfgLevel.level) || 6);
+                setCurrentMode('connect');
+                setupConnectLevel(cfgLevel);
               } else if(cfgLevel.mode === 'puzzle'){
                 setCurrentLevel(Number(cfgLevel.level) || 1);
                 setCurrentMode('puzzle');
@@ -2631,7 +2800,7 @@ function evaluatePlayerInputs(playerInputs) {
                 levelMode = 'puzzle';
                 resetLocal();
               }
-              try{ const cl = document.getElementById('currentLevel'); if(cl) cl.textContent = cfgLevel.level || (cfgLevel.mode === 'wordsearch' ? 5 : cfgLevel.mode) || '—'; const ls = document.getElementById('levelStatus'); if(ls) ls.textContent = 'Ready'; }catch(e){}
+              try{ const cl = document.getElementById('currentLevel'); if(cl) cl.textContent = cfgLevel.level || (cfgLevel.mode === 'wordsearch' ? 5 : (cfgLevel.mode === 'connect' ? 6 : cfgLevel.mode)) || '—'; const ls = document.getElementById('levelStatus'); if(ls) ls.textContent = 'Ready'; }catch(e){}
             }catch(e){ console.error('apply level failed', e); }
             // Reset all local state for pipe level
             function resetPipeLocal(){
@@ -3140,7 +3309,7 @@ function evaluatePlayerInputs(playerInputs) {
       }
       table.appendChild(tr);
     }
-    // Build a two-column layout: left grid, right sidebar with word list + status
+    // Build word-search layout
     const wrapper = document.createElement('div');
     wrapper.className = 'wordsearch-wrapper';
 
@@ -3174,12 +3343,9 @@ function evaluatePlayerInputs(playerInputs) {
     status.textContent = `Words-found: ${found.size} / ${state.words.length}`;
 
     // Controls: Undo last selection, Reset selections
-    // Only show controls if not in spectator/dashboard mode
-    let showControls = true;
-    try {
-      // If the container is inside an iframe with ?view=1, treat as dashboard/spectator
-      if (window.location.search.includes('view=1') || window.self !== window.top) showControls = false;
-    } catch(e) {}
+    // Only show controls if not in spectator/dashboard mode.
+    const isAudienceView = Boolean(isSpectator) || String(window.location.search || '').includes('view=1') || window.self !== window.top;
+    let showControls = !isAudienceView;
     let controls = null;
     if (showControls) {
       controls = document.createElement('div');
@@ -3197,12 +3363,19 @@ function evaluatePlayerInputs(playerInputs) {
       //controls.appendChild(clearBtn);
     }
 
-    rightCol.appendChild(wordList);
-    rightCol.appendChild(status);
-    if (controls) rightCol.appendChild(controls);
-
-    wrapper.appendChild(leftCol);
-    wrapper.appendChild(rightCol);
+    if(isAudienceView){
+      // In dashboard/audience view, place words below the grid so they are always visible.
+      leftCol.classList.add('wordsearch-underboard');
+      leftCol.appendChild(wordList);
+      leftCol.appendChild(status);
+      wrapper.appendChild(leftCol);
+    }else{
+      rightCol.appendChild(wordList);
+      rightCol.appendChild(status);
+      if (controls) rightCol.appendChild(controls);
+      wrapper.appendChild(leftCol);
+      wrapper.appendChild(rightCol);
+    }
     container.appendChild(wrapper);
     try{ saveGameSession(); }catch(e){}
   }
@@ -3382,6 +3555,7 @@ function evaluatePlayerInputs(playerInputs) {
     if (puzzleSection) puzzleSection.classList.add('hidden');
     if (wordLevelSection) wordLevelSection.classList.add('hidden');
     if (pipeLevelSection) pipeLevelSection.classList.add('hidden');
+    if (connectLevelSection) connectLevelSection.classList.add('hidden');
     if (wordSearchSection) wordSearchSection.classList.remove('hidden');
     setCurrentMode('wordsearch');
     const size = Math.max(6, Math.min(18, Number(cfgLevel.size) || WORDSEARCH_DEFAULT_SIZE));
@@ -3433,14 +3607,16 @@ function evaluatePlayerInputs(playerInputs) {
     const showWord = mode === 'word';
     const showPipe = mode === 'pipe';
     const showWordSearch = mode === 'wordsearch';
+    const showConnect = mode === 'connect';
 
     if(puzzleSection) puzzleSection.classList.toggle('hidden', !showPuzzle);
     if(wordLevelSection) wordLevelSection.classList.toggle('hidden', !showWord);
     if(pipeLevelSection) pipeLevelSection.classList.toggle('hidden', !showPipe);
     if(wordSearchSection) wordSearchSection.classList.toggle('hidden', !showWordSearch);
+    if(connectLevelSection) connectLevelSection.classList.toggle('hidden', !showConnect);
 
     // manage holdShowBtn visibility
-    if(holdShowBtn) holdShowBtn.classList.toggle('hidden', showWord || showPipe || mode === 'memory');
+    if(holdShowBtn) holdShowBtn.classList.toggle('hidden', showWord || showPipe || showConnect || mode === 'memory');
 
     if(mode !== 'puzzle'){
       solvedPreviewActive = false;
@@ -3449,7 +3625,7 @@ function evaluatePlayerInputs(playerInputs) {
 
     // manage main board visibility
     if(board){
-      const hideBoard = showWord || showPipe || showWordSearch;
+      const hideBoard = showWord || showPipe || showWordSearch || showConnect;
       board.classList.toggle('hidden', hideBoard);
       board.classList.toggle('word-hidden', hideBoard);
       if(hideBoard){
@@ -3472,6 +3648,7 @@ function evaluatePlayerInputs(playerInputs) {
 
     // trigger render for wordsearch if showing
     if(showWordSearch && typeof renderWordSearchPuzzle === 'function' && wordSearchState) renderWordSearchPuzzle(wordSearchState);
+    if(showConnect && typeof renderConnectBoard === 'function') renderConnectBoard();
   }
 
   function resetWordUI(){
@@ -3531,6 +3708,28 @@ function evaluatePlayerInputs(playerInputs) {
     tiles.forEach(btn=>{ btn.disabled = true; });
   }
 
+  function resetConnectUI(){
+    if(connectSection){
+      showLevelMode('puzzle');
+    }
+    if(connectStatusEl) connectStatusEl.textContent = '';
+    if(connectScoreEl) connectScoreEl.textContent = 'Score: 0';
+    if(connectCompletionEl) connectCompletionEl.textContent = 'Completion: 0%';
+  }
+
+  function enableConnectInputs(){
+    if(levelMode !== 'connect') return;
+    if(!connectState) return;
+    connectState.enabled = true;
+  }
+
+  function disableConnectInputs(){
+    if(!connectState) return;
+    connectState.enabled = false;
+    connectState.activePath = null;
+    if(typeof renderConnectBoard === 'function') renderConnectBoard();
+  }
+
   function randomLetter(){
     const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     return letters[Math.floor(Math.random() * letters.length)];
@@ -3563,16 +3762,17 @@ function evaluatePlayerInputs(playerInputs) {
         input.addEventListener('input', ()=>{
           input.classList.remove('invalid');
           input.classList.remove('skipped');
+          input.classList.remove('valid');
           scheduleWordStateBroadcast('typing');
-          // Real-time scoring: validate submission on input
-          validateWordSubmission();
+          validateWordSubmission({ strict: true });
         });
+        input.addEventListener('blur', ()=> validateWordSubmission({ strict: true }));
         row.appendChild(label);
         row.appendChild(input);
         wordCategoriesEl.appendChild(row);
       });
     }
-    if(wordStatusEl) wordStatusEl.textContent = 'Enter words that start with the letter. Leave blank to skip.';
+    if(wordStatusEl) wordStatusEl.textContent = 'Enter words that start with the letter.';
     if(wordScoreEl) wordScoreEl.textContent = 'Score: 0';
     if(wordCompletionEl) wordCompletionEl.textContent = 'Completion: 0%';
     showLevelMode('word');
@@ -3693,9 +3893,10 @@ function evaluatePlayerInputs(playerInputs) {
  
 
 
- function validateWordSubmission(){
+ function validateWordSubmission(options = {}){
     if(isSpectator) return;
     if(levelMode !== 'word' || finished || !wordState) return;
+    const strict = options && options.strict === true;
     const letter = wordState.letter.toUpperCase();
     const inputs = wordSection ? Array.from(wordSection.querySelectorAll('input.word-input')) : [];
     const seen = new Set();
@@ -3707,8 +3908,10 @@ function evaluatePlayerInputs(playerInputs) {
       const categoryLabel = input.dataset.category || input.id || '';
       input.classList.remove('invalid');
       input.classList.remove('skipped');
+      input.classList.remove('valid');
       if(!raw){
-        input.classList.add('skipped');
+        input.classList.add('invalid');
+        invalidCount += 1;
         return;
       }
       const normalized = raw.toUpperCase();
@@ -3724,6 +3927,7 @@ function evaluatePlayerInputs(playerInputs) {
       }
       seen.add(normalized);
       answers[categoryLabel] = raw;
+      input.classList.add('valid');
       correct += 1;
     });
 
@@ -3732,7 +3936,7 @@ function evaluatePlayerInputs(playerInputs) {
     updateWordProgress();
     
     if(invalidCount > 0){
-      if(wordStatusEl) wordStatusEl.textContent = `Saved ${correct} correct ${correct === 1 ? 'answer' : 'answers'}. Fix ${invalidCount} invalid or repeated ${invalidCount === 1 ? 'answer' : 'answers'} to improve your score.`;
+      if(wordStatusEl) wordStatusEl.textContent = `Saved ${correct} correct ${correct === 1 ? 'answer' : 'answers'}. Fix ${invalidCount} invalid ${invalidCount === 1 ? 'answer' : 'answers'}.`;
     } else {
       if(wordStatusEl) wordStatusEl.textContent = correct === wordState.total ? 'All categories completed correctly!' : 'Answers submitted. You can improve before time runs out.';
     }
@@ -3966,16 +4170,8 @@ function evaluatePlayerInputs(playerInputs) {
       if(tile.isStart) btn.classList.add('start');
       if(tile.isEnd) btn.classList.add('end');
       const edgesNow = rotatePipeEdges(tile.base, tile.rot);
-      // Show glyph for all tiles, but no S/E letters
+      // Show glyph for all tiles; start/end are styled via CSS markers (no S/E letters).
       btn.textContent = pipeGlyph(edgesNow);
-      // Add S/E badge overlays
-      if(tile.isStart || tile.isEnd){
-        const badge = document.createElement('span');
-        badge.className = 'pipe-badge';
-        badge.textContent = tile.isStart ? 'S' : 'E';
-        badge.style.pointerEvents = 'none'; // ensure badge never blocks clicks
-        btn.appendChild(badge);
-      }
       // Allow S and E tiles to rotate, but keep them visually distinct and not scorable
       if(tile.isStart || tile.isEnd || tile.playable){
         btn.disabled = false;
@@ -4067,6 +4263,498 @@ function evaluatePlayerInputs(playerInputs) {
     }
   }
 
+  function normalizeConnectPairCount(value){
+    const n = Number(value);
+    if(!Number.isFinite(n)) return 4;
+    return Math.max(2, Math.min(8, Math.floor(n)));
+  }
+
+  function randomConnectNodes(pairCount = 4){
+    const paletteAll = [
+      { key: 'blue', color: '#3f51b5' },
+      { key: 'red', color: '#ff1b1b' },
+      { key: 'green', color: '#146b1f' },
+      { key: 'orange', color: '#f97316' },
+      { key: 'purple', color: '#7c3aed' },
+      { key: 'teal', color: '#0f766e' },
+      { key: 'pink', color: '#db2777' },
+      { key: 'amber', color: '#d97706' },
+    ];
+    const safePairCount = normalizeConnectPairCount(pairCount);
+    const palette = paletteAll.slice(0, safePairCount);
+    const nodes = [];
+    const minDist = 0.20;
+    const minPairDist = 0.42;
+    const minEdge = 0.12;
+    const maxAttempts = 500;
+    let attempts = 0;
+
+    function farEnough(x, y){
+      return nodes.every((n)=> Math.hypot(n.x - x, n.y - y) >= minDist);
+    }
+
+    palette.forEach((entry)=>{
+      for(let i=0;i<2;i++){
+        let placed = false;
+        while(!placed && attempts < maxAttempts){
+          attempts += 1;
+          const x = minEdge + Math.random() * (1 - minEdge * 2);
+          const y = minEdge + Math.random() * (1 - minEdge * 2);
+          if(!farEnough(x, y)) continue;
+          if(i === 1){
+            const mate = nodes.find((n)=> n.id === `${entry.key}1`);
+            if(mate && Math.hypot(mate.x - x, mate.y - y) < minPairDist) continue;
+          }
+          nodes.push({
+            id: `${entry.key}${i + 1}`,
+            color: entry.color,
+            x,
+            y,
+          });
+          placed = true;
+        }
+        if(!placed){
+          // deterministic fallback if random packing fails
+          const totalDots = Math.max(2, safePairCount * 2);
+          const idx = nodes.length;
+          const angle = ((idx / totalDots) * Math.PI * 2) - (Math.PI / 2);
+          const ring = 0.34 + ((idx % 2) ? 0.12 : 0);
+          const fallback = {
+            x: Math.max(0.10, Math.min(0.90, 0.5 + Math.cos(angle) * ring)),
+            y: Math.max(0.10, Math.min(0.90, 0.5 + Math.sin(angle) * ring)),
+          };
+          nodes.push({
+            id: `${entry.key}${i + 1}`,
+            color: entry.color,
+            x: fallback.x,
+            y: fallback.y,
+          });
+        }
+      }
+    });
+
+    return nodes;
+  }
+
+  function defaultConnectLevelPayload(){
+    return defaultConnectLevelPayloadWithPairs(4);
+  }
+
+  function defaultConnectLevelPayloadWithPairs(pairCount){
+    const safePairCount = normalizeConnectPairCount(pairCount);
+    return {
+      type: 'level',
+      mode: 'connect',
+      level: 6,
+      timeLimit: 75,
+      pairCount: safePairCount,
+      nodes: randomConnectNodes(safePairCount),
+      canvasSize: 520,
+    };
+  }
+
+  function connectNodeRadiusPx(){
+    const canvas = connectCanvasEl;
+    if(!canvas) return 24;
+    return Math.max(18, Math.round(Math.min(canvas.width, canvas.height) * 0.06));
+  }
+
+  function connectPointDist(a, b){
+    const dx = Number(a.x) - Number(b.x);
+    const dy = Number(a.y) - Number(b.y);
+    return Math.hypot(dx, dy);
+  }
+
+  function connectNodeToPx(node){
+    const canvas = connectCanvasEl;
+    if(!canvas || !node) return { x: 0, y: 0 };
+    return {
+      x: Number(node.x) * canvas.width,
+      y: Number(node.y) * canvas.height,
+    };
+  }
+
+  function canvasPointFromEvent(evt){
+    if(!connectCanvasEl) return null;
+    const rect = connectCanvasEl.getBoundingClientRect();
+    if(!rect || !Number.isFinite(rect.width) || !Number.isFinite(rect.height) || rect.width <= 0 || rect.height <= 0) return null;
+    const sx = connectCanvasEl.width / rect.width;
+    const sy = connectCanvasEl.height / rect.height;
+    return {
+      x: (evt.clientX - rect.left) * sx,
+      y: (evt.clientY - rect.top) * sy,
+    };
+  }
+
+  function getConnectNodeById(nodeId){
+    if(!connectState || !Array.isArray(connectState.nodes)) return null;
+    return connectState.nodes.find(n=> n.id === nodeId) || null;
+  }
+
+  function findConnectNodeAt(point, color){
+    if(!connectState || !Array.isArray(connectState.nodes) || !point) return null;
+    const radius = connectNodeRadiusPx();
+    for(const node of connectState.nodes){
+      if(color && node.color !== color) continue;
+      const nodePx = connectNodeToPx(node);
+      if(connectPointDist(point, nodePx) <= radius + 4) return node;
+    }
+    return null;
+  }
+
+  function connectPathToSegments(points){
+    const segs = [];
+    for(let i=0; i<points.length - 1; i++){
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      if(!p1 || !p2) continue;
+      if(connectPointDist(p1, p2) < 0.8) continue;
+      segs.push([p1, p2]);
+    }
+    return segs;
+  }
+
+  function orientation(a, b, c){
+    const v = (b.y - a.y) * (c.x - b.x) - (b.x - a.x) * (c.y - b.y);
+    if(Math.abs(v) < 1e-6) return 0;
+    return v > 0 ? 1 : 2;
+  }
+
+  function onSegment(a, b, c){
+    return b.x <= Math.max(a.x, c.x) + 1e-6 &&
+      b.x + 1e-6 >= Math.min(a.x, c.x) &&
+      b.y <= Math.max(a.y, c.y) + 1e-6 &&
+      b.y + 1e-6 >= Math.min(a.y, c.y);
+  }
+
+  function segmentsIntersect(a1, a2, b1, b2){
+    const o1 = orientation(a1, a2, b1);
+    const o2 = orientation(a1, a2, b2);
+    const o3 = orientation(b1, b2, a1);
+    const o4 = orientation(b1, b2, a2);
+
+    if(o1 !== o2 && o3 !== o4) return true;
+    if(o1 === 0 && onSegment(a1, b1, a2)) return true;
+    if(o2 === 0 && onSegment(a1, b2, a2)) return true;
+    if(o3 === 0 && onSegment(b1, a1, b2)) return true;
+    if(o4 === 0 && onSegment(b1, a2, b2)) return true;
+    return false;
+  }
+
+  function distPointToSegment(p, a, b){
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    if(Math.abs(dx) < 1e-6 && Math.abs(dy) < 1e-6) return connectPointDist(p, a);
+    const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy)));
+    const proj = { x: a.x + t * dx, y: a.y + t * dy };
+    return connectPointDist(p, proj);
+  }
+
+  function pathIntersectsOtherLines(points, ownColor){
+    if(!connectState || !connectState.lines) return false;
+    const ownSegs = connectPathToSegments(points);
+    if(!ownSegs.length) return false;
+    const colorKeys = Object.keys(connectState.lines);
+    for(const color of colorKeys){
+      if(color === ownColor) continue;
+      const other = connectState.lines[color];
+      if(!Array.isArray(other) || other.length < 2) continue;
+      const otherSegs = connectPathToSegments(other);
+      for(const [a1, a2] of ownSegs){
+        for(const [b1, b2] of otherSegs){
+          if(segmentsIntersect(a1, a2, b1, b2)) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  function pathTouchesForeignNode(points, ownColor, startId, endId){
+    if(!connectState || !Array.isArray(connectState.nodes) || !Array.isArray(points) || points.length < 2) return false;
+    const radius = connectNodeRadiusPx();
+    const segs = connectPathToSegments(points);
+    for(const node of connectState.nodes){
+      if(node.id === startId || node.id === endId) continue;
+      if(node.color === ownColor) continue;
+      const center = connectNodeToPx(node);
+      for(const [a, b] of segs){
+        if(distPointToSegment(center, a, b) <= radius + 2) return true;
+      }
+    }
+    return false;
+  }
+
+  function isColorLineComplete(color){
+    if(!connectState || !connectState.lines || !Array.isArray(connectState.nodes)) return false;
+    const line = connectState.lines[color];
+    if(!Array.isArray(line) || line.length < 2) return false;
+    const nodes = connectState.nodes.filter(n=> n.color === color);
+    if(nodes.length < 2) return false;
+    const pStart = line[0];
+    const pEnd = line[line.length - 1];
+    const n1 = connectNodeToPx(nodes[0]);
+    const n2 = connectNodeToPx(nodes[1]);
+    const near = connectNodeRadiusPx() + 6;
+    const direct = connectPointDist(pStart, n1) <= near && connectPointDist(pEnd, n2) <= near;
+    const reverse = connectPointDist(pStart, n2) <= near && connectPointDist(pEnd, n1) <= near;
+    return direct || reverse;
+  }
+
+  function connectScoreForMatched(matched){
+    return Math.max(0, Number(matched) || 0) * 20;
+  }
+
+  function updateConnectProgress(shouldBroadcast = true){
+    if(levelMode !== 'connect' || !connectState) return;
+    const matched = connectState.colors.filter(c=> isColorLineComplete(c)).length;
+    connectState.matched = matched;
+    const total = Math.max(1, Number(connectState.totalPairs) || 4);
+    const pct = Math.round((matched / total) * 100);
+    const score = connectScoreForMatched(matched);
+    if(connectScoreEl) connectScoreEl.textContent = `Score: ${score}`;
+    if(connectCompletionEl) connectCompletionEl.textContent = `Completion: ${pct}%`;
+    if(puzzleScoreEl) puzzleScoreEl.textContent = `Score: ${score}`;
+    if(puzzleCompletionEl) puzzleCompletionEl.textContent = `Completion: ${pct}%`;
+
+    if(!isSpectator){
+      try{
+        const aEl = document.getElementById('scoreA6');
+        const bEl = document.getElementById('scoreB6');
+        if(cfg.team === 'A'){ if(aEl) aEl.textContent = String(score); }
+        if(cfg.team === 'B'){ if(bEl) bEl.textContent = String(score); }
+        computeAndSetTotals();
+      }catch(e){}
+    }
+
+    if(shouldBroadcast && !isSpectator){
+      try{
+        if(pubWs && pubWs.readyState === WebSocket.OPEN){
+          pubWs.send(JSON.stringify({ type: 'progress', payload: { team: cfg.team || 'unknown', matched, pairs: total, remaining, level: 6 } }));
+        }
+      }catch(e){ console.error('connect progress send failed', e); }
+      sendConnectState('progress');
+    }
+
+    if(matched === total && !finished && !isSpectator){
+      finished = true;
+      disableConnectInputs();
+      if(connectStatusEl) connectStatusEl.textContent = 'All colors connected!';
+      sendConnectState('complete', true);
+      recordScoreAndAdvance('complete');
+    }
+  }
+
+  function renderConnectBoard(){
+    if(!connectCanvasEl || !connectState) return;
+    const size = Math.max(320, Math.min(900, Number(connectState.canvasSize) || 520));
+    connectCanvasEl.width = size;
+    connectCanvasEl.height = size;
+
+    const ctx = connectCanvasEl.getContext('2d');
+    if(!ctx) return;
+    ctx.clearRect(0, 0, size, size);
+    ctx.fillStyle = '#a8e6ef';
+    ctx.fillRect(0, 0, size, size);
+
+    const lineWidth = Math.max(8, Math.round(size * 0.03));
+    const nodeRadius = connectNodeRadiusPx();
+
+    const drawPath = (path, color)=>{
+      if(!Array.isArray(path) || path.length < 2) return;
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+      ctx.beginPath();
+      ctx.moveTo(path[0].x, path[0].y);
+      for(let i=1;i<path.length;i++){
+        ctx.lineTo(path[i].x, path[i].y);
+      }
+      ctx.stroke();
+      ctx.restore();
+    };
+
+    connectState.colors.forEach(color=>{
+      drawPath(connectState.lines[color], color);
+    });
+    if(connectState.activePath && Array.isArray(connectState.activePath.points)){
+      drawPath(connectState.activePath.points, connectState.activePath.color);
+    }
+
+    for(const node of connectState.nodes){
+      const p = connectNodeToPx(node);
+      ctx.beginPath();
+      ctx.fillStyle = node.color;
+      ctx.arc(p.x, p.y, nodeRadius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function sendConnectState(reason = 'update', force = false){
+    if(levelMode !== 'connect' || isSpectator || !connectState) return;
+    try{
+      const linesPayload = {};
+      connectState.colors.forEach(color=>{
+        const line = connectState.lines[color];
+        linesPayload[color] = Array.isArray(line) ? line.map(p=> ({ x: Number(p.x), y: Number(p.y) })) : [];
+      });
+      const payload = {
+        team: cfg.team || 'unknown',
+        nodes: connectState.nodes.map(n=> ({ ...n })),
+        colors: connectState.colors.slice(),
+        totalPairs: connectState.totalPairs,
+        matched: connectState.matched,
+        finished: Boolean(finished),
+        reason,
+        lines: linesPayload,
+      };
+      const sig = JSON.stringify(payload);
+      if(!force && sig === connectState.lastSig) return;
+      connectState.lastSig = sig;
+      if(pubWs && pubWs.readyState === WebSocket.OPEN){
+        pubWs.send(JSON.stringify({ type: 'connectState', payload }));
+      }
+    }catch(e){ console.error('connectState send failed', e); }
+  }
+
+  function applyConnectSnapshot(snapshot){
+    if(!snapshot || !connectState) return;
+    const lines = snapshot.lines && typeof snapshot.lines === 'object' ? snapshot.lines : {};
+    const nextLines = {};
+    connectState.colors.forEach(color=>{
+      const src = Array.isArray(lines[color]) ? lines[color] : [];
+      nextLines[color] = src.map(p=> ({ x: Number(p.x) || 0, y: Number(p.y) || 0 }));
+    });
+    connectState.lines = nextLines;
+    connectState.matched = Math.max(0, Number(snapshot.matched) || 0);
+    if(snapshot.finished){
+      finished = true;
+      disableConnectInputs();
+    }
+    renderConnectBoard();
+    updateConnectProgress(false);
+  }
+
+  function bindConnectCanvasEvents(){
+    if(!connectCanvasEl || connectCanvasEl.dataset.bound === '1') return;
+    connectCanvasEl.dataset.bound = '1';
+
+    connectCanvasEl.addEventListener('pointerdown', (evt)=>{
+      if(levelMode !== 'connect' || isSpectator || !connectState || !connectState.enabled || finished) return;
+      const p = canvasPointFromEvent(evt);
+      if(!p) return;
+      const node = findConnectNodeAt(p);
+      if(!node) return;
+      connectState.activePath = {
+        color: node.color,
+        startId: node.id,
+        points: [connectNodeToPx(node), p],
+      };
+      try{ connectCanvasEl.setPointerCapture(evt.pointerId); }catch(e){}
+      renderConnectBoard();
+    });
+
+    connectCanvasEl.addEventListener('pointermove', (evt)=>{
+      if(levelMode !== 'connect' || !connectState || !connectState.activePath) return;
+      const p = canvasPointFromEvent(evt);
+      if(!p) return;
+      const points = connectState.activePath.points;
+      const last = points[points.length - 1];
+      if(!last || connectPointDist(last, p) < 6) return;
+      points.push(p);
+      renderConnectBoard();
+    });
+
+    connectCanvasEl.addEventListener('pointerup', (evt)=>{
+      if(levelMode !== 'connect' || !connectState || !connectState.activePath) return;
+      const active = connectState.activePath;
+      const p = canvasPointFromEvent(evt);
+      const points = active.points.slice();
+      if(p) points.push(p);
+
+      const targetNode = p ? findConnectNodeAt(p, active.color) : null;
+      const startNode = getConnectNodeById(active.startId);
+      let accepted = false;
+      if(startNode && targetNode && targetNode.id !== startNode.id){
+        const startPx = connectNodeToPx(startNode);
+        const targetPx = connectNodeToPx(targetNode);
+        if(points.length < 2) points.push(targetPx);
+        points[0] = startPx;
+        points[points.length - 1] = targetPx;
+        if(!pathIntersectsOtherLines(points, active.color) && !pathTouchesForeignNode(points, active.color, startNode.id, targetNode.id)){
+          connectState.lines[active.color] = points;
+          accepted = true;
+        }
+      }
+      connectState.activePath = null;
+      try{ connectCanvasEl.releasePointerCapture(evt.pointerId); }catch(e){}
+      renderConnectBoard();
+      if(accepted){
+        if(connectStatusEl) connectStatusEl.textContent = 'Good path. Connect remaining colors.';
+        updateConnectProgress(true);
+      } else if(connectStatusEl){
+        connectStatusEl.textContent = 'Invalid path. Paths cannot cross.';
+      }
+    });
+  }
+
+  function setupConnectLevel(cfgLevel){
+    cfgLevel = cfgLevel || {};
+    setCurrentMode('connect');
+    setCurrentLevel(Number(cfgLevel.level) || 6);
+    scoreRecorded = false;
+    finished = false;
+    started = false;
+
+    const fallbackPairCount = normalizeConnectPairCount(cfgLevel.pairCount || 4);
+    const rawNodes = Array.isArray(cfgLevel.nodes) && cfgLevel.nodes.length ? cfgLevel.nodes : randomConnectNodes(fallbackPairCount);
+    const nodes = rawNodes.map((n, idx)=> ({
+      id: String(n && n.id ? n.id : `n${idx}`),
+      color: String(n && n.color ? n.color : '#3f51b5'),
+      x: Math.max(0.05, Math.min(0.95, Number(n && n.x) || 0.5)),
+      y: Math.max(0.05, Math.min(0.95, Number(n && n.y) || 0.5)),
+    }));
+    const colors = Array.from(new Set(nodes.map(n=> n.color))).filter(Boolean);
+    const lines = {};
+    colors.forEach(c=>{ lines[c] = []; });
+
+    connectState = {
+      nodes,
+      colors,
+      lines,
+      totalPairs: colors.length,
+      matched: 0,
+      enabled: !isSpectator,
+      activePath: null,
+      canvasSize: Math.max(320, Math.min(900, Number(cfgLevel.canvasSize) || 520)),
+      lastSig: '',
+    };
+
+    try{
+      const tl = Number(cfgLevel.timeLimit) || Number(cfg.timeLimit) || Number(timeLimit) || 90;
+      timeLimit = Math.max(20, Math.floor(tl));
+      remaining = timeLimit;
+      updateTimerDisplays(remaining, timeLimit);
+      if(!started) setCountdownVisualMask(true);
+    }catch(e){}
+
+    showLevelMode('connect');
+    bindConnectCanvasEvents();
+    renderConnectBoard();
+    updateConnectProgress(false);
+    if(connectStatusEl) connectStatusEl.textContent = 'Draw paths between matching dots.';
+
+    if(isSpectator || !started) disableConnectInputs();
+    else enableConnectInputs();
+
+    if(!isSpectator) sendConnectState('setup', true);
+    if(pendingConnectSnapshot){
+      applyConnectSnapshot(pendingConnectSnapshot);
+      pendingConnectSnapshot = null;
+    }
+  }
+
   // If we are a team page, build board
   if(board){
     makeBoard(board);
@@ -4096,6 +4784,7 @@ function evaluatePlayerInputs(playerInputs) {
     allCards.forEach(c=>{
       c.textContent = c.dataset.val;
       c.disabled = true;
+      playMemoryRevealFlip(c);
     });
     sendMemoryState('initialReveal', true);
 
@@ -4208,6 +4897,7 @@ function evaluatePlayerInputs(playerInputs) {
     if(!memoryState.opened || memoryState.opened.length === 0){
       // reveal preview
       btn.textContent = btn.dataset.val;
+      playMemoryRevealFlip(btn);
       memoryState.opened = [btn];
       sendMemoryState('reveal');
       // auto-hide preview after 1s unless a second click occurs
@@ -4229,6 +4919,7 @@ function evaluatePlayerInputs(playerInputs) {
       if(memoryState.previewTimeout) { clearTimeout(memoryState.previewTimeout); memoryState.previewTimeout = null; }
       // reveal second card
       btn.textContent = btn.dataset.val;
+      playMemoryRevealFlip(btn);
       const a = first, b = btn;
       if(a.dataset.val === b.dataset.val){
         a.classList.add('matched'); b.classList.add('matched');
@@ -4420,6 +5111,10 @@ function evaluatePlayerInputs(playerInputs) {
     const level1Btn = document.getElementById('level1Btn');
     const level2Btn = document.getElementById('level2Btn');
     const level3Btn = document.getElementById('level3Btn');
+    const level6Btn = document.getElementById('level6Btn');
+    const connectPairCountInput = document.getElementById('connectPairCountInput');
+    const connectPairsDecreaseBtn = document.getElementById('connectPairsDecreaseBtn');
+    const connectPairsIncreaseBtn = document.getElementById('connectPairsIncreaseBtn');
     const letterInput = document.getElementById('letterInput');
     const memoryItemsInput = document.getElementById('memoryItemsInput');
     const levelNumber = document.getElementById('levelNumber');
@@ -4440,6 +5135,31 @@ function evaluatePlayerInputs(playerInputs) {
 
     function sendLevelPayload(payload){
       try{ sendAdmin(payload); }catch(e){ console.error('send level failed', e); }
+    }
+
+    function getConnectPairCountFromAdmin(){
+      const raw = connectPairCountInput ? connectPairCountInput.value : 4;
+      const safe = normalizeConnectPairCount(raw);
+      if(connectPairCountInput) connectPairCountInput.value = String(safe);
+      return safe;
+    }
+
+    if(connectPairsDecreaseBtn){
+      connectPairsDecreaseBtn.addEventListener('click', ()=>{
+        const next = normalizeConnectPairCount(getConnectPairCountFromAdmin() - 1);
+        if(connectPairCountInput) connectPairCountInput.value = String(next);
+      });
+    }
+    if(connectPairsIncreaseBtn){
+      connectPairsIncreaseBtn.addEventListener('click', ()=>{
+        const next = normalizeConnectPairCount(getConnectPairCountFromAdmin() + 1);
+        if(connectPairCountInput) connectPairCountInput.value = String(next);
+      });
+    }
+    if(connectPairCountInput){
+      connectPairCountInput.addEventListener('change', ()=>{
+        connectPairCountInput.value = String(getConnectPairCountFromAdmin());
+      });
     }
     if(level1Btn){
       level1Btn.addEventListener('click', ()=>{
@@ -4504,6 +5224,15 @@ function evaluatePlayerInputs(playerInputs) {
         if(adminLevelCounter) adminLevelCounter.textContent = '4';
       });
     }
+    if(level6Btn){
+      level6Btn.addEventListener('click', ()=>{
+        const payload = defaultConnectLevelPayloadWithPairs(getConnectPairCountFromAdmin());
+        sendLevelPayload(payload);
+        try{ setupConnectLevel(payload); }catch(e){}
+        const adminLevelCounter = document.getElementById('adminLevelCounter');
+        if(adminLevelCounter) adminLevelCounter.textContent = '6';
+      });
+    }
     if(startLevelBtn && levelNumber){
       startLevelBtn.addEventListener('click', ()=>{
         const n = parseInt(levelNumber.value,10) || 1;
@@ -4514,9 +5243,15 @@ function evaluatePlayerInputs(playerInputs) {
           const letter = (letterInput && letterInput.value && letterInput.value.trim()) ? letterInput.value.trim().charAt(0).toUpperCase() : randomLetter();
           const payload = { type: 'level', mode: 'word', level: 3, letter, categories: WORD_CATEGORIES.slice() };
           sendLevelPayload(payload);
+        }else if(n===4){
+          const payload = buildPipeLevelPayload();
+          sendLevelPayload(payload);
         }else if(n===5){
           // Level 5: Word Search
           const payload = { type: 'level', mode: 'wordsearch', level: 5 };
+          sendLevelPayload(payload);
+        }else if(n===6){
+          const payload = defaultConnectLevelPayloadWithPairs(getConnectPairCountFromAdmin());
           sendLevelPayload(payload);
         }else{
           const url = normalizeSharedImageUrl((imageInput && imageInput.value && imageInput.value.trim()) || imageUrl);

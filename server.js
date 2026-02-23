@@ -5,6 +5,7 @@ const http = require('http');
 const os = require('os');
 const path = require('path');
 const WebSocket = require('ws');
+const competition = require('./competition');
 
 const HOST = process.env.WS_HOST || '0.0.0.0';
 const PORT = Number(process.env.WS_PORT) || 8000;
@@ -492,13 +493,14 @@ const state = {
   roundScores: { A: 0, B: 0 },
   scoredTeamsThisRound: new Set(),
   levelScores: {
-    A: { 1: 0, 2: 0, 3: 0 },
-    B: { 1: 0, 2: 0, 3: 0 },
+    A: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
+    B: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
   },
   completedLevels: {
     A: new Set(),
     B: new Set(),
   },
+  gameState: competition.gameState,
   session: {
     image: null,
     level: null,
@@ -529,6 +531,14 @@ const state = {
     A: null,
     B: null,
   },
+  pipeStates: {
+    A: null,
+    B: null,
+  },
+  connectStates: {
+    A: null,
+    B: null,
+  },
   publicHost: null,
   gameHistory: loadGameHistoryFromDisk(),
   lastLoggedGameSignature: null,
@@ -552,13 +562,13 @@ function clearPendingStartCountdown(notify = false) {
 
 function computeTeamTotal(teamKey) {
   const byLevel = state.levelScores[teamKey] || {};
-  return [1, 2, 3].reduce((sum, level) => sum + (Number(byLevel[level]) || 0), 0);
+  return [1, 2, 3, 4, 5, 6].reduce((sum, level) => sum + (Number(byLevel[level]) || 0), 0);
 }
 
 function areAllLevelsCompleteForTeam(teamKey) {
   const done = state.completedLevels[teamKey];
   if (!done || typeof done.has !== 'function') return false;
-  return done.has(1) && done.has(2) && done.has(3);
+  return done.has(1) && done.has(2) && done.has(3) && done.has(4) && done.has(5) && done.has(6);
 }
 
 function canDeclareFinalWinner() {
@@ -569,7 +579,7 @@ function getWinnerSummary(totalA, totalB) {
   if (!canDeclareFinalWinner()) {
     return {
       winnerKey: '',
-      winnerName: 'Pending (complete all 3 levels)',
+      winnerName: 'Pending (complete all 6 levels)',
     };
   }
   if (totalA > totalB) {
@@ -591,8 +601,8 @@ function buildLevelScorePayload() {
 function isTimedRaceLevel(level, mode) {
   const l = Number(level);
   const m = String(mode || '').toLowerCase();
-  if (l === 1 || l === 2) return true;
-  return m === 'puzzle' || m === 'memory';
+  if (l === 1 || l === 2 || l === 4) return true;
+  return m === 'puzzle' || m === 'memory' || m === 'pipe';
 }
 
 function buildGameHistoryEntry() {
@@ -707,6 +717,8 @@ function resetLiveBoardStates() {
   resetPuzzleStates();
   state.memoryStates = { A: null, B: null };
   state.wordStates = { A: null, B: null };
+  state.pipeStates = { A: null, B: null };
+  state.connectStates = { A: null, B: null };
 }
 
 function resetAllScores() {
@@ -714,8 +726,8 @@ function resetAllScores() {
   state.roundScores = { A: 0, B: 0 };
   state.scoredTeamsThisRound.clear();
   state.levelScores = {
-    A: { 1: 0, 2: 0, 3: 0 },
-    B: { 1: 0, 2: 0, 3: 0 },
+    A: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
+    B: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
   };
   state.completedLevels = {
     A: new Set(),
@@ -723,7 +735,7 @@ function resetAllScores() {
   };
 }
 
-function emitScoreUpdate() {
+/*function emitScoreUpdate() {
   const a = Number(state.totals.A) || 0;
   const b = Number(state.totals.B) || 0;
   const winner = getWinnerSummary(Number(state.totals.A) || 0, Number(state.totals.B) || 0);
@@ -741,7 +753,43 @@ function emitScoreUpdate() {
     winnerKey: winner.winnerKey,
     winnerName: winner.winnerName,
   });
+}*/
+
+
+function emitScoreUpdate() {
+  // Debug: show completed levels for each team
+  const completedA = Array.from(state.completedLevels.A || []);
+  const completedB = Array.from(state.completedLevels.B || []);
+  console.log("Completed A:", completedA);
+  console.log("Completed B:", completedB);
+
+  // Debug: show missing levels for each team
+  const allLevels = [1, 2, 3, 4, 5, 6];
+  const missingA = allLevels.filter(l => !completedA.includes(l));
+  const missingB = allLevels.filter(l => !completedB.includes(l));
+  console.log("Missing levels A:", missingA);
+  console.log("Missing levels B:", missingB);
+
+  const a = Number(state.totals.A) || 0;
+  const b = Number(state.totals.B) || 0;
+  const winner = getWinnerSummary(a, b);
+
+  broadcast({
+    type: 'scoreUpdate',
+    totals: { A: a, B: b },
+    totalFinal: { A: a, B: b },
+    levelScores: buildLevelScorePayload(),
+    completedLevels: {
+      A: Array.from(state.completedLevels.A || []),
+      B: Array.from(state.completedLevels.B || []),
+    },
+    names: { ...state.teamNames },
+    winnerKey: winner.winnerKey,
+    winnerName: winner.winnerName,
+  });
 }
+
+
 
 function buildGameStatePayload() {
   const scoreA = Number(state.totals.A) || 0;
@@ -919,6 +967,18 @@ function replayStateToClient(ws) {
   if (state.wordStates && state.wordStates.B && state.wordStates.B.letter) {
     sendToClient(ws, { type: 'wordState', payload: { ...state.wordStates.B } });
   }
+  if (state.pipeStates && state.pipeStates.A && Array.isArray(state.pipeStates.A.rotations)) {
+    sendToClient(ws, { type: 'pipeState', payload: { ...state.pipeStates.A } });
+  }
+  if (state.pipeStates && state.pipeStates.B && Array.isArray(state.pipeStates.B.rotations)) {
+    sendToClient(ws, { type: 'pipeState', payload: { ...state.pipeStates.B } });
+  }
+  if (state.connectStates && state.connectStates.A && state.connectStates.A.lines) {
+    sendToClient(ws, { type: 'connectState', payload: { ...state.connectStates.A } });
+  }
+  if (state.connectStates && state.connectStates.B && state.connectStates.B.lines) {
+    sendToClient(ws, { type: 'connectState', payload: { ...state.connectStates.B } });
+  }
 }
 
 function broadcast(msgObj) {
@@ -984,7 +1044,17 @@ wss.on('connection', (ws, req) => {
         const matched = Number(payload.matched) || 0;
         // Ignore late progress after this team has already finalized the round.
         if (!state.scoredTeamsThisRound.has(teamKey)) {
-          state.roundScores[teamKey] = Math.max(0, matched * 10);
+          const pairs = Number(payload.pairs) || 0;
+          let perItem = 10;
+          // For wordsearch (level 5), use 30 points per word
+          if (pairs > 4 && data.payload && data.payload.level === 5) {
+            perItem = 30;
+          } else if (data.payload && Number(data.payload.level) === 6) {
+            perItem = 20;
+          }
+          // For pipe (level 4), always 10 points per correct tile
+          // For all other levels, 10 points per correct
+          state.roundScores[teamKey] = Math.max(0, matched * perItem);
         }
       }
       console.log('Broadcasting teamProgress message:', payload);
@@ -1066,6 +1136,60 @@ wss.on('connection', (ws, req) => {
       };
       state.wordStates[teamKey] = statePayload;
       broadcast({ type: 'wordState', payload: statePayload });
+      return;
+    }
+
+    if (data.type === 'pipeState') {
+      const payload = data.payload || {};
+      const teamKey = normalizeTeamKey(payload.team || data.team);
+      const rotations = Array.isArray(payload.rotations)
+        ? payload.rotations.map((v) => Math.max(0, Math.min(3, Number(v) || 0)))
+        : null;
+      if (!teamKey || !rotations || !rotations.length) return;
+      const statePayload = {
+        team: teamKey,
+        teamDisplay: state.teamNames[teamKey] || teamKey,
+        rows: Math.max(2, Number(payload.rows) || 5),
+        cols: Math.max(2, Number(payload.cols) || 5),
+        matched: Math.max(0, Number(payload.matched) || 0),
+        total: Math.max(0, Number(payload.total) || rotations.length),
+        finished: Boolean(payload.finished),
+        rotations,
+        timestamp: Date.now(),
+      };
+      state.pipeStates[teamKey] = statePayload;
+      broadcast({ type: 'pipeState', payload: statePayload });
+      return;
+    }
+
+    if (data.type === 'connectState') {
+      const payload = data.payload || {};
+      const teamKey = normalizeTeamKey(payload.team || data.team);
+      const lines = payload.lines && typeof payload.lines === 'object' ? payload.lines : null;
+      if (!teamKey || !lines) return;
+      const nodes = Array.isArray(payload.nodes) ? payload.nodes : [];
+      const colors = Array.isArray(payload.colors) ? payload.colors : [];
+      const normalizedLines = {};
+      Object.keys(lines).forEach((color) => {
+        const points = Array.isArray(lines[color]) ? lines[color] : [];
+        normalizedLines[color] = points.map((p) => ({
+          x: Number(p && p.x) || 0,
+          y: Number(p && p.y) || 0,
+        }));
+      });
+      const statePayload = {
+        team: teamKey,
+        teamDisplay: state.teamNames[teamKey] || teamKey,
+        nodes,
+        colors,
+        lines: normalizedLines,
+        totalPairs: Math.max(0, Number(payload.totalPairs) || colors.length || 0),
+        matched: Math.max(0, Number(payload.matched) || 0),
+        finished: Boolean(payload.finished),
+        timestamp: Date.now(),
+      };
+      state.connectStates[teamKey] = statePayload;
+      broadcast({ type: 'connectState', payload: statePayload });
       return;
     }
 
@@ -1240,63 +1364,87 @@ wss.on('connection', (ws, req) => {
       const payload = data.payload || {};
       const teamKey = normalizeTeamKey(payload.team || data.team);
       if (teamKey) {
-        // Make round completion idempotent for each team in the current round.
-        if (state.scoredTeamsThisRound.has(teamKey)) {
-          broadcast({ type: 'roundComplete', payload: { ...payload, team: teamKey, teamDisplay: state.teamNames[teamKey] || teamKey } });
-          emitGameState();
-          return;
-        }
-
-        payload.team = teamKey;
-        payload.teamDisplay = state.teamNames[teamKey] || teamKey;
+        // Reset scoredTeamsThisRound if this is a new level (not just a new round)
         const levelFromPayload = Number(payload.level);
         const activeLevel = Number(state.session.level && state.session.level.level);
-        const mode = String(payload.mode || (state.session.level && state.session.level.mode) || '').toLowerCase();
         let level = Number.isFinite(levelFromPayload) && levelFromPayload > 0
           ? levelFromPayload
           : (Number.isFinite(activeLevel) && activeLevel > 0 ? activeLevel : null);
-        if (!level) {
-          if (mode === 'memory') level = 2;
-          else if (mode === 'word') level = 3;
-          else level = 1;
+        if (!level) level = 1;
+        // If both teams have already completed this level, reset for next level
+        if (state.lastRoundCompleteLevel !== level) {
+          state.scoredTeamsThisRound = new Set();
+          state.lastRoundCompleteLevel = level;
         }
-
-        const isFirstFinisherThisRound = state.scoredTeamsThisRound.size === 0;
+        // Make round completion idempotent for each team in the current round.
+        if (state.scoredTeamsThisRound.has(teamKey)) {
+          console.log(`Ignoring duplicate roundComplete for team ${teamKey} (level ${level})`);
+          return;
+        }
+        payload.team = teamKey;
+        payload.teamDisplay = state.teamNames[teamKey] || teamKey;
+        const mode = String(payload.mode || (state.session.level && state.session.level.mode) || '').toLowerCase();
         let speedBonus = 0;
-        if (
-          isFirstFinisherThisRound &&
-          isTimedRaceLevel(level, mode) &&
-          String(payload.reason || '').toLowerCase() === 'complete'
-        ) {
+        const isFirstFinisherThisRound = state.scoredTeamsThisRound.size === 0;
+        if (isFirstFinisherThisRound && String(payload.reason || '').toLowerCase() === 'complete') {
           const clientRemaining = Number(payload.remaining);
           const serverRemaining = computeRemainingSeconds();
           const remaining = Number.isFinite(clientRemaining) ? clientRemaining : serverRemaining;
           const levelTimeLimit = Math.max(
-            1,
+            0,
             Number(payload.timeLimit)
             || Number(state.session.level && state.session.level.timeLimit)
             || Number(state.session.timeLimit)
-            || 120
+            || 0
           );
-          const halfTime = Math.ceil(levelTimeLimit / 2);
-          speedBonus = (Number.isFinite(remaining) && remaining >= halfTime)
-            ? Math.max(0, Math.floor(remaining))
-            : 0;
+          if (levelTimeLimit > 0) {
+            const halfTime = Math.ceil(levelTimeLimit / 2);
+            speedBonus = (Number.isFinite(remaining) && remaining >= halfTime)
+              ? Math.max(0, Math.floor(remaining))
+              : 0;
+          } else {
+            speedBonus = 0;
+          }
         }
-
         payload.level = level;
         payload.mode = mode || payload.mode;
         payload.bonus = speedBonus;
-
         // finalized score contributes to cumulative total by level (L1 + L2 + L3)
         const finalScore = Math.max(0, (Number(payload.score) || 0) + (Number(payload.bonus) || 0));
-        if (level && [1, 2, 3].includes(level)) {
-          if (!state.levelScores[teamKey]) state.levelScores[teamKey] = { 1: 0, 2: 0, 3: 0 };
+        if (level && [1, 2, 3, 4, 5, 6].includes(level)) {
+          if (!state.levelScores[teamKey]) state.levelScores[teamKey] = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
           state.levelScores[teamKey][level] = finalScore;
           if (!state.completedLevels[teamKey]) state.completedLevels[teamKey] = new Set();
           state.completedLevels[teamKey].add(level);
+          // Auto-complete for levels 1-4
+          if ([1,2,3,4].includes(level)) {
+            const otherTeamKey = teamKey === 'A' ? 'B' : 'A';
+            if (!state.completedLevels[otherTeamKey] || !state.completedLevels[otherTeamKey].has(level)) {
+              if (!state.completedLevels[otherTeamKey]) state.completedLevels[otherTeamKey] = new Set();
+              state.completedLevels[otherTeamKey].add(level);
+              if (!state.levelScores[otherTeamKey]) state.levelScores[otherTeamKey] = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+              if (typeof state.levelScores[otherTeamKey][level] === 'undefined') state.levelScores[otherTeamKey][level] = 0;
+              // Log completion to coordinator.log
+              try {
+                const logMsg = `[${new Date().toISOString()}] Both teams completed level ${level}. Scores: A=${state.levelScores.A[level]}, B=${state.levelScores.B[level]}
+`;
+                fs.appendFileSync(path.join(__dirname, 'coordinator.log'), logMsg);
+              } catch (err) {
+                console.error('Failed to log completion:', err);
+              }
+            }
+          }
+          // Log completion for level 5 is handled below
+          if (level === 5) {
+            const otherTeamKey = teamKey === 'A' ? 'B' : 'A';
+            if (!state.completedLevels[otherTeamKey] || !state.completedLevels[otherTeamKey].has(5)) {
+              if (!state.completedLevels[otherTeamKey]) state.completedLevels[otherTeamKey] = new Set();
+              state.completedLevels[otherTeamKey].add(5);
+              if (!state.levelScores[otherTeamKey]) state.levelScores[otherTeamKey] = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+              if (typeof state.levelScores[otherTeamKey][5] === 'undefined') state.levelScores[otherTeamKey][5] = 0;
+            }
+          }
         }
-
         // If one team completes level 1/2 first, end this level immediately for everyone.
         if (isFirstFinisherThisRound && isTimedRaceLevel(level, mode)) {
           stopTimerInterval();
@@ -1304,13 +1452,12 @@ wss.on('connection', (ws, req) => {
           state.session.endAt = null;
           state.session.paused = false;
           state.session.pausedRemaining = null;
-
           // Finalize opponent score immediately from latest progress snapshot,
           // so round totals are complete even before loser client submits.
           const otherTeamKey = teamKey === 'A' ? 'B' : 'A';
           if (!state.scoredTeamsThisRound.has(otherTeamKey)) {
             const opponentBaseScore = Math.max(0, Number(state.roundScores[otherTeamKey]) || 0);
-            if (!state.levelScores[otherTeamKey]) state.levelScores[otherTeamKey] = { 1: 0, 2: 0, 3: 0 };
+            if (!state.levelScores[otherTeamKey]) state.levelScores[otherTeamKey] = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
             state.levelScores[otherTeamKey][level] = opponentBaseScore;
             if (!state.completedLevels[otherTeamKey]) state.completedLevels[otherTeamKey] = new Set();
             state.completedLevels[otherTeamKey].add(level);
@@ -1318,7 +1465,6 @@ wss.on('connection', (ws, req) => {
             state.roundScores[otherTeamKey] = 0;
             state.totals[otherTeamKey] = computeTeamTotal(otherTeamKey);
           }
-
           broadcast({
             type: 'timerFinished',
             reason: 'opponentComplete',
@@ -1326,11 +1472,48 @@ wss.on('connection', (ws, req) => {
             level,
           });
         }
-
         state.scoredTeamsThisRound.add(teamKey);
         state.roundScores[teamKey] = 0;
         state.totals[teamKey] = computeTeamTotal(teamKey);
         maybeLogCompletedGame();
+
+        // Auto-complete level 5 for the other team if one team finishes
+        if (level === 5) {
+          const otherTeamKey = teamKey === 'A' ? 'B' : 'A';
+          if (!state.completedLevels[otherTeamKey] || !state.completedLevels[otherTeamKey].has(5)) {
+            // Auto-mark other team as completed for level 5
+            if (!state.completedLevels[otherTeamKey]) state.completedLevels[otherTeamKey] = new Set();
+            state.completedLevels[otherTeamKey].add(5);
+            // Optionally, set their score to 0 or last progress
+            if (!state.levelScores[otherTeamKey]) state.levelScores[otherTeamKey] = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+            if (typeof state.levelScores[otherTeamKey][5] === 'undefined') state.levelScores[otherTeamKey][5] = 0;
+          }
+        }
+
+
+
+        // Check if both teams have completed level 6
+        const hasA6 = state.completedLevels.A && state.completedLevels.A.has(6);
+        const hasB6 = state.completedLevels.B && state.completedLevels.B.has(6);
+        if (hasA6 && hasB6) {
+            competition.gameState.currentLevel = 7;
+            competition.gameState.scores.A = Number(state.totals.A) || 0;
+            competition.gameState.scores.B = Number(state.totals.B) || 0;
+            competition.checkGameCompletion();
+            competition.endGame();
+            // Log completion to coordinator.log
+            try {
+              const logMsg = `[${new Date().toISOString()}] Both teams completed level 6. Final scores: A=${competition.gameState.scores.A}, B=${competition.gameState.scores.B}, Winner: ${competition.gameState.status}\n`;
+              fs.appendFileSync(path.join(__dirname, 'coordinator.log'), logMsg);
+            } catch (err) {
+              console.error('Failed to log completion:', err);
+            }
+            broadcast({
+              type: 'gameEnded',
+              scores: { ...competition.gameState.scores },
+              status: competition.gameState.status
+            });
+        }
       }
       broadcast({ type: 'roundComplete', payload });
       emitScoreUpdate();
@@ -1339,10 +1522,39 @@ wss.on('connection', (ws, req) => {
     }
 
     // Forward all other control messages as-is (start/reset/level/image/pause/etc.).
-    console.log(`Broadcasting ${data.type} message`);
-    broadcast(data);
+    if (data.type === 'requestNextLevel') {
+      // Only broadcast requestNextLevel if BOTH teams have completed the current level
+      const teamKey = normalizeTeamKey(data.team);
+      if (teamKey) {
+        const allLevels = [1, 2, 3, 4, 5, 6];
+        const completedA = Array.from(state.completedLevels.A || []);
+        const completedB = Array.from(state.completedLevels.B || []);
+        // Find the highest level both teams have completed
+        const lastLevelA = Math.max(0, ...completedA);
+        const lastLevelB = Math.max(0, ...completedB);
+        const nextLevel = Math.max(lastLevelA, lastLevelB) + 1;
+        // Only broadcast if both teams have completed the previous level
+        if (lastLevelA === lastLevelB && lastLevelA > 0 && nextLevel <= 6) {
+          console.log(`Broadcasting requestNextLevel for level ${nextLevel} (both teams completed level ${lastLevelA})`);
+          broadcast({ ...data, level: nextLevel });
+        } else {
+          console.log(`Not broadcasting requestNextLevel: waiting for both teams to finish level ${Math.min(lastLevelA, lastLevelB) + 1}`);
+        }
+      } else {
+        broadcast(data);
+      }
+    } else {
+      console.log(`Broadcasting ${data.type} message`);
+      broadcast(data);
+    }
     if (['start', 'pause', 'image', 'promoVideo', 'promoImage', 'promoWidth', 'promoHeight', 'boardHeight', 'promoBoardMode', 'level', 'next', 'reset'].includes(data.type)) {
       emitGameState();
+    }
+
+    // Remove blocking logic for requestNextLevel after level 6
+    if (data.type === 'requestNextLevel' && state.completedLevels.A.has(6) && state.completedLevels.B.has(6)) {
+      // No next level after 6, do nothing
+      return;
     }
   });
 

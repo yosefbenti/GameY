@@ -1,0 +1,287 @@
+// Level 5 Word Search Game Core Structures
+// This file contains the core data structures and algorithm stubs for the word search game.
+
+// 1. Core Data Structures
+const rows = 12;
+const cols = 12;
+
+
+// 2D array for the grid
+function createEmptyGrid() {
+  const grid = Array.from({ length: rows }, () => Array(cols).fill(null));
+  console.debug('[WordSearch] Created empty grid', JSON.stringify(grid));
+  return grid;
+}
+
+// Example word list
+const wordList = ["OPAL", "SHOES", "PANAMA", "PYTHON", "LEVEL", "SEARCH", "PUZZLE", "GAME", "ALGORITHM", "GRID"];
+
+// Placed words metadata
+let placedWords = [];
+
+// Directions
+const DIRECTIONS = [
+  { name: "RIGHT", rowStep: 0, colStep: 1 },
+  { name: "DOWN", rowStep: 1, colStep: 0 },
+  { name: "DIAG", rowStep: 1, colStep: 1 },
+  // Add more for harder levels
+];
+
+
+// Helper: Check if a word can be placed at a given position and direction
+function canPlace(word, row, col, direction, grid) {
+  for (let i = 0; i < word.length; i++) {
+    const newRow = row + direction.rowStep * i;
+    const newCol = col + direction.colStep * i;
+    if (
+      newRow < 0 || newRow >= rows ||
+      newCol < 0 || newCol >= cols
+    ) {
+      console.debug(`[WordSearch] Cannot place '${word}' at (${row},${col}) dir=${direction.name}: out of bounds at (${newRow},${newCol})`);
+      return false;
+    }
+    const cell = grid[newRow][newCol];
+    if (cell !== null && cell !== word[i]) {
+      console.debug(`[WordSearch] Cannot place '${word}' at (${row},${col}) dir=${direction.name}: cell conflict at (${newRow},${newCol})`);
+      return false;
+    }
+  }
+  return true;
+}
+
+// Helper: Place a word in the grid
+function placeWord(word, row, col, direction, grid) {
+  for (let i = 0; i < word.length; i++) {
+    const newRow = row + direction.rowStep * i;
+    const newCol = col + direction.colStep * i;
+    grid[newRow][newCol] = word[i];
+  }
+  placedWords.push({ word, startRow: row, startCol: col, direction });
+  console.debug(`[WordSearch] Placed word '${word}' at (${row},${col}) dir=${direction.name}`);
+}
+
+// Main: Place all words in the grid
+function placeAllWords(grid, wordList, directions = DIRECTIONS, maxAttempts = 100) {
+  placedWords = [];
+  for (const word of wordList) {
+    let placed = false;
+    let attempt = 0;
+    while (!placed && attempt < maxAttempts) {
+      const direction = directions[Math.floor(Math.random() * directions.length)];
+      const startRow = Math.floor(Math.random() * rows);
+      const startCol = Math.floor(Math.random() * cols);
+      console.debug(`[WordSearch] Attempting to place '${word}' at (${startRow},${startCol}) dir=${direction.name} (attempt ${attempt + 1})`);
+      if (canPlace(word, startRow, startCol, direction, grid)) {
+        placeWord(word, startRow, startCol, direction, grid);
+        placed = true;
+      }
+      attempt++;
+    }
+    if (!placed) {
+      console.warn(`[WordSearch] Could not place word: ${word}`);
+    }
+  }
+  console.debug('[WordSearch] Final placedWords:', JSON.stringify(placedWords));
+}
+
+// Note: This file is included as a plain <script> in HTML.
+// Keep globals available for the inline script in level5.html — do not use ES module exports here.
+
+
+
+
+
+//////////////////////////////////////////////////////
+
+
+
+// Level 5 Word Search Game Core Structures
+// Fixed version with proper multi-team roundComplete handling
+
+// 1. Core Data Structures
+const rows = 12;
+const cols = 12;
+
+// 2D array for the grid
+function createEmptyGrid() {
+  const grid = Array.from({ length: rows }, () => Array(cols).fill(null));
+  console.debug('[WordSearch] Created empty grid', JSON.stringify(grid));
+  return grid;
+}
+
+// Example word list
+const wordList = ["OPAL", "SHOES", "PANAMA", "PYTHON", "LEVEL", "SEARCH", "PUZZLE", "GAME", "ALGORITHM", "GRID"];
+
+// Placed words metadata
+let placedWords = [];
+
+// Directions
+const DIRECTIONS = [
+  { name: "RIGHT", rowStep: 0, colStep: 1 },
+  { name: "DOWN", rowStep: 1, colStep: 0 },
+  { name: "DIAG", rowStep: 1, colStep: 1 },
+];
+
+// --- Multi-team state ---
+const level5State = {
+  A: { foundWords: new Set(), roundCompleteSent: false, timeoutId: null },
+  B: { foundWords: new Set(), roundCompleteSent: false, timeoutId: null },
+};
+
+// --- Helper: Check if a word can be placed at a given position and direction ---
+function canPlace(word, row, col, direction, grid) {
+  for (let i = 0; i < word.length; i++) {
+    const newRow = row + direction.rowStep * i;
+    const newCol = col + direction.colStep * i;
+    if (newRow < 0 || newRow >= rows || newCol < 0 || newCol >= cols) {
+      console.debug(`[WordSearch] Cannot place '${word}' at (${row},${col}) dir=${direction.name}: out of bounds at (${newRow},${newCol})`);
+      return false;
+    }
+    const cell = grid[newRow][newCol];
+    if (cell !== null && cell !== word[i]) {
+      console.debug(`[WordSearch] Cannot place '${word}' at (${row},${col}) dir=${direction.name}: cell conflict at (${newRow},${newCol})`);
+      return false;
+    }
+  }
+  return true;
+}
+
+// --- Helper: Place a word in the grid ---
+function placeWord(word, row, col, direction, grid) {
+  for (let i = 0; i < word.length; i++) {
+    const newRow = row + direction.rowStep * i;
+    const newCol = col + direction.colStep * i;
+    grid[newRow][newCol] = word[i];
+  }
+  placedWords.push({ word, startRow: row, startCol: col, direction });
+  console.debug(`[WordSearch] Placed word '${word}' at (${row},${col}) dir=${direction.name}`);
+}
+
+// --- Main: Place all words in the grid ---
+function placeAllWords(grid, wordList, directions = DIRECTIONS, maxAttempts = 100) {
+  placedWords = [];
+  for (const word of wordList) {
+    let placed = false;
+    let attempt = 0;
+    while (!placed && attempt < maxAttempts) {
+      const direction = directions[Math.floor(Math.random() * directions.length)];
+      const startRow = Math.floor(Math.random() * rows);
+      const startCol = Math.floor(Math.random() * cols);
+      console.debug(`[WordSearch] Attempting to place '${word}' at (${startRow},${startCol}) dir=${direction.name} (attempt ${attempt + 1})`);
+      if (canPlace(word, startRow, startCol, direction, grid)) {
+        placeWord(word, startRow, startCol, direction, grid);
+        placed = true;
+      }
+      attempt++;
+    }
+    if (!placed) {
+      console.warn(`[WordSearch] Could not place word: ${word}`);
+    }
+  }
+  console.debug('[WordSearch] Final placedWords:', JSON.stringify(placedWords));
+}
+
+// --- Handle found word ---
+function onWordFound(team, word) {
+  if (!level5State[team].foundWords.has(word)) {
+    level5State[team].foundWords.add(word);
+    console.debug(`[WordSearch] Team ${team} found word: ${word}`);
+    sendRoundProgress(team);
+    checkAllWordsFound(team);
+  }
+}
+
+// --- Send progress ---
+function sendRoundProgress(team) {
+  const matched = level5State[team].foundWords.size;
+  const totalPairs = wordList.length;
+  const remaining = totalPairs - matched;
+
+  const message = {
+    type: 'progress',
+    payload: { team, matched, pairs: totalPairs, remaining, teamDisplay: team },
+  };
+  broadcast(message);
+}
+
+// --- Check if all words found ---
+function checkAllWordsFound(team) {
+  if (level5State[team].foundWords.size === wordList.length) {
+    sendRoundComplete(team, 'allComplete');
+  }
+}
+
+// --- Send roundComplete for a team ---
+function sendRoundComplete(team, reason) {
+  if (level5State[team].roundCompleteSent) {
+    console.debug(`[WordSearch] roundComplete already sent for team ${team}, skipping.`);
+    return;
+  }
+  level5State[team].roundCompleteSent = true;
+
+  const matched = level5State[team].foundWords.size;
+  const totalPairs = wordList.length;
+  const score = matched * 10;
+
+  const message = {
+    type: 'roundComplete',
+    payload: {
+      team,
+      level: 5,
+      matched,
+      pairs: totalPairs,
+      score,
+      bonus: 0,
+      remaining: totalPairs - matched,
+      reason,
+      timestamp: Date.now(),
+    },
+  };
+
+  console.debug(`[WordSearch] Sending roundComplete for team ${team} (reason: ${reason})`, message);
+  broadcast(message);
+
+  // --- NEW FIX: check if other team finished ---
+  const otherTeam = team === 'A' ? 'B' : 'A';
+  if (level5State[otherTeam].roundCompleteSent) {
+    broadcast({ type: 'requestNextLevel', team: 'all' });
+    console.debug(`[WordSearch] Both teams finished Level 5, advancing to next level`);
+  }
+}
+
+// --- Timeout handling ---
+function startLevel5Timer(team, timeLimitSeconds) {
+  clearTimeout(level5State[team].timeoutId);
+  level5State[team].timeoutId = setTimeout(() => {
+    console.debug(`[WordSearch] Timeout reached for team ${team}, triggering roundComplete.`);
+    sendRoundComplete(team, 'timeout');
+  }, timeLimitSeconds * 1000);
+}
+
+// --- Utility: reset level state ---
+function resetLevel5() {
+  level5State.A.foundWords.clear();
+  level5State.B.foundWords.clear();
+  level5State.A.roundCompleteSent = false;
+  level5State.B.roundCompleteSent = false;
+  clearTimeout(level5State.A.timeoutId);
+  clearTimeout(level5State.B.timeoutId);
+  placedWords = [];
+  console.debug('[WordSearch] Level 5 state reset');
+}
+
+// --- Example broadcast stub ---
+function broadcast(msg) {
+  // Replace this with your server/client messaging code
+  console.debug('[WordSearch] Broadcast message:', msg);
+}
+
+// --- Exported for HTML script ---
+window.level5 = {
+  createEmptyGrid,
+  placeAllWords,
+  onWordFound,
+  sendRoundComplete,
+  startLevel5Timer,
+  resetLevel5,
+};

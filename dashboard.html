@@ -3,14 +3,20 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Live Dashboard — Team A vs Team B</title>
+  <title>Live Dashboard — <span id="dashboardTeamAName">Team A</span> vs <span id="dashboardTeamBName">Team B</span></title>
   <style>
     :root{
-      --bg:#0f172a;
-      --card:#111827;
-      --card-border:#1f2937;
-      --text:#e5e7eb;
-      --muted:#94a3b8;
+      --bg:#edf4ff;
+      --bg-grad-1:#dbeafe;
+      --bg-grad-2:#c7d2fe;
+      --card:rgba(255,255,255,0.88);
+      --card-soft:rgba(255,255,255,0.74);
+      --card-border:rgba(14,116,144,0.22);
+      --text:#0f172a;
+      --text-strong:#0f172a;
+      --muted:#64748b;
+      --accent:#38bdf8;
+      --accent-2:#22d3ee;
       --board-panel-min-height:620px;
       --promo-col-width:380px;
       --promo-area-min-height:430px;
@@ -20,7 +26,10 @@
       margin:0;
       min-height:100vh;
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-      background:#000;
+      background:
+        radial-gradient(1200px 700px at 0% -10%, rgba(56,189,248,0.22) 0%, rgba(56,189,248,0) 58%),
+        radial-gradient(1000px 700px at 100% 0%, rgba(20,184,166,0.18) 0%, rgba(20,184,166,0) 52%),
+        linear-gradient(180deg,#e0f2fe 0%, #ecf7ff 100%);
       color:var(--text);
       padding:clamp(10px,1.2vw,18px);
     }
@@ -61,11 +70,13 @@
       align-items:stretch;
     }
     .pill{
-      background:rgba(255,255,255,0.04);
+      background:var(--card-soft);
       border:1px solid var(--card-border);
-      border-radius:12px;
+      border-radius:14px;
       padding:10px 12px;
       min-height:62px;
+      box-shadow:0 12px 30px rgba(15,23,42,0.10), inset 0 1px 0 rgba(255,255,255,0.75);
+      backdrop-filter:blur(8px);
     }
     .pill.dual{
       display:flex;
@@ -85,10 +96,11 @@
     .status-title-pill .title{
       margin:0;
       font-size:clamp(1.2rem,2.2vw,1.8rem);
-      font-weight:800;
-      color:#f8fafc;
+      font-weight:900;
+      color:var(--text-strong);
       letter-spacing:.01em;
       line-height:1.2;
+      text-shadow:0 2px 10px rgba(14,165,233,0.2);
     }
     .pill .k{
       color:var(--muted);
@@ -99,7 +111,7 @@
     }
     .pill .v{
       font-weight:700;
-      color:#f8fafc;
+      color:var(--text-strong);
       font-size:1rem;
     }
     .pill .v.ok{color:#22c55e}
@@ -120,7 +132,7 @@
       gap:10px;
       border:1px solid rgba(148,163,184,0.35);
       border-radius:14px;
-      background:rgba(2,6,23,0.65);
+      background:rgba(255,255,255,0.82);
       padding:12px;
       min-height:var(--board-panel-min-height);
     }
@@ -130,7 +142,7 @@
       aspect-ratio:16/9;
       border:1px solid rgba(148,163,184,.45);
       border-radius:12px;
-      background:#020617;
+      background:#eaf3ff;
       object-fit:cover;
     }
     .promo-board-stage-note{
@@ -145,10 +157,11 @@
       display:flex;
       align-items:center;
       gap:8px;
-      background:rgba(255,255,255,0.04);
+      background:var(--card-soft);
       border:1px solid var(--card-border);
       border-radius:12px;
       padding:6px 8px;
+      box-shadow:0 8px 18px rgba(15,23,42,0.08);
     }
     .board-size-controls .label{
       color:var(--muted);
@@ -161,12 +174,18 @@
       min-width:34px;
       min-height:32px;
       border-radius:8px;
-      border:1px solid rgba(148,163,184,.35);
-      background:#0b1220;
-      color:#f8fafc;
+      border:1px solid rgba(56,189,248,.45);
+      background:linear-gradient(180deg,#f0f9ff,#dbeafe);
+      color:#0c4a6e;
       font-size:1rem;
       font-weight:900;
       cursor:pointer;
+      transition:transform .14s ease, border-color .14s ease, filter .14s ease;
+    }
+    .board-size-controls button:hover:not(:disabled){
+      border-color:rgba(34,211,238,.75);
+      transform:translateY(-1px);
+      filter:saturate(1.08);
     }
     .board-size-controls button:disabled{
       opacity:.45;
@@ -176,27 +195,30 @@
       min-width:62px;
       text-align:center;
       font-weight:800;
-      color:#f8fafc;
+      color:#0f172a;
       font-size:.9rem;
     }
     .panel{
       background:var(--card);
       border:1px solid var(--card-border);
-      border-radius:14px;
+      border-radius:16px;
       overflow:hidden;
       display:flex;
       flex-direction:column;
       height:var(--board-panel-min-height);
       min-height:var(--board-panel-min-height);
+      box-shadow:0 18px 44px rgba(15,23,42,0.10), inset 0 1px 0 rgba(255,255,255,0.75);
+      backdrop-filter:blur(10px);
     }
     .panel h2{
       margin:0;
-      padding:10px 14px;
+      padding:12px 16px;
       border-bottom:1px solid var(--card-border);
-      font-size:1rem;
-      font-weight:700;
-      color:#f8fafc;
-      background:rgba(255,255,255,0.02);
+      font-size:1.02rem;
+      font-weight:800;
+      color:var(--text-strong);
+      background:linear-gradient(180deg, rgba(56,189,248,.16), rgba(56,189,248,.06));
+      letter-spacing:.01em;
     }
     .panel-body{
       flex:1;
@@ -204,20 +226,21 @@
       display:flex;
       align-items:stretch;
       justify-content:stretch;
-      padding:20px;
+      padding:16px;
       overflow:hidden;
-      border-top:1px solid rgba(255,255,255,0.04);
+      border-top:1px solid rgba(148,163,184,0.18);
     }
     .board-frame{
       width:100%;
       height:100%;
       aspect-ratio:auto;
       transform:none;
-      border:1px solid rgba(148,163,184,0.35);
-      border-radius:10px;
+      border:1px solid rgba(148,163,184,0.42);
+      border-radius:12px;
       flex:1;
       pointer-events:none;
-      background:#0b1220;
+      background:#f8fbff;
+      box-shadow:0 10px 24px rgba(15,23,42,0.08);
     }
     .note{font-size:0.85rem;color:var(--muted)}
 
@@ -236,53 +259,60 @@
     .promo-area{
       background:var(--card);
       border:1px solid var(--card-border);
-      border-radius:14px;
+      border-radius:16px;
       padding:14px;
       display:flex;
       flex-direction:column;
       gap:10px;
       min-height:var(--promo-area-min-height);
+      box-shadow:0 18px 44px rgba(15,23,42,0.10), inset 0 1px 0 rgba(255,255,255,0.75);
+      backdrop-filter:blur(10px);
     }
 
     .promo-area h3{
       margin:0;
       font-size:1rem;
       font-weight:800;
-      color:#f8fafc;
+      color:#0f172a;
     }
 
     .promo-score-card{
-      border:1px solid rgba(148,163,184,.35);
-      border-radius:10px;
-      background:rgba(15,23,42,.55);
-      padding:6px;
+      border:1px solid rgba(56,189,248,.35);
+      border-radius:12px;
+      background:linear-gradient(180deg,#ffffff,#f0f9ff);
+      padding:8px;
     }
 
     .promo-score-card h4{
-      margin:0 0 4px;
-      font-size:.8rem;
-      color:#f8fafc;
+      margin:0 0 6px;
+      font-size:.82rem;
+      color:var(--text-strong);
       font-weight:800;
-      letter-spacing:.01em;
+      letter-spacing:.03em;
+      text-transform:uppercase;
     }
 
 
     .promo-score-table{
       width:100%;
-      border-collapse:collapse;
-      font-size:.72rem;
-      background:#fff;
-      color:#000;
+      border-collapse:separate;
+      border-spacing:0;
+      font-size:.74rem;
+      background:rgba(248,250,252,0.96);
+      color:#0f172a;
+      border:1px solid rgba(148,163,184,.38);
+      border-radius:10px;
+      overflow:hidden;
     }
 
     .promo-score-table th,
     .promo-score-table td{
-      border:1px solid rgba(148,163,184,.3);
-      padding:3px 5px;
+      border-bottom:1px solid rgba(148,163,184,.32);
+      padding:4px 6px;
       text-align:center;
-      color:#000;
-      background:#fff;
-      font-weight:400;
+      color:#0f172a;
+      background:transparent;
+      font-weight:500;
     }
 
     .promo-score-table th:first-child,
@@ -291,15 +321,17 @@
     }
 
     .promo-score-table thead th{
-      background:#fff;
-      color:#000;
-      font-weight:400;
+      background:linear-gradient(180deg,#e0f2fe,#bae6fd);
+      color:#0f172a;
+      font-weight:800;
+      border-bottom:1px solid rgba(56,189,248,.55);
     }
 
     .promo-score-table .total-row td{
-      font-weight:400;
-      background:#fff;
-      color:#000;
+      font-weight:800;
+      background:linear-gradient(180deg,#dcfce7,#bbf7d0);
+      color:#14532d;
+      border-bottom:none;
     }
 
     .promo-area p{
@@ -310,16 +342,16 @@
     }
 
     .promo-slot{
-      border:1px dashed rgba(148,163,184,.45);
-      border-radius:10px;
-      background:rgba(255,255,255,.02);
+      border:1px dashed rgba(56,189,248,.45);
+      border-radius:12px;
+      background:rgba(255,255,255,.72);
       min-height:120px;
       display:flex;
       align-items:center;
       justify-content:center;
       text-align:center;
       padding:10px;
-      color:#cbd5e1;
+      color:#334155;
       font-size:.88rem;
       font-weight:700;
     }
@@ -345,14 +377,14 @@
       min-height:64px;
       border:1px solid rgba(148,163,184,.45);
       border-radius:10px;
-      background:rgba(2,6,23,.8);
+      background:rgba(224,242,254,.9);
       display:flex;
       align-items:center;
       justify-content:center;
       text-align:center;
       font-size:1rem;
       font-weight:800;
-      color:#e2e8f0;
+      color:#0f172a;
       letter-spacing:.01em;
     }
 
@@ -373,8 +405,9 @@
       max-height:320px;
       object-fit:cover;
       border:1px solid rgba(148,163,184,.45);
-      border-radius:10px;
-      background:#020617;
+      border-radius:12px;
+      background:#eaf3ff;
+      box-shadow:0 10px 24px rgba(15,23,42,.08);
     }
     .promo-video-embed{display:none}
 
@@ -392,9 +425,10 @@
       aspect-ratio:16/10;
       object-fit:cover;
       border:1px solid rgba(148,163,184,.45);
-      border-radius:10px;
-      background:#020617;
+      border-radius:12px;
+      background:#eaf3ff;
       display:block;
+      box-shadow:0 10px 24px rgba(15,23,42,.08);
     }
 
     .winner-banner{
@@ -404,18 +438,34 @@
       gap:10px;
       padding:8px 12px;
       border-radius:999px;
-      border:1px solid rgba(255,255,255,.32);
-      background:linear-gradient(135deg,#7c3aed,#2563eb);
+      border:1px solid rgba(255,255,255,.34);
+      background:linear-gradient(135deg,#0ea5e9,#2563eb);
       color:#fff;
       font-size:clamp(.85rem,1.4vw,1.02rem);
       font-weight:900;
       letter-spacing:.02em;
-      box-shadow:0 12px 36px rgba(37,99,235,.4);
+      box-shadow:0 14px 42px rgba(14,165,233,.42);
       animation:winnerPulse 1.2s ease-in-out infinite;
       vertical-align:middle;
     }
     .winner-banner.show{display:flex}
     .winner-banner.tie{background:linear-gradient(135deg,#f59e0b,#ea580c)}
+
+    .score-total{
+      font-weight:900 !important;
+      transition:transform .18s ease, box-shadow .18s ease, background-color .18s ease;
+    }
+    .winner-highlight{
+      background:linear-gradient(180deg,#bbf7d0,#86efac) !important;
+      color:#14532d !important;
+      box-shadow:inset 0 0 0 1px rgba(34,197,94,.55);
+      transform:scale(1.03);
+    }
+    .draw-highlight{
+      background:linear-gradient(180deg,#fde68a,#fcd34d) !important;
+      color:#78350f !important;
+      box-shadow:inset 0 0 0 1px rgba(217,119,6,.45);
+    }
 
     @keyframes winnerPulse{
       0%{transform:scale(1)}
@@ -431,6 +481,17 @@
       .boards{grid-template-columns:1fr;min-height:auto}
       .panel{min-height:580px}
       .promo-area{min-height:var(--promo-area-min-height)}
+    }
+    @media (max-width: 640px){
+      body{padding:10px}
+      .dashboard{gap:10px}
+      .panel h2{font-size:.94rem;padding:10px 12px}
+      .panel-body{padding:10px}
+      .promo-area{padding:10px}
+      .promo-score-table{font-size:.7rem}
+      .promo-score-table th,.promo-score-table td{padding:3px 4px}
+      .winner-banner{font-size:.82rem;padding:7px 10px}
+      .pill{padding:9px 10px}
     }
   </style>
 </head>
@@ -459,7 +520,10 @@
         </div>
       </div>
       <div class="pill status-title-pill" aria-label="Dashboard title">
-        <h2 class="title" id="dashboardTitle">Live Dashboard — Team A vs Team B</h2>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:18px;">
+          <h2 class="title" id="dashboardTitle" style="flex:1 1 auto; margin:0;">Live Dashboard — <span id="dashboardTeamAName">Team A</span> vs <span id="dashboardTeamBName">Team B</span></h2>
+          <span id="winnerStatus" style="font-size:1.2em; font-weight:bold; color:#ffd700; margin-left:auto; display:none; white-space:nowrap;"></span>
+        </div>
       </div>
     </section>
 
@@ -497,10 +561,20 @@
                   <td id="scoreA4">0</td>
                   <td id="scoreB4">0</td>
                 </tr>
-                <tr class="total-row">
-                  <td>Total</td>
-                  <td id="scoreATotal">0</td>
-                  <td id="scoreBTotal">0</td>
+                <tr>
+                  <td>L5</td>
+                  <td id="scoreA5">0</td>
+                  <td id="scoreB5">0</td>
+                </tr>
+                <tr>
+                  <td>L6</td>
+                  <td id="scoreA6">0</td>
+                  <td id="scoreB6">0</td>
+                </tr>
+                <tr>
+                  <td colspan="1" style="text-align:right;font-weight:bold;">Total</td>
+                  <td id="scoreATotal" class="score-total">0</td>
+                  <td id="scoreBTotal" class="score-total">0</td>
                 </tr>
               </tbody>
             </table>
@@ -524,17 +598,18 @@
 
         <section class="boards" id="boardsArea" aria-label="Team boards side by side">
           <article class="panel" aria-label="Team A board">
-            <h2 id="teamAHeader">Team A — 0% — Score 0</h2>
+            <h2 id="teamAHeader"><span id="dashboardTeamANameHeader">Team A</span> — 0% — Score 0</h2>
             <div class="panel-body">
               <iframe class="board-frame" src="/teamA?view=1" title="Team A live board" loading="eager" sandbox="allow-scripts allow-same-origin"></iframe>
             </div>
           </article>
           <article class="panel" aria-label="Team B board">
-            <h2 id="teamBHeader">Team B — 0% — Score 0</h2>
+            <h2 id="dashboardTeamBNameHeader">Team B</h2>
             <div class="panel-body">
               <iframe class="board-frame" src="/teamB?view=1" title="Team B live board" loading="eager" sandbox="allow-scripts allow-same-origin"></iframe>
             </div>
           </article>
+          <!-- Removed duplicate found words list from right side in word search mode -->
           <div id="promoBoardStage" class="promo-board-stage" aria-label="Promotion video on main board area">
             <video id="promoBoardVideo" class="promo-board-video" playsinline preload="metadata" controls></video>
             <iframe id="promoBoardVideoEmbed" class="promo-board-video promo-video-embed" title="Promotion video embedded in board area" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe>
@@ -574,10 +649,14 @@
       const scoreA2El = document.getElementById('scoreA2');
       const scoreA3El = document.getElementById('scoreA3');
       const scoreA4El = document.getElementById('scoreA4');
+      const scoreA5El = document.getElementById('scoreA5');
+      const scoreA6El = document.getElementById('scoreA6');
       const scoreB1El = document.getElementById('scoreB1');
       const scoreB2El = document.getElementById('scoreB2');
       const scoreB3El = document.getElementById('scoreB3');
       const scoreB4El = document.getElementById('scoreB4');
+      const scoreB5El = document.getElementById('scoreB5');
+      const scoreB6El = document.getElementById('scoreB6');
       const scoreATotalEl = document.getElementById('scoreATotal');
       const scoreBTotalEl = document.getElementById('scoreBTotal');
       const boardHeightDecreaseBtn = document.getElementById('boardHeightDecreaseBtn');
@@ -654,8 +733,8 @@
           B: { matched: 0, pairs: 0, score: 0 },
         },
         levelScores: {
-          A: { 1: 0, 2: 0, 3: 0 },
-          B: { 1: 0, 2: 0, 3: 0 },
+          A: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
+          B: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
         },
         levelText: '—',
         promoBoardMode: 'boards',
@@ -791,10 +870,14 @@
         const a2 = Number(aLevels[2]) || 0;
         const a3 = Number(aLevels[3]) || 0;
         const a4 = Number(aLevels[4]) || 0;
+        const a5 = Number(aLevels[5]) || 0;
+        const a6 = Number(aLevels[6]) || 0;
         const b1 = Number(bLevels[1]) || 0;
         const b2 = Number(bLevels[2]) || 0;
         const b3 = Number(bLevels[3]) || 0;
         const b4 = Number(bLevels[4]) || 0;
+        const b5 = Number(bLevels[5]) || 0;
+        const b6 = Number(bLevels[6]) || 0;
 
         if(scoreTeamANameEl) scoreTeamANameEl.textContent = state.names.A || 'Team A';
         if(scoreTeamBNameEl) scoreTeamBNameEl.textContent = state.names.B || 'Team B';
@@ -805,31 +888,79 @@
         if(scoreA2El) scoreA2El.textContent = String(a2);
         if(scoreA3El) scoreA3El.textContent = String(a3);
         if(scoreA4El) scoreA4El.textContent = String(a4);
+        if(scoreA5El) scoreA5El.textContent = String(a5);
+        if(scoreA6El) scoreA6El.textContent = String(a6);
         if(scoreB1El) scoreB1El.textContent = String(b1);
         if(scoreB2El) scoreB2El.textContent = String(b2);
         if(scoreB3El) scoreB3El.textContent = String(b3);
         if(scoreB4El) scoreB4El.textContent = String(b4);
+        if(scoreB5El) scoreB5El.textContent = String(b5);
+        if(scoreB6El) scoreB6El.textContent = String(b6);
 
-        const totalA = Number(state.totals.A) || (a1 + a2 + a3 + a4);
-        const totalB = Number(state.totals.B) || (b1 + b2 + b3 + b4);
+        const totalA = Number(state.totals.A) || (a1 + a2 + a3 + a4 + a5 + a6);
+        const totalB = Number(state.totals.B) || (b1 + b2 + b3 + b4 + b5 + b6);
         if(scoreATotalEl) scoreATotalEl.textContent = String(totalA);
         if(scoreBTotalEl) scoreBTotalEl.textContent = String(totalB);
       }
 
       function setWinnerBanner(text){
-        if(!elWinner) return;
+        if (!elWinner) elWinner = document.getElementById('winnerStatus');
         const raw = String(text || '').trim();
         const low = raw.toLowerCase();
         const pending = !raw || low.includes('pending') || raw === '—' || raw === '-';
-        if(pending){
-          elWinner.classList.remove('show','tie');
+        if (pending) {
+          elWinner.style.display = 'none';
+          elWinner.classList.remove('show', 'tie');
           elWinner.textContent = '';
           return;
         }
-        const tie = low.includes('tie') || low.includes('no winner');
-        elWinner.classList.toggle('tie', tie);
-        elWinner.textContent = tie ? '🏁 Final Result: Tie' : `🏆 Winner: ${raw}`;
+        // Defensive checks for state and its properties
+        const safeState = typeof state === 'object' && state ? state : {};
+        const safeNames = typeof safeState.names === 'object' && safeState.names ? safeState.names : {};
+        const safeTotals = typeof safeState.totals === 'object' && safeState.totals ? safeState.totals : {};
+        const aName = String(safeNames.A || 'Team A');
+        const bName = String(safeNames.B || 'Team B');
+        const aTotal = Number(safeTotals.A) || 0;
+        const bTotal = Number(safeTotals.B) || 0;
+        let finalText = '';
+        // Remove previous highlights
+        document.querySelectorAll('.score-total').forEach(el => {
+          if (el) {
+            el.classList.remove('winner-highlight', 'draw-highlight');
+            el.innerHTML = el.textContent;
+          }
+        });
+        if (aTotal > bTotal) {
+          finalText = `🏆 Winner! team ${aName} 🏆`;
+          const aTotalEl = document.getElementById('scoreATotal');
+          if (aTotalEl) {
+            aTotalEl.classList.add('winner-highlight');
+            aTotalEl.innerHTML = `🏆 <span>${aTotal}</span>`;
+          }
+        } else if (bTotal > aTotal) {
+          finalText = `🏆 Winner! team ${bName} 🏆`;
+          const bTotalEl = document.getElementById('scoreBTotal');
+          if (bTotalEl) {
+            bTotalEl.classList.add('winner-highlight');
+            bTotalEl.innerHTML = `🏆 <span>${bTotal}</span>`;
+          }
+        } else {
+          finalText = `🤝 Draw — ${aName}: ${aTotal} | ${bName}: ${bTotal} 🤝`;
+          const aTotalEl = document.getElementById('scoreATotal');
+          const bTotalEl = document.getElementById('scoreBTotal');
+          if (aTotalEl) aTotalEl.classList.add('draw-highlight');
+          if (bTotalEl) bTotalEl.classList.add('draw-highlight');
+        }
+        elWinner.classList.remove('tie');
+        elWinner.textContent = finalText;
+        elWinner.style.display = 'inline-block';
         elWinner.classList.add('show');
+        return;
+        // Fallback for unexpected errors
+        // (should not be reached with above checks)
+        // elWinner.classList.remove('tie');
+        // elWinner.textContent = `🏆 Final Score — ${raw} 🏆`;
+        // elWinner.classList.add('show');
       }
 
       function applyLevel(msg){
@@ -837,6 +968,9 @@
         const level = Number(msg && msg.level) || null;
         if(mode === 'memory') state.levelText = `Level ${level || 2} — Memory`;
         else if(mode === 'word') state.levelText = `Level ${level || 3} — Word`;
+        else if(mode === 'pipe') state.levelText = `Level ${level || 4} — Pipe`;
+        else if(mode === 'wordsearch') state.levelText = `Level ${level || 5} — Word Search`;
+        else if(mode === 'connect') state.levelText = `Level ${level || 6} — Dot Connect`;
         else if(mode === 'puzzle') state.levelText = `Level ${level || 1} — Puzzle`;
         else if(level) state.levelText = `Level ${level}`;
         if(elLevel && state.levelText) elLevel.textContent = state.levelText;

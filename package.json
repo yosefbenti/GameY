@@ -8,6 +8,7 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
+    "jsdom": "^28.1.0",
     "ws": "^8.0.0"
   },
   "devDependencies": {
