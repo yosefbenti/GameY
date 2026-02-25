@@ -109,7 +109,8 @@ html,body{height:100%}
 .admin-page input[type="number"],
 .admin-page input[type="url"],
 .admin-page input[type="text"],
-.admin-page input[type="file"]{
+.admin-page input[type="file"],
+.admin-page select{
   width:100%;
   padding:9px 10px;
   border-radius:10px;
@@ -123,6 +124,7 @@ html,body{height:100%}
 .admin-page input[type="url"]:focus,
 .admin-page input[type="text"]:focus,
 .admin-page input[type="file"]:focus,
+.admin-page select:focus,
 .admin-page textarea:focus{
   outline:none;
   border-color:var(--primary);

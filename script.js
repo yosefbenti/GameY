@@ -51,7 +51,7 @@ function applyTimerTone(el, tone){
 }
 
 // Update timer displays for all modes
-function updateTimerDisplays(sec, limitSec){
+  function updateTimerDisplays(sec, limitSec){
   const safeSec = Math.max(0, Number(sec) || 0);
   const safeLimit = Math.max(1, Number(limitSec) || 120);
   const text = formatTime(safeSec);
@@ -391,6 +391,7 @@ function resetWordsearchLevel() {
       } else if(snap.mode === 'connect'){
         snap.connect = {
           nodes: (connectState && Array.isArray(connectState.nodes)) ? connectState.nodes.map(n=> ({ ...n })) : [],
+          obstacles: (connectState && Array.isArray(connectState.obstacles)) ? connectState.obstacles.map(o=> ({ ...o })) : [],
           colors: (connectState && Array.isArray(connectState.colors)) ? connectState.colors.slice() : [],
           lines: (connectState && connectState.lines && typeof connectState.lines === 'object') ? connectState.lines : {},
           totalPairs: (connectState && Number(connectState.totalPairs)) || 0,
@@ -453,7 +454,7 @@ function resetWordsearchLevel() {
                       remaining = Number(snap.remaining) || remaining;
                       timeLimit = Number(snap.timeLimit) || timeLimit;
                       updateTimerDisplays(remaining, timeLimit);
-                      if(statusEl) statusEl.textContent = 'Restored from local session';
+                      setSharedStatusText('Restored from local session');
                       if(Boolean(snap.started)){
                         try{ startLocalTimer(Date.now(), Number(timeLimit) || remaining); }catch(e){}
                       }
@@ -470,7 +471,7 @@ function resetWordsearchLevel() {
                       remaining = Number(snap.remaining) || remaining;
                       timeLimit = Number(snap.timeLimit) || timeLimit;
                       updateTimerDisplays(remaining, timeLimit);
-                      if(statusEl) statusEl.textContent = 'Restored from local session';
+                      setSharedStatusText('Restored from local session');
                       if(Boolean(snap.started)){
                         try{ startLocalTimer(Date.now(), Number(timeLimit) || remaining); }catch(e){}
                       }
@@ -487,7 +488,7 @@ function resetWordsearchLevel() {
                       remaining = Number(snap.remaining) || remaining;
                       timeLimit = Number(snap.timeLimit) || timeLimit;
                       updateTimerDisplays(remaining, timeLimit);
-                      if(statusEl) statusEl.textContent = 'Restored from local session';
+                      setSharedStatusText('Restored from local session');
                       if(Boolean(snap.started)){
                         try{ startLocalTimer(Date.now(), Number(timeLimit) || remaining); }catch(e){}
                       }
@@ -512,7 +513,7 @@ function resetWordsearchLevel() {
                       remaining = Number(snap.remaining) || remaining;
                       timeLimit = Number(snap.timeLimit) || timeLimit;
                       updateTimerDisplays(remaining, timeLimit);
-                      if(statusEl) statusEl.textContent = 'Restored from local session';
+                      setSharedStatusText('Restored from local session');
                       if(Boolean(snap.started)){
                         try{ startLocalTimer(Date.now(), Number(timeLimit) || remaining); }catch(e){}
                       }
@@ -537,7 +538,7 @@ function resetWordsearchLevel() {
                       remaining = Number(snap.remaining) || remaining;
                       timeLimit = Number(snap.timeLimit) || timeLimit;
                       updateTimerDisplays(remaining, timeLimit);
-                      if(statusEl) statusEl.textContent = 'Restored from local session';
+                      setSharedStatusText('Restored from local session');
                       if(Boolean(snap.started)){
                         try{ startLocalTimer(Date.now(), Number(timeLimit) || remaining); }catch(e){}
                       }
@@ -547,11 +548,13 @@ function resetWordsearchLevel() {
                       mode: 'connect',
                       level: snap.level,
                       nodes: (snap.connect && snap.connect.nodes) || undefined,
+                      obstacles: (snap.connect && snap.connect.obstacles) || undefined,
                       canvasSize: (snap.connect && snap.connect.canvasSize) || undefined,
                     });
                     if(snap.connect && typeof applyConnectSnapshot === 'function'){
                       applyConnectSnapshot({
                         nodes: (snap.connect && snap.connect.nodes) || [],
+                        obstacles: (snap.connect && snap.connect.obstacles) || [],
                         lines: (snap.connect && snap.connect.lines) || {},
                         totalPairs: (snap.connect && snap.connect.totalPairs) || 0,
                         matched: (snap.connect && snap.connect.matched) || 0,
@@ -567,7 +570,7 @@ function resetWordsearchLevel() {
                       remaining = Number(snap.remaining) || remaining;
                       timeLimit = Number(snap.timeLimit) || timeLimit;
                       updateTimerDisplays(remaining, timeLimit);
-                      if(statusEl) statusEl.textContent = 'Restored from local session';
+                      setSharedStatusText('Restored from local session');
                       if(Boolean(snap.started)){
                         try{ startLocalTimer(Date.now(), Number(timeLimit) || remaining); }catch(e){}
                       }
@@ -628,17 +631,24 @@ function resetWordsearchLevel() {
   const puzzleScoreEl = document.querySelector('.score');
   const wordScoreEl = document.querySelector('.word-score');
   const pipeScoreEl = document.querySelector('.pipe-score');
+  const wordsearchScoreEl = document.querySelector('.wordsearch-score');
   const connectScoreEl = document.querySelector('.connect-score');
   const puzzleCompletionEl = document.querySelector('.completion');
   const wordCompletionEl = document.querySelector('.word-completion');
   const pipeCompletionEl = document.querySelector('.pipe-completion');
+  const wordsearchCompletionEl = document.querySelector('.wordsearch-completion');
   const connectCompletionEl = document.querySelector('.connect-completion');
   const pipeSection = document.getElementById('pipeChallenge');
   const pipeGridEl = document.getElementById('pipeGrid');
   const pipeStatusEl = document.getElementById('pipeStatus');
   const connectSection = document.getElementById('connectChallenge');
   const connectCanvasEl = document.getElementById('connectCanvas');
+  const connectUndoBtn = document.getElementById('connectUndoBtn');
   const connectStatusEl = document.getElementById('connectStatus');
+  const wordPressureEl = document.getElementById('wordPressure');
+  const wordPressureFillEl = document.getElementById('wordPressureFill');
+  const wordPressureLabelEl = document.getElementById('wordPressureLabel');
+  const levelStatusEls = Array.from(document.querySelectorAll('.level-section .status'));
   const holdShowBtn = document.getElementById('holdShowBtn');
   const teamANameEl = document.getElementById('teamAName');
   const teamBNameEl = document.getElementById('teamBName');
@@ -676,6 +686,130 @@ function resetWordsearchLevel() {
   const zoomStorageKey = `gameBoardZoom:${cfg.team || 'global'}`;
   let boardZoom = 1;
   let promoVideoIsEmbed = false;
+
+  function setSharedStatusText(text){
+    const nextText = String(text || '').trim();
+    if(statusEl) statusEl.textContent = nextText;
+    levelStatusEls.forEach((el)=>{
+      if(el) el.textContent = nextText;
+    });
+  }
+
+  function setWordSearchHud(foundCount, totalCount){
+    const found = Math.max(0, Number(foundCount) || 0);
+    const total = Math.max(0, Number(totalCount) || 0);
+    const score = found * 30;
+    const pct = total > 0 ? Math.round((found / total) * 100) : 0;
+    if(wordsearchScoreEl) wordsearchScoreEl.textContent = `Score: ${score}`;
+    if(wordsearchCompletionEl) wordsearchCompletionEl.textContent = `Completion: ${pct}%`;
+    if(puzzleScoreEl) puzzleScoreEl.textContent = `Score: ${score}`;
+    if(puzzleCompletionEl) puzzleCompletionEl.textContent = `Completion: ${pct}%`;
+  }
+
+  function normalizeWordDifficulty(value){
+    const raw = String(value || '').trim().toLowerCase();
+    if(raw === 'easy' || raw === 'medium' || raw === 'hard') return raw;
+    return 'medium';
+  }
+
+  function randomWordLetterForDifficulty(difficulty){
+    const d = normalizeWordDifficulty(difficulty);
+    const easy = 'AEIOTMNSLR';
+    const hard = 'QXZJVKYW';
+    const medium = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const pool = d === 'easy' ? easy : (d === 'hard' ? hard : medium);
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  function normalizeWordForCompare(v){
+    return String(v || '')
+      .trim()
+      .toUpperCase()
+      .replace(/[\s'’\-]+/g, '');
+  }
+
+  function buildHalfSpellingHint(word){
+    const raw = String(word || '').toUpperCase();
+    let out = '';
+    let letterPos = 0;
+    for(let i=0; i<raw.length; i++){
+      const ch = raw[i];
+      if(/[A-Z]/.test(ch)){
+        letterPos += 1;
+        out += (letterPos % 2 === 1) ? ch : '_';
+      } else {
+        out += ch;
+      }
+    }
+    return out;
+  }
+
+  function pickDistinctWordSamples(categoryKey, letter, count = 2){
+    const pool = (data && data[categoryKey] && data[categoryKey][letter]) ? data[categoryKey][letter] : [];
+    const unique = Array.from(new Set((Array.isArray(pool) ? pool : []).map(v=> String(v || '').trim()).filter(Boolean)));
+    if(!unique.length){
+      const fallback = `${letter}${categoryKey.slice(0, 3).toUpperCase()}`;
+      return [fallback, fallback];
+    }
+    shuffleInPlace(unique);
+    const picked = unique.slice(0, Math.max(1, count));
+    while(picked.length < count){
+      picked.push(picked[picked.length - 1]);
+    }
+    return picked;
+  }
+
+  function buildWordRoundPrompts(letter){
+    const groups = [
+      { key: 'countries', label: 'Country name' },
+      { key: 'foods', label: 'Food name' },
+      { key: 'drinks', label: 'Drink name' },
+      { key: 'animals', label: 'Animal name' },
+    ];
+    const prompts = [];
+    groups.forEach((g)=>{
+      const [hintWord] = pickDistinctWordSamples(g.key, letter, 1);
+      prompts.push({
+        id: `${g.key}-hint-flex`,
+        label: g.label,
+        categoryLabel: g.label,
+        mode: 'hintflex',
+        expected: hintWord,
+        hintPattern: buildHalfSpellingHint(hintWord),
+      });
+    });
+    return prompts;
+  }
+
+  function updateWordPressureBar(remainingSec = remaining, limitSec = timeLimit){
+    if(!wordPressureEl || !wordPressureFillEl || !wordPressureLabelEl) return;
+    const limit = Math.max(1, Number(limitSec) || 1);
+    const rem = Math.max(0, Number(remainingSec) || 0);
+    const timePressure = 1 - (rem / limit);
+    const completion = (wordState && Number(wordState.total) > 0)
+      ? (Number(wordState.correctCount || 0) / Number(wordState.total || 1))
+      : 0;
+    const pressureFactor = 0.65 + ((1 - completion) * 0.35);
+    const pressure = Math.max(0, Math.min(100, Math.round((timePressure * pressureFactor) * 100)));
+    wordPressureFillEl.style.width = `${pressure}%`;
+    wordPressureEl.classList.toggle('warn', pressure >= 45 && pressure < 75);
+    wordPressureEl.classList.toggle('danger', pressure >= 75);
+    wordPressureLabelEl.textContent = `Pressure: ${pressure}%`;
+  }
+
+  function triggerWordDiscoveryGlow(inputEl){
+    if(inputEl && inputEl.classList){
+      inputEl.classList.remove('word-discover');
+      void inputEl.offsetWidth;
+      inputEl.classList.add('word-discover');
+    }
+    const letterWrap = document.querySelector('.letter-display');
+    if(letterWrap && letterWrap.classList){
+      letterWrap.classList.remove('letter-glow');
+      void letterWrap.offsetWidth;
+      letterWrap.classList.add('letter-glow');
+    }
+  }
 
   function ensurePromoVideoEmbed(videoEl, id){
     if(!videoEl || !videoEl.parentNode) return null;
@@ -853,6 +987,7 @@ function resetWordsearchLevel() {
   let wordState = null;
   let pipeState = null;
   let connectState = null;
+  let connectAnimationFrame = null;
   let promoVideoUrl = null;
   let promoImageUrl = null;
   let wsRecoveryScheduled = false;
@@ -1098,7 +1233,7 @@ function resetWordsearchLevel() {
   function scheduleWsRecovery(reason){
     if(wsRecoveryScheduled) return;
     wsRecoveryScheduled = true;
-    try{ if(statusEl) statusEl.textContent = reason || 'Connection lost. Reconnecting...'; }catch(e){}
+    try{ setSharedStatusText(reason || 'Connection lost. Reconnecting...'); }catch(e){}
     setTimeout(()=>{
       try{ window.location.reload(); }catch(e){}
     }, 1500);
@@ -1456,6 +1591,7 @@ function evaluatePlayerInputs(playerInputs) {
         connectTimerEl.textContent = text;
         applyTimerTone(connectTimerEl, tone);
       }
+      updateWordPressureBar(safeSec, safeLimit);
       try{
         const g = document.getElementById('globalTimer');
         if(g){
@@ -1495,7 +1631,8 @@ function evaluatePlayerInputs(playerInputs) {
       slot.dataset.index = i;
       slot.addEventListener('dragover',e=>e.preventDefault());
       slot.addEventListener('drop',onDrop);
-      if(touchCapable) slot.addEventListener('click', onSlotTap);
+      // Always allow tap/click swap as a fallback when drag is unavailable.
+      slot.addEventListener('click', onSlotTap);
       container.appendChild(slot);
     }
   }
@@ -1548,7 +1685,14 @@ function evaluatePlayerInputs(playerInputs) {
 
   let dragEl = null;
   let selectedTapSlot = null;
-  function onDragStart(e){ if(finished || isSpectator){ e.preventDefault(); dragEl = null; return; } dragEl = e.target; }
+  function onDragStart(e){
+    if(!started || roundLocked || finished || levelMode !== 'puzzle' || isSpectator){
+      e.preventDefault();
+      dragEl = null;
+      return;
+    }
+    dragEl = e.target;
+  }
 
   function _preventDrag(e){ e.preventDefault(); }
 
@@ -1569,7 +1713,7 @@ function evaluatePlayerInputs(playerInputs) {
   }
 
   function onSlotTap(e){
-    if(!touchCapable || finished || levelMode !== 'puzzle' || isSpectator) return;
+    if(!started || roundLocked || finished || levelMode !== 'puzzle' || isSpectator) return;
     const slot = e.currentTarget;
     if(!slot) return;
 
@@ -1586,7 +1730,7 @@ function evaluatePlayerInputs(playerInputs) {
   }
 
   function onDrop(e){
-    if(!dragEl || finished || isSpectator) return;
+    if(!started || roundLocked || !dragEl || finished || levelMode !== 'puzzle' || isSpectator) return;
     const targetSlot = e.currentTarget;
     const sourceSlot = dragEl.parentElement;
     if(swapSlots(sourceSlot, targetSlot)) updateScores();
@@ -1750,7 +1894,16 @@ function evaluatePlayerInputs(playerInputs) {
     }
     if(wordStatusEl && typeof snapshot.status === 'string') wordStatusEl.textContent = snapshot.status;
     updateWordProgress();
-    if(isSpectator || snapshot.finished) disableWordInputs();
+    const snapshotFinished = Boolean(snapshot.finished);
+    const shouldDisableInputs = (
+      isSpectator ||
+      snapshotFinished ||
+      finished ||
+      !started ||
+      levelMode !== 'word'
+    );
+    if(shouldDisableInputs) disableWordInputs();
+    else enableWordInputs();
     try{ saveGameSession(); }catch(e){}
   }
 
@@ -1845,7 +1998,7 @@ function evaluatePlayerInputs(playerInputs) {
     roundLocked = true;
     stopHeartbeatSound();
     clearInterval(interval);
-    if(statusEl) statusEl.textContent = `${winner} completed the puzzle!`;
+    setSharedStatusText(`${winner} completed the puzzle!`);
     if(puzzleScoreEl){
       puzzleScoreEl.textContent += ` (completed)`;
     }
@@ -2013,11 +2166,11 @@ function evaluatePlayerInputs(playerInputs) {
       if(cfg.levels && Array.isArray(cfg.levels) && cfg.levels.length > currentLevel+1){
         currentLevel++;
         const next = cfg.levels[currentLevel];
-        if(statusEl) statusEl.textContent = 'Loading next level...';
+        setSharedStatusText('Loading next level...');
         setTimeout(()=>{ applyImage(next); resetLocal(); }, 800);
         return;
       }
-      if(statusEl) statusEl.textContent = 'Round finished. Waiting for next level...';
+      setSharedStatusText('Round finished. Waiting for next level...');
       try{ if(pubWs && pubWs.readyState === WebSocket.OPEN) pubWs.send(JSON.stringify({ type: 'requestNextLevel', team: cfg.team })); }catch(e){}
     }
   }
@@ -2038,11 +2191,15 @@ function evaluatePlayerInputs(playerInputs) {
       clearInterval(interval);
       finished = true;
       stopHeartbeatSound();
-      if(statusEl) statusEl.textContent = 'Time is up';
-      if(levelMode === 'word') disableWordInputs();
+      setSharedStatusText('Time is up');
+      if(levelMode === 'word'){
+        revealWordHintAnswers();
+        disableWordInputs();
+      }
       if(levelMode === 'wordsearch'){
         // disable further wordsearch interactions
         try{ wordSearchEnabled = false; }catch(e){}
+        try{ clearWordSearchBlockTimers(); }catch(e){}
         try{ if(typeof renderWordSearchPuzzle === 'function' && wordSearchState) renderWordSearchPuzzle(wordSearchState); }catch(e){}
       } else if(levelMode === 'connect'){
         disableConnectInputs();
@@ -2068,7 +2225,7 @@ function evaluatePlayerInputs(playerInputs) {
     );
     if(levelMode === 'wordsearch') wordSearchEnabled = true;
     if(levelMode === 'connect') enableConnectInputs();
-    if(statusEl) statusEl.textContent = 'Game started';
+    setSharedStatusText('Game started');
     updateTimerDisplays(remaining, timeLimit);
     try{ saveGameSession(); }catch(e){}
     clearInterval(interval);
@@ -2106,6 +2263,7 @@ function evaluatePlayerInputs(playerInputs) {
     setCurrentMode('puzzle');
     // disable wordsearch by default on reset
     try{ wordSearchEnabled = false; }catch(e){}
+    clearWordSearchBlockState();
     if(memoryState && memoryState.previewTimeout){
       try{ clearTimeout(memoryState.previewTimeout); }catch(e){}
     }
@@ -2120,7 +2278,7 @@ function evaluatePlayerInputs(playerInputs) {
     pendingConnectSnapshot = null;
     resetWordUI();
     resetConnectUI();
-    if(statusEl) statusEl.textContent = 'Waiting to start';
+    setSharedStatusText('Waiting to start');
     updateTimerDisplays(remaining, timeLimit);
     if(board){
       board.style.gridTemplateColumns = `repeat(${COLS}, 1fr)`;
@@ -2440,7 +2598,7 @@ function evaluatePlayerInputs(playerInputs) {
 
       if(timer.paused){
         clearInterval(interval);
-        if(statusEl) statusEl.textContent = 'Paused';
+        setSharedStatusText('Paused');
         const ls = document.getElementById('levelStatus'); if(ls) ls.textContent = 'Paused';
         return;
       }
@@ -2455,15 +2613,18 @@ function evaluatePlayerInputs(playerInputs) {
         if(levelMode === 'word' && !finished){
           enableWordInputs();
         }
-        if(statusEl) statusEl.textContent = 'Game started';
+        setSharedStatusText('Game started');
         const ls = document.getElementById('levelStatus'); if(ls) ls.textContent = 'Running';
       } else if(Number.isFinite(remaining) && remaining <= 0){
         finished = true;
         roundLocked = true;
         clearInterval(interval);
         disableMoves();
-        disableWordInputs();
-        if(statusEl) statusEl.textContent = 'Time is up';
+        if(levelMode === 'word'){
+          revealWordHintAnswers();
+          disableWordInputs();
+        }
+        setSharedStatusText('Time is up');
         const ls = document.getElementById('levelStatus'); if(ls) ls.textContent = 'Finished';
       }
     }catch(e){ console.error('apply authoritative timer failed', e); }
@@ -2600,19 +2761,32 @@ function evaluatePlayerInputs(playerInputs) {
                 updateTimerDisplays(remaining, timeLimit);
               }
               if(msg.status === 'finished' || remaining <= 0){
-                finished = true; roundLocked = true; clearInterval(interval); disableMoves(); if(statusEl) statusEl.textContent = 'Time is up';
+                finished = true; roundLocked = true; clearInterval(interval); disableMoves(); setSharedStatusText('Time is up');
                 stopHeartbeatSound();
-                if(levelMode === 'word') disableWordInputs();
+                if(levelMode === 'word'){
+                  if(Number(remaining) <= 0){
+                    revealWordHintAnswers();
+                  }
+                  disableWordInputs();
+                }
                 if(!scoreRecorded) recordScoreAndAdvance('timeout', true, false);
               }
             }catch(e){console.error('timer msg error',e)}
           } else if(msg.type === 'pause'){
-            try{ clearInterval(interval); if(statusEl) statusEl.textContent = 'Paused'; }catch(e){}
+            try{ clearInterval(interval); setSharedStatusText('Paused'); }catch(e){}
             try{ const ls = document.getElementById('levelStatus'); if(ls) ls.textContent = 'Paused'; }catch(e){}
           } else if(msg.type === 'timerFinished'){
-            try{ finished = true; roundLocked = true; clearInterval(interval); disableMoves(); if(statusEl) statusEl.textContent = msg.reason ? `Ended (${msg.reason})` : 'Time finished'; }catch(e){}
+            try{ finished = true; roundLocked = true; clearInterval(interval); disableMoves(); setSharedStatusText(msg.reason ? `Ended (${msg.reason})` : 'Time finished'); }catch(e){}
             stopHeartbeatSound();
-            try{ if(levelMode === 'word') disableWordInputs(); }catch(e){}
+            try{
+              if(levelMode === 'word'){
+                const reasonText = String(msg.reason || '').toLowerCase();
+                if(/timeout|time\s*up|time\s*is\s*up/.test(reasonText)){
+                  revealWordHintAnswers();
+                }
+                disableWordInputs();
+              }
+            }catch(e){}
             try{ if(!scoreRecorded) recordScoreAndAdvance(msg.reason || 'timeout', true, false); }catch(e){}
             try{ updateTimerDisplays(0, timeLimit); const ls = document.getElementById('levelStatus'); if(ls) ls.textContent = 'Finished'; }catch(e){}
           } else if(msg.type === 'teamProgress'){
@@ -2709,6 +2883,10 @@ function evaluatePlayerInputs(playerInputs) {
                 pendingConnectSnapshot = null;
               }
             }catch(e){ console.error('apply connectState failed', e); }
+          } else if(msg.type === 'wordsearchBlock'){
+            try{
+              applyWordSearchBlock(msg.payload || {});
+            }catch(e){ console.error('apply wordsearchBlock failed', e); }
           } else if(msg.type === 'scoreUpdate'){
             try{
               const totals = msg.totals || {};
@@ -2833,7 +3011,7 @@ function evaluatePlayerInputs(playerInputs) {
               if(!finished){
                 finished = true;
                 clearInterval(interval);
-                if(statusEl) statusEl.textContent = msg.payload && msg.payload.team ? `${msg.payload.team} completed the puzzle` : 'Round complete';
+                setSharedStatusText(msg.payload && msg.payload.reason ? `Ended (${msg.payload.reason})` : (msg.payload && msg.payload.team ? `${msg.payload.team} completed the puzzle` : 'Round complete'));
                 disableMoves();
                 
                 if(levelMode === 'word') disableWordInputs();
@@ -3188,6 +3366,8 @@ function evaluatePlayerInputs(playerInputs) {
   let wordSearchState = null;
   let wordSearchPlaced = [];
   let wordSearchEnabled = true;
+  let wordSearchBlockTimeout = null;
+  let wordSearchBlockTicker = null;
 
   // Difficulty -> allowed directions
   const DIRECTIONS_BY_DIFFICULTY = {
@@ -3195,6 +3375,100 @@ function evaluatePlayerInputs(playerInputs) {
     medium: [ {r:0,c:1}, {r:1,c:0}, {r:1,c:1}, {r:-1,c:1} ], // add diagonals and up-right
     hard: [ {r:0,c:1}, {r:1,c:0}, {r:1,c:1}, {r:-1,c:1}, {r:0,c:-1}, {r:-1,c:0}, {r:-1,c:-1}, {r:1,c:-1} ] // all directions
   };
+
+  function clearWordSearchBlockTimers(){
+    if(wordSearchBlockTimeout){
+      try{ clearTimeout(wordSearchBlockTimeout); }catch(e){}
+      wordSearchBlockTimeout = null;
+    }
+    if(wordSearchBlockTicker){
+      try{ clearInterval(wordSearchBlockTicker); }catch(e){}
+      wordSearchBlockTicker = null;
+    }
+  }
+
+  function clearWordSearchBlockState(){
+    clearWordSearchBlockTimers();
+    if(wordSearchState){
+      wordSearchState.blockedUntil = 0;
+      wordSearchState.blockedBy = '';
+    }
+  }
+
+  function triggerWordSearchOpponentBlock(foundWord){
+    if(isSpectator || levelMode !== 'wordsearch' || !started || finished) return;
+    const fromTeam = normalizeTeamKey(cfg.team);
+    if(!fromTeam) return;
+    const targetTeam = fromTeam === 'A' ? 'B' : 'A';
+    const payload = {
+      fromTeam,
+      fromTeamDisplay: getTeamDisplayName(fromTeam),
+      targetTeam,
+      durationMs: 5000,
+      level: 5,
+      word: String(foundWord || ''),
+      timestamp: Date.now(),
+    };
+    try{
+      if(pubWs && pubWs.readyState === WebSocket.OPEN){
+        pubWs.send(JSON.stringify({ type: 'wordsearchBlock', payload }));
+      }
+    }catch(e){ console.error('wordsearchBlock send failed', e); }
+  }
+
+  function applyWordSearchBlock(payload){
+    if(!payload || typeof payload !== 'object') return;
+    if(isSpectator || levelMode !== 'wordsearch' || !wordSearchState || finished) return;
+    const targetTeam = normalizeTeamKey(payload.targetTeam);
+    const localTeam = normalizeTeamKey(cfg.team);
+    if(!targetTeam || !localTeam || targetTeam !== localTeam) return;
+
+    const now = Date.now();
+    const durationMs = Math.max(500, Math.min(15000, Number(payload.durationMs) || 5000));
+    const nextUntil = Math.max(now + durationMs, Number(wordSearchState.blockedUntil) || 0);
+    wordSearchState.blockedUntil = nextUntil;
+    wordSearchState.blockedBy = String(payload.fromTeamDisplay || payload.fromTeam || 'Opponent');
+    wordSearchState.selecting = false;
+    wordSearchState.startCell = null;
+    wordSearchState.selectedTiles = [];
+    wordSearchState.selected = null;
+    wordSearchEnabled = false;
+
+    clearWordSearchBlockTimers();
+    wordSearchBlockTimeout = setTimeout(()=>{
+      if(!wordSearchState) return;
+      const stillBlocked = Number(wordSearchState.blockedUntil) > Date.now();
+      if(stillBlocked){
+        applyWordSearchBlock({
+          targetTeam: localTeam,
+          fromTeamDisplay: wordSearchState.blockedBy || 'Opponent',
+          durationMs: Number(wordSearchState.blockedUntil) - Date.now(),
+        });
+        return;
+      }
+      clearWordSearchBlockTimers();
+      wordSearchState.blockedUntil = 0;
+      wordSearchState.blockedBy = '';
+      if(levelMode === 'wordsearch' && started && !finished && remaining > 0){
+        wordSearchEnabled = true;
+      }
+      renderWordSearchPuzzle(wordSearchState);
+    }, Math.max(50, nextUntil - now));
+
+    wordSearchBlockTicker = setInterval(()=>{
+      if(!wordSearchState || levelMode !== 'wordsearch'){
+        clearWordSearchBlockTimers();
+        return;
+      }
+      if(Number(wordSearchState.blockedUntil) <= Date.now()){
+        clearWordSearchBlockTimers();
+        return;
+      }
+      renderWordSearchPuzzle(wordSearchState);
+    }, 250);
+
+    renderWordSearchPuzzle(wordSearchState);
+  }
 
   function randomWordSearchWords(n, pool = WORDSEARCH_WORDS) {
     const arr = pool.slice();
@@ -3340,7 +3614,14 @@ function evaluatePlayerInputs(playerInputs) {
     // Status
     const status = document.createElement('div');
     status.className = 'wordsearch-status';
-    status.textContent = `Words-found: ${found.size} / ${state.words.length}`;
+    const blockedMs = Math.max(0, Number(state.blockedUntil) - Date.now());
+    if(blockedMs > 0){
+      const by = String(state.blockedBy || 'Opponent');
+      status.classList.add('blocked');
+      status.textContent = `Blocked by ${by}: ${Math.ceil(blockedMs / 1000)}s | Words-found: ${found.size} / ${state.words.length}`;
+    } else {
+      status.textContent = `Words-found: ${found.size} / ${state.words.length}`;
+    }
 
     // Controls: Undo last selection, Reset selections
     // Only show controls if not in spectator/dashboard mode.
@@ -3453,11 +3734,11 @@ function evaluatePlayerInputs(playerInputs) {
       wordSearchState.found.add(matched);
       if(!wordSearchState.foundCellsByWord) wordSearchState.foundCellsByWord = {};
       wordSearchState.foundCellsByWord[matched] = (wordSearchState.foundCellsByWord[matched]||[]).concat(cells);
+      triggerWordSearchOpponentBlock(matched);
       // prevent unselecting found tiles
       wordSearchState.selectedTiles = wordSearchState.selectedTiles.filter(([r,c])=> !Object.values(wordSearchState.foundCellsByWord).some(arr=> arr.some(([fr,fc])=> fr===r && fc===c)));
       // update score UI (30 points per found word)
-      if(puzzleScoreEl) puzzleScoreEl.textContent = `Score: ${wordSearchState.found.size * 30}`;
-      if(puzzleCompletionEl) puzzleCompletionEl.textContent = `Completion: ${Math.round((wordSearchState.found.size / wordSearchState.words.length) * 100)}%`;
+      setWordSearchHud(wordSearchState.found.size, wordSearchState.words.length);
       // check completion
       if(wordSearchState.found.size === wordSearchState.words.length){
         finished = true;
@@ -3510,6 +3791,7 @@ function evaluatePlayerInputs(playerInputs) {
       wordSearchState.found.add(foundWord);
       if (!wordSearchState.foundCellsByWord) wordSearchState.foundCellsByWord = {};
       wordSearchState.foundCellsByWord[foundWord] = (wordSearchState.foundCellsByWord[foundWord] || []).concat(cells);
+      triggerWordSearchOpponentBlock(foundWord);
     }
     wordSearchState.selecting = false;
     wordSearchState.startCell = null;
@@ -3521,8 +3803,7 @@ function evaluatePlayerInputs(playerInputs) {
     if (wordSearchState.found.size === wordSearchState.words.length) {
       finished = true;
       const score = wordSearchState.words.length * 30;
-      if (puzzleScoreEl) puzzleScoreEl.textContent = `Score: ${score}`;
-      if (puzzleCompletionEl) puzzleCompletionEl.textContent = 'Completion: 100%';
+      setWordSearchHud(wordSearchState.found.size, wordSearchState.words.length);
       // update left scoreboard cell immediately
       try{
         const aEl = document.getElementById('scoreA5');
@@ -3533,8 +3814,7 @@ function evaluatePlayerInputs(playerInputs) {
       }catch(e){}
       recordScoreAndAdvance('complete');
     } else {
-      if (puzzleScoreEl) puzzleScoreEl.textContent = `Score: ${wordSearchState.found.size * 30}`;
-      if (puzzleCompletionEl) puzzleCompletionEl.textContent = `Completion: ${Math.round((wordSearchState.found.size / wordSearchState.words.length) * 100)}%`;
+      setWordSearchHud(wordSearchState.found.size, wordSearchState.words.length);
     }
   }
 
@@ -3582,8 +3862,11 @@ function evaluatePlayerInputs(playerInputs) {
       startCell: null,
       selected: null,
       selectedTiles: [],
-      wordSet: new Set(words)
+      wordSet: new Set(words),
+      blockedUntil: 0,
+      blockedBy: '',
     };
+    clearWordSearchBlockTimers();
     // initialize and display timer for this level
     try{
       const tl = Number(cfgLevel.timeLimit) || Number(cfg.timeLimit) || Number(timeLimit) || 120;
@@ -3595,8 +3878,7 @@ function evaluatePlayerInputs(playerInputs) {
     }catch(e){}
 
     renderWordSearchPuzzle(wordSearchState);
-    if (puzzleScoreEl) puzzleScoreEl.textContent = 'Score: 0';
-    if (puzzleCompletionEl) puzzleCompletionEl.textContent = 'Completion: 0%';
+    setWordSearchHud(0, words.length);
   }
 
 
@@ -3693,6 +3975,30 @@ function evaluatePlayerInputs(playerInputs) {
     if(submitWordsBtn) submitWordsBtn.disabled = true;
   }
 
+  function revealWordHintAnswers(){
+    if(levelMode !== 'word' || !wordSection) return;
+    const inputs = Array.from(wordSection.querySelectorAll('input.word-input[data-word-mode="hint"], input.word-input[data-word-mode="hintflex"]'));
+    if(!inputs.length) return;
+    let revealed = 0;
+    inputs.forEach(input=>{
+      const expectedWord = String(input.dataset.expectedWord || '').trim();
+      if(!expectedWord) return;
+      const current = normalizeWordForCompare(input.value || '');
+      const expected = normalizeWordForCompare(expectedWord);
+      if(current !== expected){
+        input.value = expectedWord;
+        revealed += 1;
+      }
+      input.classList.remove('invalid');
+      input.classList.remove('skipped');
+      input.classList.add('valid');
+      input.classList.add('revealed');
+    });
+    if(revealed > 0 && wordStatusEl){
+      wordStatusEl.textContent = 'Time ended. Hint answers revealed.';
+    }
+  }
+
   function enablePipeInputs(){
     if(levelMode !== 'pipe' || !pipeGridEl) return;
     const tiles = pipeGridEl.querySelectorAll('button.pipe-tile');
@@ -3715,18 +4021,67 @@ function evaluatePlayerInputs(playerInputs) {
     if(connectStatusEl) connectStatusEl.textContent = '';
     if(connectScoreEl) connectScoreEl.textContent = 'Score: 0';
     if(connectCompletionEl) connectCompletionEl.textContent = 'Completion: 0%';
+    if(connectUndoBtn) connectUndoBtn.disabled = true;
+  }
+
+  function connectCanUndo(){
+    return Boolean(
+      connectState &&
+      connectState.enabled &&
+      !isSpectator &&
+      !finished &&
+      Array.isArray(connectState.moveHistory) &&
+      connectState.moveHistory.length
+    );
+  }
+
+  function updateConnectUndoButtonState(){
+    if(!connectUndoBtn) return;
+    connectUndoBtn.disabled = !connectCanUndo();
+  }
+
+  function cloneConnectPathPoints(points){
+    return Array.isArray(points) ? points.map((p)=> ({ x: Number(p.x) || 0, y: Number(p.y) || 0 })) : [];
+  }
+
+  function recordConnectMove(color, nextPoints){
+    if(!connectState || !color) return;
+    if(!Array.isArray(connectState.moveHistory)) connectState.moveHistory = [];
+    const prevPoints = cloneConnectPathPoints(connectState.lines && connectState.lines[color]);
+    connectState.moveHistory.push({
+      color,
+      prevPoints,
+      nextPoints: cloneConnectPathPoints(nextPoints),
+    });
+    if(connectState.moveHistory.length > 100) connectState.moveHistory.shift();
+  }
+
+  function undoLastConnectMove(){
+    if(!connectCanUndo()) return false;
+    const move = connectState.moveHistory.pop();
+    if(!move || !move.color) return false;
+    connectState.lines[move.color] = cloneConnectPathPoints(move.prevPoints);
+    if(connectState.pathFx && connectState.pathFx[move.color]) delete connectState.pathFx[move.color];
+    connectState.activePath = null;
+    if(connectStatusEl) connectStatusEl.textContent = 'Last move undone.';
+    renderConnectBoard();
+    updateConnectProgress(true);
+    updateConnectUndoButtonState();
+    return true;
   }
 
   function enableConnectInputs(){
     if(levelMode !== 'connect') return;
     if(!connectState) return;
     connectState.enabled = true;
+    updateConnectUndoButtonState();
   }
 
   function disableConnectInputs(){
     if(!connectState) return;
     connectState.enabled = false;
     connectState.activePath = null;
+    updateConnectUndoButtonState();
     if(typeof renderConnectBoard === 'function') renderConnectBoard();
   }
 
@@ -3736,29 +4091,41 @@ function evaluatePlayerInputs(playerInputs) {
   }
 
   function setupWordLevel(cfgLevel){
+    cfgLevel = cfgLevel || {};
     setCurrentMode('word');
     setCurrentLevel(Number(cfgLevel.level) || 3);
     scoreRecorded = false;
     finished = false;
-    const letter = (cfgLevel.letter || randomLetter()).toUpperCase();
-    const categories = Array.isArray(cfgLevel.categories) && cfgLevel.categories.length ? cfgLevel.categories : WORD_CATEGORIES.slice();
-    wordState = { letter, categories, answers: {}, correctCount: 0, total: categories.length };
+    const difficulty = normalizeWordDifficulty(cfgLevel.difficulty || 'medium');
+    const autoLetter = randomWordLetterForDifficulty(difficulty);
+    const letter = (cfgLevel.letter || autoLetter).toUpperCase();
+    const incomingCategories = Array.isArray(cfgLevel.categories) && cfgLevel.categories.length ? cfgLevel.categories : WORD_CATEGORIES.slice();
+    const categories = (typeof incomingCategories[0] === 'object' && incomingCategories[0] && incomingCategories[0].mode)
+      ? incomingCategories
+      : buildWordRoundPrompts(letter);
+    wordState = { letter, categories, answers: {}, correctCount: 0, total: categories.length, difficulty, validInputs: new Set() };
     countdownMaskedLetter = letter;
     setWordLetterVisible(Boolean(started));
     if(wordCategoriesEl){
       wordCategoriesEl.innerHTML = '';
       categories.forEach((cat, idx)=>{
+        const prompt = (cat && typeof cat === 'object')
+          ? cat
+          : { id: `prompt-${idx}`, label: String(cat), categoryLabel: String(cat), mode: 'full', expected: '', hintPattern: '' };
         const row = document.createElement('div');
         row.className = 'category-row';
+        if(prompt.mode === 'hint' || prompt.mode === 'hintflex') row.classList.add('hint-row');
         const label = document.createElement('label');
-        label.textContent = cat;
+        label.textContent = prompt.label;
         label.setAttribute('for', `word-${idx}`);
         const input = document.createElement('input');
         input.id = `word-${idx}`;
         input.className = 'word-input';
         input.type = 'text';
         input.placeholder = `Starts with ${letter}`;
-        input.dataset.category = cat;
+        input.dataset.category = prompt.categoryLabel || prompt.label || '';
+        input.dataset.wordMode = prompt.mode || 'full';
+        input.dataset.expectedWord = prompt.expected || '';
         input.addEventListener('input', ()=>{
           input.classList.remove('invalid');
           input.classList.remove('skipped');
@@ -3769,12 +4136,19 @@ function evaluatePlayerInputs(playerInputs) {
         input.addEventListener('blur', ()=> validateWordSubmission({ strict: true }));
         row.appendChild(label);
         row.appendChild(input);
+        if((prompt.mode === 'hint' || prompt.mode === 'hintflex') && prompt.hintPattern){
+          const hintEl = document.createElement('div');
+          hintEl.className = 'word-hint';
+          hintEl.textContent = `Hint: ${prompt.hintPattern}`;
+          row.appendChild(hintEl);
+        }
         wordCategoriesEl.appendChild(row);
       });
     }
-    if(wordStatusEl) wordStatusEl.textContent = 'Enter words that start with the letter.';
+    if(wordStatusEl) wordStatusEl.textContent = 'Fill 4 categories. You can use the hinted word or another valid name.';
     if(wordScoreEl) wordScoreEl.textContent = 'Score: 0';
     if(wordCompletionEl) wordCompletionEl.textContent = 'Completion: 0%';
+    updateWordPressureBar(remaining, timeLimit);
     showLevelMode('word');
     if(isSpectator || !started) disableWordInputs();
     else enableWordInputs();
@@ -3836,6 +4210,7 @@ function evaluatePlayerInputs(playerInputs) {
     const pct = pairs > 0 ? Math.round((matched / pairs) * 100) : 0;
     if(wordScoreEl) wordScoreEl.textContent = `Score: ${matched * 10}`;
     if(wordCompletionEl) wordCompletionEl.textContent = `Completion: ${pct}%`;
+    updateWordPressureBar(remaining, timeLimit);
     if(!isSpectator){
       try{
         const msg = { type: 'progress', payload: { team: cfg.team || 'unknown', matched, pairs, remaining } };
@@ -3855,11 +4230,14 @@ function evaluatePlayerInputs(playerInputs) {
   }
 
   function isValidWordForCategory(raw, categoryLabel, letter){
+    const difficulty = normalizeWordDifficulty((wordState && wordState.difficulty) || 'medium');
     const normalized = raw.toUpperCase();
     const startsOk = normalized.startsWith(letter);
     const spellingOk = /^[\p{L}][\p{L}\p{M}\s'’\-]*$/u.test(raw);
     if(!startsOk || !spellingOk) return false;
     const key = normalizeWordCategory(categoryLabel);
+    if(difficulty === 'hard' && normalized.length < 4) return false;
+    if(difficulty === 'easy') return true;
     if(key && data[key] && data[key][letter]){
       return compareInput(key, letter, raw) === 1;
     }
@@ -3881,7 +4259,7 @@ function evaluatePlayerInputs(playerInputs) {
     }
     disableMoves();          // disable further clicks
     // Show message on team board
-    if (typeof statusEl !== 'undefined' && statusEl) statusEl.textContent = 'Ended';
+    setSharedStatusText('Ended');
     // Show message on admin control panel
     try {
       const adminStatus = document.querySelector('.admin-page #statusMessage');
@@ -3893,13 +4271,14 @@ function evaluatePlayerInputs(playerInputs) {
  
 
 
- function validateWordSubmission(options = {}){
+  function validateWordSubmission(options = {}){
     if(isSpectator) return;
     if(levelMode !== 'word' || finished || !wordState) return;
     const strict = options && options.strict === true;
     const letter = wordState.letter.toUpperCase();
     const inputs = wordSection ? Array.from(wordSection.querySelectorAll('input.word-input')) : [];
     const seen = new Set();
+    const nextValidInputs = new Set();
     let correct = 0;
     let invalidCount = 0;
     const answers = {};
@@ -3920,7 +4299,18 @@ function evaluatePlayerInputs(playerInputs) {
         invalidCount += 1;
         return;
       }
-      if(!isValidWordForCategory(raw, categoryLabel, letter)){
+      const mode = String(input.dataset.wordMode || 'full').toLowerCase();
+      const expectedWord = String(input.dataset.expectedWord || '');
+      const expectedNormalized = normalizeWordForCompare(expectedWord);
+      let valid = false;
+      if(mode === 'hint' && expectedNormalized){
+        valid = normalizeWordForCompare(raw) === expectedNormalized;
+      } else if(mode === 'hintflex' && expectedNormalized){
+        valid = normalizeWordForCompare(raw) === expectedNormalized || isValidWordForCategory(raw, categoryLabel, letter);
+      } else {
+        valid = isValidWordForCategory(raw, categoryLabel, letter);
+      }
+      if(!valid){
         input.classList.add('invalid');
         invalidCount += 1;
         return;
@@ -3928,11 +4318,17 @@ function evaluatePlayerInputs(playerInputs) {
       seen.add(normalized);
       answers[categoryLabel] = raw;
       input.classList.add('valid');
+      nextValidInputs.add(String(categoryLabel));
+      const prevValidSet = (wordState && wordState.validInputs instanceof Set) ? wordState.validInputs : new Set();
+      if(!prevValidSet.has(String(categoryLabel))){
+        triggerWordDiscoveryGlow(input);
+      }
       correct += 1;
     });
 
     wordState.answers = answers;
     wordState.correctCount = correct;
+    wordState.validInputs = nextValidInputs;
     updateWordProgress();
     
     if(invalidCount > 0){
@@ -3966,22 +4362,119 @@ function evaluatePlayerInputs(playerInputs) {
     return rotatePipeEdges(edges, 0).join('|');
   }
 
-  function buildPipeLevelPayload(rows = 5, cols = 5, timeLimitSec = 75){
-    const rMax = Math.max(3, Math.min(8, Number(rows) || 5));
-    const cMax = Math.max(3, Math.min(8, Number(cols) || 5));
-    const path = [];
-    let r = 0, c = 0;
-    path.push([r,c]);
-    while(r < rMax - 1 || c < cMax - 1){
-      if(r === rMax - 1) c += 1;
-      else if(c === cMax - 1) r += 1;
-      else if(Math.random() < 0.5) c += 1;
-      else r += 1;
-      path.push([r,c]);
+  function pipeDirBetween(a, b){
+    if(!a || !b) return null;
+    const dr = Number(b[0]) - Number(a[0]);
+    const dc = Number(b[1]) - Number(a[1]);
+    if(dr === -1 && dc === 0) return 0;
+    if(dr === 0 && dc === 1) return 1;
+    if(dr === 1 && dc === 0) return 2;
+    if(dr === 0 && dc === -1) return 3;
+    return null;
+  }
+
+  function normalizePipeDifficulty(value){
+    const raw = String(value || '').trim().toLowerCase();
+    if(raw === 'easy' || raw === 'hard' || raw === 'medium') return raw;
+    return 'medium';
+  }
+
+  function pipeDifficultyPreset(difficulty){
+    const d = normalizePipeDifficulty(difficulty);
+    if(d === 'easy'){
+      return { rows: 5, cols: 5, timeLimit: 95, coverage: 0.48, decoy: 'simple' };
+    }
+    if(d === 'hard'){
+      return { rows: 7, cols: 7, timeLimit: 60, coverage: 0.74, decoy: 'tricky' };
+    }
+    return { rows: 6, cols: 6, timeLimit: 70, coverage: 0.62, decoy: 'mixed' };
+  }
+
+  function pipeRandomPath(rows, cols, minCoverage = 0.62){
+    const rMax = Math.max(3, Number(rows) || 5);
+    const cMax = Math.max(3, Number(cols) || 5);
+    const coverage = Math.max(0.35, Math.min(0.9, Number(minCoverage) || 0.62));
+    const targetMin = Math.max(rMax + cMax - 1, Math.floor(rMax * cMax * coverage));
+    const maxAttempts = 220;
+
+    for(let attempt = 0; attempt < maxAttempts; attempt++){
+      const path = [[0, 0]];
+      const visited = new Set(['0:0']);
+
+      const dfs = (r, c)=>{
+        if(r === rMax - 1 && c === cMax - 1 && path.length >= targetMin){
+          return true;
+        }
+        const neighbors = [
+          [r - 1, c],
+          [r, c + 1],
+          [r + 1, c],
+          [r, c - 1]
+        ].filter(([nr, nc])=> nr >= 0 && nc >= 0 && nr < rMax && nc < cMax && !visited.has(`${nr}:${nc}`));
+        shuffleInPlace(neighbors);
+        neighbors.sort((a, b)=>{
+          const da = Math.abs((rMax - 1) - a[0]) + Math.abs((cMax - 1) - a[1]);
+          const db = Math.abs((rMax - 1) - b[0]) + Math.abs((cMax - 1) - b[1]);
+          // Before hitting target length, prefer moving away from goal to make a longer route.
+          return path.length < targetMin ? (db - da) : (da - db);
+        });
+
+        for(const [nr, nc] of neighbors){
+          path.push([nr, nc]);
+          visited.add(`${nr}:${nc}`);
+          if(dfs(nr, nc)) return true;
+          visited.delete(`${nr}:${nc}`);
+          path.pop();
+        }
+        return false;
+      };
+
+      if(dfs(0, 0)) return path;
     }
 
+    // deterministic fallback
+    const fallback = [];
+    for(let rr = 0; rr < rMax; rr++){
+      if(rr % 2 === 0){
+        for(let cc = 0; cc < cMax; cc++) fallback.push([rr, cc]);
+      } else {
+        for(let cc = cMax - 1; cc >= 0; cc--) fallback.push([rr, cc]);
+      }
+    }
+    if(fallback[fallback.length - 1][0] !== rMax - 1 || fallback[fallback.length - 1][1] !== cMax - 1){
+      fallback.push([rMax - 1, cMax - 1]);
+    }
+    return fallback;
+  }
+
+  function buildPipeLevelPayload(rowsOrOptions = 6, cols = 6, timeLimitSec = 70){
+    const opts = (rowsOrOptions && typeof rowsOrOptions === 'object')
+      ? rowsOrOptions
+      : { rows: rowsOrOptions, cols, timeLimit: timeLimitSec };
+    const preset = pipeDifficultyPreset(opts.difficulty);
+    const difficulty = normalizePipeDifficulty(opts.difficulty);
+    const rMax = Math.max(3, Math.min(8, Number(opts.rows) || preset.rows));
+    const cMax = Math.max(3, Math.min(8, Number(opts.cols) || preset.cols));
+    const pathCoverage = Math.max(0.35, Math.min(0.9, Number(opts.coverage) || preset.coverage));
+    const path = pipeRandomPath(rMax, cMax, pathCoverage);
+
     const byPos = new Map(path.map((p, idx)=> [`${p[0]}:${p[1]}`, idx]));
-    const fallbackPool = [ [0,1], [1,2], [2,3], [0,3], [0,2], [1,3] ];
+    const fallbackSimple = [
+      [0,1], [1,2], [2,3], [0,3], [0,2], [1,3], // straight/corner
+      [0], [1], [2], [3]
+    ];
+    const fallbackMixed = [
+      ...fallbackSimple,
+      [0,1,2], [1,2,3], [0,2,3], [0,1,3],      // T pieces
+      [0,1,2,3]                                  // cross
+    ];
+    const fallbackTricky = [
+      ...fallbackMixed,
+      [0,1,2], [1,2,3], [0,2,3], [0,1,3], [0,1,2,3], [0,1,2,3]
+    ];
+    const fallbackPool = preset.decoy === 'simple'
+      ? fallbackSimple
+      : (preset.decoy === 'tricky' ? fallbackTricky : fallbackMixed);
     const tiles = [];
 
     for(let rr=0; rr<rMax; rr++){
@@ -3999,22 +4492,10 @@ function evaluatePlayerInputs(playerInputs) {
           const dirs = [];
           const prev = idx > 0 ? path[idx - 1] : null;
           const next = idx < path.length - 1 ? path[idx + 1] : null;
-          if(prev){
-            const dr = prev[0] - rr;
-            const dc = prev[1] - cc;
-            if(dr === -1) dirs.push(0);
-            if(dc === 1) dirs.push(1);
-            if(dr === 1) dirs.push(2);
-            if(dc === -1) dirs.push(3);
-          }
-          if(next){
-            const dr = next[0] - rr;
-            const dc = next[1] - cc;
-            if(dr === -1) dirs.push(0);
-            if(dc === 1) dirs.push(1);
-            if(dr === 1) dirs.push(2);
-            if(dc === -1) dirs.push(3);
-          }
+          const dPrev = pipeDirBetween([rr, cc], prev);
+          const dNext = pipeDirBetween([rr, cc], next);
+          if(Number.isInteger(dPrev)) dirs.push(dPrev);
+          if(Number.isInteger(dNext)) dirs.push(dNext);
           base = Array.from(new Set(dirs)).sort((a,b)=> a-b);
         }else{
           base = fallbackPool[Math.floor(Math.random() * fallbackPool.length)].slice();
@@ -4028,7 +4509,8 @@ function evaluatePlayerInputs(playerInputs) {
           isPath,
           isStart,
           isEnd,
-          playable: isPath && !isStart && !isEnd
+          playable: isPath && !isStart && !isEnd,
+          rotatable: Array.isArray(base) && base.length > 0
         });
       }
     }
@@ -4037,26 +4519,37 @@ function evaluatePlayerInputs(playerInputs) {
       type: 'level',
       mode: 'pipe',
       level: 4,
+      difficulty,
       rows: rMax,
       cols: cMax,
-      timeLimit: Math.max(30, Number(timeLimitSec) || 75),
+      timeLimit: Math.max(30, Number(opts.timeLimit) || preset.timeLimit),
       tiles,
     };
   }
 
-  function pipeGlyph(edges){
-    const k = pipeEdgeKey(edges);
-    if(k === '0|2') return '│';
-    if(k === '1|3') return '─';
-    if(k === '0|1') return '└';
-    if(k === '1|2') return '┌';
-    if(k === '2|3') return '┐';
-    if(k === '0|3') return '┘';
-    if(k === '0') return '╵';
-    if(k === '1') return '╶';
-    if(k === '2') return '╷';
-    if(k === '3') return '╴';
-    return '•';
+  function pipeEndpointsForDir(dir){
+    if(dir === 0) return [50, 8];
+    if(dir === 1) return [92, 50];
+    if(dir === 2) return [50, 92];
+    return [8, 50];
+  }
+
+  function buildPipeSvg(edges, waterOn = false){
+    const safeEdges = Array.isArray(edges) ? edges : [];
+    const segs = safeEdges.map((d)=>{
+      const [x, y] = pipeEndpointsForDir(d);
+      return `<line x1="50" y1="50" x2="${x}" y2="${y}" class="pipe-track"/>`;
+    }).join('');
+    const waterSegs = waterOn ? safeEdges.map((d)=>{
+      const [x, y] = pipeEndpointsForDir(d);
+      return `<line x1="50" y1="50" x2="${x}" y2="${y}" class="pipe-water"/>`;
+    }).join('') : '';
+    return `<svg viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+      ${segs}
+      ${waterSegs}
+      <circle cx="50" cy="50" r="12" class="pipe-core"></circle>
+      ${waterOn ? '<circle cx="50" cy="50" r="8" class="pipe-core-water"></circle>' : ''}
+    </svg>`;
   }
 
   function isPipeTileCorrect(tile){
@@ -4130,14 +4623,54 @@ function evaluatePlayerInputs(playerInputs) {
     return visited.has(endIdx);
   }
 
+  function getPipeReachableFromStart(){
+    if (!pipeState || !pipeState.tiles) return new Set();
+    const { tiles, rows, cols } = pipeState;
+    let startIdx = -1;
+    tiles.forEach((t, i)=>{
+      if(t && t.isStart) startIdx = i;
+    });
+    if(startIdx < 0) return new Set();
+
+    const visited = new Set([startIdx]);
+    const queue = [startIdx];
+    while(queue.length){
+      const idx = queue.shift();
+      const tile = tiles[idx];
+      const r = Math.floor(idx / cols);
+      const c = idx % cols;
+      const edges = rotatePipeEdges(tile.base, tile.rot);
+      for (const dir of edges) {
+        let nr = r, nc = c, nDir = (dir + 2) % 4;
+        if (dir === 0) nr--;
+        else if (dir === 1) nc++;
+        else if (dir === 2) nr++;
+        else if (dir === 3) nc--;
+        if (nr < 0 || nc < 0 || nr >= rows || nc >= cols) continue;
+        const nIdx = nr * cols + nc;
+        const neighbor = tiles[nIdx];
+        if (!neighbor || !neighbor.isPath) continue;
+        const neighborEdges = rotatePipeEdges(neighbor.base, neighbor.rot);
+        if (!neighborEdges.includes(nDir)) continue;
+        if (!visited.has(nIdx)) {
+          visited.add(nIdx);
+          queue.push(nIdx);
+        }
+      }
+    }
+    return visited;
+  }
+
   function updatePipeProgress(){
     if(levelMode !== 'pipe' || !pipeState) return;
     // Only count playable tiles (not start/end)
     const playableTiles = (pipeState.tiles || []).filter(t => t.playable);
-    const matched = playableTiles.filter(isPipeTileCorrect).length;
     const total = Math.max(1, playableTiles.length);
+    const matchedByOrientation = playableTiles.filter(isPipeTileCorrect).length;
+    const connected = isPipePathFullyConnected();
+    const matched = connected ? total : matchedByOrientation;
     pipeState.matched = matched;
-    const pct = Math.round((matched / total) * 100);
+    const pct = connected ? 100 : Math.round((matched / total) * 100);
     if(pipeScoreEl) pipeScoreEl.textContent = `Score: ${matched * 10}`;
     if(pipeCompletionEl) pipeCompletionEl.textContent = `Completion: ${pct}%`;
     if(!isSpectator){
@@ -4148,8 +4681,8 @@ function evaluatePlayerInputs(playerInputs) {
       }catch(e){ console.error('pipe progress send failed', e); }
       sendPipeState('progress');
     }
-    // Only finish if all path tiles are correct AND path is fully connected
-    if(matched === total && isPipePathFullyConnected() && !finished && !isSpectator){
+    // Finish immediately once water can flow from Start to End.
+    if(connected && !finished && !isSpectator){
       finished = true;
       disablePipeInputs();
       if(pipeStatusEl) pipeStatusEl.textContent = 'Path connected!';
@@ -4162,24 +4695,26 @@ function evaluatePlayerInputs(playerInputs) {
     if(!pipeGridEl || !pipeState) return;
     pipeGridEl.innerHTML = '';
     pipeGridEl.style.gridTemplateColumns = `repeat(${pipeState.cols}, minmax(44px, 1fr))`;
+    const reachable = getPipeReachableFromStart();
     (pipeState.tiles || []).forEach((tile, idx)=>{
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'pipe-tile';
-      if(!tile.isPath) btn.classList.add('empty');
+      if(!Array.isArray(tile.base) || tile.base.length === 0) btn.classList.add('empty');
       if(tile.isStart) btn.classList.add('start');
       if(tile.isEnd) btn.classList.add('end');
       const edgesNow = rotatePipeEdges(tile.base, tile.rot);
-      // Show glyph for all tiles; start/end are styled via CSS markers (no S/E letters).
-      btn.textContent = pipeGlyph(edgesNow);
+      const waterOn = Boolean(tile.isPath && reachable.has(idx));
+      if(waterOn) btn.classList.add('water-on');
+      btn.innerHTML = buildPipeSvg(edgesNow, waterOn);
       // Allow S and E tiles to rotate, but keep them visually distinct and not scorable
-      if(tile.isStart || tile.isEnd || tile.playable){
+      if(tile.rotatable){
         btn.disabled = false;
         btn.addEventListener('click', ()=>{
           if(isSpectator || finished || levelMode !== 'pipe') return;
           if(!pipeState || !pipeState.tiles || !pipeState.tiles[idx]) return;
           const live = pipeState.tiles[idx];
-          if(!live.isPath) return;
+          if(!live.rotatable) return;
           live.rot = (Number(live.rot) + 1) % 4;
           renderPipeBoard();
           updatePipeProgress();
@@ -4221,7 +4756,7 @@ function evaluatePlayerInputs(playerInputs) {
     const safeTiles = [];
     for(let i=0;i<expected;i++){
       const src = tilesRaw[i] || {};
-      const base = Array.isArray(src.base) ? src.base.map(v=> ((Number(v) || 0) % 4 + 4) % 4).slice(0, 2).sort((a,b)=> a-b) : [1,3];
+      const base = Array.isArray(src.base) ? src.base.map(v=> ((Number(v) || 0) % 4 + 4) % 4).slice(0, 4).sort((a,b)=> a-b) : [1,3];
       const isPath = Boolean(src.isPath);
       const isStart = Boolean(src.isStart);
       const isEnd = Boolean(src.isEnd);
@@ -4231,7 +4766,8 @@ function evaluatePlayerInputs(playerInputs) {
         isPath,
         isStart,
         isEnd,
-        playable: isPath && !isStart && !isEnd
+        playable: isPath && !isStart && !isEnd,
+        rotatable: Array.isArray(base) && base.length > 0
       });
     }
 
@@ -4269,7 +4805,199 @@ function evaluatePlayerInputs(playerInputs) {
     return Math.max(2, Math.min(8, Math.floor(n)));
   }
 
-  function randomConnectNodes(pairCount = 4){
+  const CONNECT_GRID_ROWS = 10;
+  const CONNECT_GRID_COLS = 10;
+
+  function connectCellKey(row, col){
+    return `${row}:${col}`;
+  }
+
+  function connectIsInsideGrid(row, col, rows = CONNECT_GRID_ROWS, cols = CONNECT_GRID_COLS){
+    return row >= 0 && row < rows && col >= 0 && col < cols;
+  }
+
+  function connectIsBorderCell(row, col, rows = CONNECT_GRID_ROWS, cols = CONNECT_GRID_COLS){
+    return row === 0 || col === 0 || row === (rows - 1) || col === (cols - 1);
+  }
+
+  function connectIsEdgeBandCell(row, col, rows = CONNECT_GRID_ROWS, cols = CONNECT_GRID_COLS){
+    return row === 1 || col === 1 || row === (rows - 2) || col === (cols - 2);
+  }
+
+  function connectCellInPlayableCircle(row, col, rows = CONNECT_GRID_ROWS, cols = CONNECT_GRID_COLS, padNorm = 0){
+    const x = (col + 0.5) / cols;
+    const y = (row + 0.5) / rows;
+    const radius = Math.max(0, Math.min((0.5 - (1 / cols)), (0.5 - (1 / rows))) - Math.max(0, Number(padNorm) || 0));
+    const dx = x - 0.5;
+    const dy = y - 0.5;
+    return Math.hypot(dx, dy) <= (radius + 1e-6);
+  }
+
+  function connectCellToNorm(row, col, rows = CONNECT_GRID_ROWS, cols = CONNECT_GRID_COLS){
+    return {
+      x: (col + 0.5) / cols,
+      y: (row + 0.5) / rows,
+    };
+  }
+
+  function connectPointToCell(point, rows = CONNECT_GRID_ROWS, cols = CONNECT_GRID_COLS){
+    if(!point || !connectCanvasEl) return null;
+    const cw = connectCanvasEl.width / cols;
+    const ch = connectCanvasEl.height / rows;
+    const col = Math.floor(Number(point.x) / cw);
+    const row = Math.floor(Number(point.y) / ch);
+    if(!connectIsInsideGrid(row, col, rows, cols)) return null;
+    return { row, col };
+  }
+
+  function connectNodeToCell(node, rows = CONNECT_GRID_ROWS, cols = CONNECT_GRID_COLS){
+    if(!node) return null;
+    if(Number.isInteger(node.row) && Number.isInteger(node.col) && connectIsInsideGrid(node.row, node.col, rows, cols)){
+      return { row: Number(node.row), col: Number(node.col) };
+    }
+    const row = Math.max(0, Math.min(rows - 1, Math.floor((Number(node.y) || 0.5) * rows)));
+    const col = Math.max(0, Math.min(cols - 1, Math.floor((Number(node.x) || 0.5) * cols)));
+    return { row, col };
+  }
+
+  function connectCellToPx(cell, rows = CONNECT_GRID_ROWS, cols = CONNECT_GRID_COLS){
+    const canvas = connectCanvasEl;
+    if(!canvas || !cell) return { x: 0, y: 0, row: 0, col: 0 };
+    const row = Number(cell.row);
+    const col = Number(cell.col);
+    const cw = canvas.width / cols;
+    const ch = canvas.height / rows;
+    return {
+      x: ((col + 0.5) * cw),
+      y: ((row + 0.5) * ch),
+      row,
+      col,
+    };
+  }
+
+  function connectObstacleToCell(obs, rows = CONNECT_GRID_ROWS, cols = CONNECT_GRID_COLS){
+    if(!obs) return null;
+    if(Number.isInteger(obs.row) && Number.isInteger(obs.col) && connectIsInsideGrid(obs.row, obs.col, rows, cols)){
+      return { row: Number(obs.row), col: Number(obs.col) };
+    }
+    const row = Math.max(0, Math.min(rows - 1, Math.floor((Number(obs.y) || 0.5) * rows)));
+    const col = Math.max(0, Math.min(cols - 1, Math.floor((Number(obs.x) || 0.5) * cols)));
+    if(!connectIsInsideGrid(row, col, rows, cols)) return null;
+    return { row, col };
+  }
+
+  function connectBuildBlockedSet(rows, cols, nodes, obstacles){
+    const blocked = new Set();
+    for(let r = 0; r < rows; r++){
+      blocked.add(connectCellKey(r, 0));
+      blocked.add(connectCellKey(r, cols - 1));
+    }
+    for(let c = 0; c < cols; c++){
+      blocked.add(connectCellKey(0, c));
+      blocked.add(connectCellKey(rows - 1, c));
+    }
+    (Array.isArray(nodes) ? nodes : []).forEach((node)=>{
+      const cell = connectNodeToCell(node, rows, cols);
+      if(!cell) return;
+      blocked.add(connectCellKey(cell.row, cell.col));
+    });
+    (Array.isArray(obstacles) ? obstacles : []).forEach((obs)=>{
+      const cell = connectObstacleToCell(obs, rows, cols);
+      if(!cell) return;
+      blocked.add(connectCellKey(cell.row, cell.col));
+    });
+    return blocked;
+  }
+
+  function connectBfsHasPath(startCell, endCell, blocked, rows, cols){
+    if(!startCell || !endCell) return false;
+    const sKey = connectCellKey(startCell.row, startCell.col);
+    const eKey = connectCellKey(endCell.row, endCell.col);
+    if(sKey === eKey) return false;
+    const seen = new Set([sKey]);
+    const q = [startCell];
+    const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+    while(q.length){
+      const cur = q.shift();
+      if(cur.row === endCell.row && cur.col === endCell.col) return true;
+      for(const [dr, dc] of dirs){
+        const nr = cur.row + dr;
+        const nc = cur.col + dc;
+        if(!connectIsInsideGrid(nr, nc, rows, cols)) continue;
+        if(connectIsBorderCell(nr, nc, rows, cols)) continue;
+        const key = connectCellKey(nr, nc);
+        if(seen.has(key)) continue;
+        if(key !== eKey && blocked.has(key)) continue;
+        seen.add(key);
+        q.push({ row: nr, col: nc });
+      }
+    }
+    return false;
+  }
+
+  function connectAllPairsHavePath(nodes, obstacles, rows = CONNECT_GRID_ROWS, cols = CONNECT_GRID_COLS){
+    const byColor = new Map();
+    (Array.isArray(nodes) ? nodes : []).forEach((node)=>{
+      if(!node || !node.color) return;
+      if(!byColor.has(node.color)) byColor.set(node.color, []);
+      byColor.get(node.color).push(node);
+    });
+    const baseBlocked = connectBuildBlockedSet(rows, cols, nodes, obstacles);
+    for(const [, pair] of byColor){
+      if(!Array.isArray(pair) || pair.length < 2) return false;
+      const a = connectNodeToCell(pair[0], rows, cols);
+      const b = connectNodeToCell(pair[1], rows, cols);
+      if(!a || !b) return false;
+      const blocked = new Set(baseBlocked);
+      blocked.delete(connectCellKey(a.row, a.col));
+      blocked.delete(connectCellKey(b.row, b.col));
+      if(!connectBfsHasPath(a, b, blocked, rows, cols)) return false;
+    }
+    return true;
+  }
+
+  function connectPlayableCircleRadiusNorm(rows = CONNECT_GRID_ROWS, cols = CONNECT_GRID_COLS){
+    return Math.max(0, Math.min((0.5 - (1 / cols)), (0.5 - (1 / rows))));
+  }
+
+  function connectNodeRadialDistanceNorm(node){
+    const rawX = Number(node && node.x);
+    const rawY = Number(node && node.y);
+    const x = Math.max(0, Math.min(1, Number.isFinite(rawX) ? rawX : 0.5));
+    const y = Math.max(0, Math.min(1, Number.isFinite(rawY) ? rawY : 0.5));
+    return Math.hypot(x - 0.5, y - 0.5);
+  }
+
+  function connectNodesFollowDistributionRule(nodes, pairCount, rows = CONNECT_GRID_ROWS, cols = CONNECT_GRID_COLS){
+    const safePairCount = normalizeConnectPairCount(pairCount);
+    const expectedCenter = Math.max(1, safePairCount - 1);
+    const expectedEdge = safePairCount + 1;
+    const colorCounts = new Map();
+    const circleRadius = connectPlayableCircleRadiusNorm(rows, cols);
+    const edgeThreshold = circleRadius * 0.82;
+    let centerCount = 0;
+    let edgeCount = 0;
+
+    if(!Array.isArray(nodes) || nodes.length !== safePairCount * 2) return false;
+
+    for(const node of nodes){
+      if(!node || !node.color) return false;
+      const radial = connectNodeRadialDistanceNorm(node);
+      if(radial > (circleRadius + 0.002)) return false;
+      if(radial >= edgeThreshold) edgeCount += 1;
+      else centerCount += 1;
+      colorCounts.set(node.color, (colorCounts.get(node.color) || 0) + 1);
+    }
+
+    if(centerCount !== expectedCenter || edgeCount !== expectedEdge) return false;
+    if(colorCounts.size !== safePairCount) return false;
+    for(const [, count] of colorCounts){
+      if(count !== 2) return false;
+    }
+    return true;
+  }
+
+  function randomConnectNodes(pairCount = 4, rows = CONNECT_GRID_ROWS, cols = CONNECT_GRID_COLS){
     const paletteAll = [
       { key: 'blue', color: '#3f51b5' },
       { key: 'red', color: '#ff1b1b' },
@@ -4282,75 +5010,182 @@ function evaluatePlayerInputs(playerInputs) {
     ];
     const safePairCount = normalizeConnectPairCount(pairCount);
     const palette = paletteAll.slice(0, safePairCount);
-    const nodes = [];
-    const minDist = 0.20;
-    const minPairDist = 0.42;
-    const minEdge = 0.12;
-    const maxAttempts = 500;
-    let attempts = 0;
+    const centerNeeded = Math.max(1, safePairCount - 1);
+    const edgeNeeded = safePairCount + 1;
+    const circleRadius = connectPlayableCircleRadiusNorm(rows, cols);
+    const edgeRadius = circleRadius * 0.995;
+    const centerRadiusMax = circleRadius * 0.6;
+    const minCenterGap = Math.max(0.06, circleRadius * 0.28);
 
-    function farEnough(x, y){
-      return nodes.every((n)=> Math.hypot(n.x - x, n.y - y) >= minDist);
-    }
+    const maxAttempts = 220;
+    for(let attempt = 0; attempt < maxAttempts; attempt++){
+      const edgePool = [];
+      const centerPool = [];
+      const nodes = [];
+      let centerUsed = 0;
+      let edgeUsed = 0;
+      let ok = true;
 
-    palette.forEach((entry)=>{
-      for(let i=0;i<2;i++){
-        let placed = false;
-        while(!placed && attempts < maxAttempts){
-          attempts += 1;
-          const x = minEdge + Math.random() * (1 - minEdge * 2);
-          const y = minEdge + Math.random() * (1 - minEdge * 2);
-          if(!farEnough(x, y)) continue;
-          if(i === 1){
-            const mate = nodes.find((n)=> n.id === `${entry.key}1`);
-            if(mate && Math.hypot(mate.x - x, mate.y - y) < minPairDist) continue;
-          }
-          nodes.push({
-            id: `${entry.key}${i + 1}`,
-            color: entry.color,
-            x,
-            y,
-          });
-          placed = true;
-        }
-        if(!placed){
-          // deterministic fallback if random packing fails
-          const totalDots = Math.max(2, safePairCount * 2);
-          const idx = nodes.length;
-          const angle = ((idx / totalDots) * Math.PI * 2) - (Math.PI / 2);
-          const ring = 0.34 + ((idx % 2) ? 0.12 : 0);
-          const fallback = {
-            x: Math.max(0.10, Math.min(0.90, 0.5 + Math.cos(angle) * ring)),
-            y: Math.max(0.10, Math.min(0.90, 0.5 + Math.sin(angle) * ring)),
-          };
-          nodes.push({
-            id: `${entry.key}${i + 1}`,
-            color: entry.color,
-            x: fallback.x,
-            y: fallback.y,
-          });
+      // Ring points: evenly distributed around the circle with slight angle jitter.
+      const baseAngle = Math.random() * Math.PI * 2;
+      const step = (Math.PI * 2) / Math.max(1, edgeNeeded);
+      const jitterMax = step * 0.18;
+      for(let i = 0; i < edgeNeeded; i++){
+        const jitter = (Math.random() * 2 - 1) * jitterMax;
+        const angle = baseAngle + (i * step) + jitter;
+        edgePool.push({
+          x: 0.5 + (Math.cos(angle) * edgeRadius),
+          y: 0.5 + (Math.sin(angle) * edgeRadius),
+        });
+      }
+      shuffleInPlace(edgePool);
+
+      // Center points: scattered inside inner circle with minimum spacing.
+      let centerAttempts = 0;
+      while(centerPool.length < centerNeeded && centerAttempts < 500){
+        centerAttempts += 1;
+        const angle = Math.random() * Math.PI * 2;
+        const r = centerRadiusMax * Math.sqrt(Math.random());
+        const candidate = {
+          x: 0.5 + (Math.cos(angle) * r),
+          y: 0.5 + (Math.sin(angle) * r),
+        };
+        const tooClose = centerPool.some((p)=> Math.hypot(p.x - candidate.x, p.y - candidate.y) < minCenterGap);
+        if(tooClose) continue;
+        centerPool.push(candidate);
+      }
+      if(centerPool.length < centerNeeded) continue;
+      shuffleInPlace(centerPool);
+
+      for(let i = 0; i < palette.length; i++){
+        const entry = palette[i];
+        if(centerUsed < centerNeeded){
+          const m = centerPool.pop();
+          const e = edgePool.pop();
+          if(!m || !e){ ok = false; break; }
+          nodes.push({ id: `${entry.key}1`, color: entry.color, x: m.x, y: m.y, edge: false });
+          nodes.push({ id: `${entry.key}2`, color: entry.color, x: e.x, y: e.y, edge: true });
+          centerUsed += 1;
+          edgeUsed += 1;
+        } else {
+          const e1 = edgePool.pop();
+          const e2 = edgePool.pop();
+          if(!e1 || !e2){ ok = false; break; }
+          nodes.push({ id: `${entry.key}1`, color: entry.color, x: e1.x, y: e1.y, edge: true });
+          nodes.push({ id: `${entry.key}2`, color: entry.color, x: e2.x, y: e2.y, edge: true });
+          edgeUsed += 2;
         }
       }
-    });
 
-    return nodes;
+      if(!ok || centerUsed !== centerNeeded || edgeUsed !== edgeNeeded) continue;
+      if(connectAllPairsHavePath(nodes, [], rows, cols)) return nodes;
+    }
+
+    // Deterministic fallback keeping the same center/edge counts.
+    const fallback = [];
+    const edgePool = [];
+    const centerPool = [];
+    const baseAngle = -Math.PI / 2;
+    const edgeStep = (Math.PI * 2) / Math.max(1, edgeNeeded);
+    for(let i = 0; i < edgeNeeded; i++){
+      const angle = baseAngle + (i * edgeStep);
+      edgePool.push({
+        x: 0.5 + (Math.cos(angle) * edgeRadius),
+        y: 0.5 + (Math.sin(angle) * edgeRadius),
+      });
+    }
+    const centerStep = (Math.PI * 2) / Math.max(1, centerNeeded);
+    for(let i = 0; i < centerNeeded; i++){
+      const angle = baseAngle + (i * centerStep);
+      const r = centerRadiusMax * (0.55 + (0.15 * (i % 2)));
+      centerPool.push({
+        x: 0.5 + (Math.cos(angle) * r),
+        y: 0.5 + (Math.sin(angle) * r),
+      });
+    }
+    shuffleInPlace(edgePool);
+    shuffleInPlace(centerPool);
+    let centerUsed = 0;
+    palette.forEach((entry)=>{
+      if(centerUsed < centerNeeded){
+        const m = centerPool.pop() || { x: 0.5, y: 0.5 };
+        const e = edgePool.pop() || { x: 0.5, y: (0.5 - edgeRadius) };
+        fallback.push({ id: `${entry.key}1`, color: entry.color, x: m.x, y: m.y, edge: false });
+        fallback.push({ id: `${entry.key}2`, color: entry.color, x: e.x, y: e.y, edge: true });
+        centerUsed += 1;
+      } else {
+        const e1 = edgePool.pop() || { x: 0.5, y: (0.5 - edgeRadius) };
+        const e2 = edgePool.pop() || { x: 0.5, y: (0.5 + edgeRadius) };
+        fallback.push({ id: `${entry.key}1`, color: entry.color, x: e1.x, y: e1.y, edge: true });
+        fallback.push({ id: `${entry.key}2`, color: entry.color, x: e2.x, y: e2.y, edge: true });
+      }
+    });
+    return fallback;
   }
 
   function defaultConnectLevelPayload(){
     return defaultConnectLevelPayloadWithPairs(4);
   }
 
+  function normalizeMemoryDifficulty(value){
+    const raw = String(value || '').trim().toLowerCase();
+    if(raw === 'easy' || raw === 'medium' || raw === 'hard') return raw;
+    return 'medium';
+  }
+
+  function memoryPairsForDifficulty(difficulty){
+    const d = normalizeMemoryDifficulty(difficulty);
+    if(d === 'easy') return 4;
+    if(d === 'hard') return 8;
+    return 6;
+  }
+
   function defaultConnectLevelPayloadWithPairs(pairCount){
     const safePairCount = normalizeConnectPairCount(pairCount);
+    const nodes = randomConnectNodes(safePairCount);
     return {
       type: 'level',
       mode: 'connect',
       level: 6,
       timeLimit: 75,
       pairCount: safePairCount,
-      nodes: randomConnectNodes(safePairCount),
+      nodes,
+      obstacles: [],
       canvasSize: 520,
     };
+  }
+
+  function randomConnectObstacles(pairCount, nodes){
+    const safePairCount = normalizeConnectPairCount(pairCount);
+    const sourceNodes = Array.isArray(nodes) ? nodes : [];
+    const grid = 10;
+    const targetCount = Math.max(2, Math.min(14, Math.round(safePairCount * 1.5)));
+    const picked = [];
+    const used = new Set();
+    let attempts = 0;
+    while(picked.length < targetCount && attempts < 1200){
+      attempts += 1;
+      const row = Math.floor(Math.random() * (grid - 2)) + 1;
+      const col = Math.floor(Math.random() * (grid - 2)) + 1;
+      if(!connectCellInPlayableCircle(row, col, grid, grid, 0.02)) continue;
+      const key = `${row}:${col}`;
+      if(used.has(key)) continue;
+      const center = { x: (col + 0.5) / grid, y: (row + 0.5) / grid };
+      const tooClose = sourceNodes.some(node=>{
+        const dx = Number(node.x) - center.x;
+        const dy = Number(node.y) - center.y;
+        return Math.hypot(dx, dy) < 0.12;
+      });
+      if(tooClose) continue;
+      used.add(key);
+      picked.push({
+        id: `obs-${row}-${col}`,
+        x: center.x,
+        y: center.y,
+        size: 0.08,
+      });
+    }
+    return picked;
   }
 
   function connectNodeRadiusPx(){
@@ -4363,6 +5198,16 @@ function evaluatePlayerInputs(playerInputs) {
     const dx = Number(a.x) - Number(b.x);
     const dy = Number(a.y) - Number(b.y);
     return Math.hypot(dx, dy);
+  }
+
+  function hashCode(value){
+    const str = String(value || '');
+    let hash = 0;
+    for(let i=0;i<str.length;i++){
+      hash = ((hash << 5) - hash) + str.charCodeAt(i);
+      hash |= 0;
+    }
+    return hash;
   }
 
   function connectNodeToPx(node){
@@ -4384,6 +5229,53 @@ function evaluatePlayerInputs(playerInputs) {
       x: (evt.clientX - rect.left) * sx,
       y: (evt.clientY - rect.top) * sy,
     };
+  }
+
+  function connectPlayableCirclePx(rows = CONNECT_GRID_ROWS, cols = CONNECT_GRID_COLS){
+    if(!connectCanvasEl) return { cx: 0, cy: 0, radius: 0 };
+    const cellW = connectCanvasEl.width / cols;
+    const cellH = connectCanvasEl.height / rows;
+    return {
+      cx: connectCanvasEl.width / 2,
+      cy: connectCanvasEl.height / 2,
+      radius: Math.max(0, Math.min((connectCanvasEl.width / 2) - cellW, (connectCanvasEl.height / 2) - cellH)),
+    };
+  }
+
+  function pointInConnectPlayableCircle(point, circle, pad = 0){
+    if(!point || !circle) return false;
+    const dx = Number(point.x) - Number(circle.cx);
+    const dy = Number(point.y) - Number(circle.cy);
+    const allowed = Math.max(0, Number(circle.radius) - Math.max(0, Number(pad) || 0));
+    return Math.hypot(dx, dy) <= (allowed + 1e-6);
+  }
+
+  function clampPointToConnectPlayableCircle(point, circle, pad = 0){
+    if(!point || !circle) return point;
+    const px = Number(point.x) || 0;
+    const py = Number(point.y) || 0;
+    const dx = px - Number(circle.cx);
+    const dy = py - Number(circle.cy);
+    const dist = Math.hypot(dx, dy);
+    const allowed = Math.max(0, Number(circle.radius) - Math.max(0, Number(pad) || 0));
+    if(dist <= allowed || dist < 1e-6){
+      return { x: px, y: py };
+    }
+    const scale = allowed / dist;
+    return {
+      x: Number(circle.cx) + (dx * scale),
+      y: Number(circle.cy) + (dy * scale),
+    };
+  }
+
+  function pathOutOfConnectPlayableCircle(points, pad = 0){
+    if(!Array.isArray(points) || !points.length) return true;
+    const circle = connectPlayableCirclePx();
+    if(!circle) return true;
+    for(const p of points){
+      if(!pointInConnectPlayableCircle(p, circle, pad)) return true;
+    }
+    return false;
   }
 
   function getConnectNodeById(nodeId){
@@ -4448,6 +5340,57 @@ function evaluatePlayerInputs(playerInputs) {
     const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy)));
     const proj = { x: a.x + t * dx, y: a.y + t * dy };
     return connectPointDist(p, proj);
+  }
+
+  function connectObstacleRectsPx(){
+    if(!connectState || !Array.isArray(connectState.obstacles) || !connectCanvasEl) return [];
+    const sizeRef = Math.min(connectCanvasEl.width, connectCanvasEl.height);
+    return connectState.obstacles.map((obs, idx)=>{
+      const cx = Math.max(0, Math.min(1, Number(obs && obs.x)));
+      const cy = Math.max(0, Math.min(1, Number(obs && obs.y)));
+      const relSize = Math.max(0.03, Math.min(0.14, Number(obs && obs.size) || 0.08));
+      const px = cx * connectCanvasEl.width;
+      const py = cy * connectCanvasEl.height;
+      const side = relSize * sizeRef;
+      return {
+        id: String(obs && obs.id ? obs.id : `obs-${idx}`),
+        x: px - side / 2,
+        y: py - side / 2,
+        w: side,
+        h: side,
+      };
+    });
+  }
+
+  function pointInRect(p, r){
+    return p.x >= r.x && p.x <= (r.x + r.w) && p.y >= r.y && p.y <= (r.y + r.h);
+  }
+
+  function segmentIntersectsRect(a, b, r){
+    if(pointInRect(a, r) || pointInRect(b, r)) return true;
+    const tl = { x: r.x, y: r.y };
+    const tr = { x: r.x + r.w, y: r.y };
+    const br = { x: r.x + r.w, y: r.y + r.h };
+    const bl = { x: r.x, y: r.y + r.h };
+    if(segmentsIntersect(a, b, tl, tr)) return true;
+    if(segmentsIntersect(a, b, tr, br)) return true;
+    if(segmentsIntersect(a, b, br, bl)) return true;
+    if(segmentsIntersect(a, b, bl, tl)) return true;
+    return false;
+  }
+
+  function pathIntersectsObstacles(points){
+    if(!Array.isArray(points) || points.length < 2) return false;
+    const rects = connectObstacleRectsPx();
+    if(!rects.length) return false;
+    const segs = connectPathToSegments(points);
+    if(!segs.length) return false;
+    for(const [a, b] of segs){
+      for(const r of rects){
+        if(segmentIntersectsRect(a, b, r)) return true;
+      }
+    }
+    return false;
   }
 
   function pathIntersectsOtherLines(points, ownColor){
@@ -4515,6 +5458,7 @@ function evaluatePlayerInputs(playerInputs) {
     if(connectCompletionEl) connectCompletionEl.textContent = `Completion: ${pct}%`;
     if(puzzleScoreEl) puzzleScoreEl.textContent = `Score: ${score}`;
     if(puzzleCompletionEl) puzzleCompletionEl.textContent = `Completion: ${pct}%`;
+    updateConnectUndoButtonState();
 
     if(!isSpectator){
       try{
@@ -4544,51 +5488,196 @@ function evaluatePlayerInputs(playerInputs) {
     }
   }
 
+  function ensureConnectAnimationLoop(){
+    if(connectAnimationFrame != null) return;
+    const frame = ()=>{
+      if(levelMode === 'connect' && connectState){
+        renderConnectBoard();
+        connectAnimationFrame = requestAnimationFrame(frame);
+        return;
+      }
+      connectAnimationFrame = null;
+    };
+    connectAnimationFrame = requestAnimationFrame(frame);
+  }
+
   function renderConnectBoard(){
     if(!connectCanvasEl || !connectState) return;
     const size = Math.max(320, Math.min(900, Number(connectState.canvasSize) || 520));
-    connectCanvasEl.width = size;
-    connectCanvasEl.height = size;
+    if(connectCanvasEl.width !== size) connectCanvasEl.width = size;
+    if(connectCanvasEl.height !== size) connectCanvasEl.height = size;
 
     const ctx = connectCanvasEl.getContext('2d');
     if(!ctx) return;
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     ctx.clearRect(0, 0, size, size);
-    ctx.fillStyle = '#a8e6ef';
+    const bg = ctx.createLinearGradient(0, 0, size, size);
+    bg.addColorStop(0, '#cbf7ff');
+    bg.addColorStop(0.6, '#9ce7f3');
+    bg.addColorStop(1, '#7ad4e4');
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, size, size);
+
+    const gridStep = Math.max(24, Math.round(size * 0.1));
+    const gridShift = (now * 0.02) % gridStep;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+    ctx.lineWidth = 1;
+    for(let x = -gridStep; x < size + gridStep; x += gridStep){
+      ctx.beginPath();
+      ctx.moveTo(x + gridShift, 0);
+      ctx.lineTo(x + gridShift, size);
+      ctx.stroke();
+    }
+    for(let y = -gridStep; y < size + gridStep; y += gridStep){
+      ctx.beginPath();
+      ctx.moveTo(0, y + (gridShift * 0.6));
+      ctx.lineTo(size, y + (gridShift * 0.6));
+      ctx.stroke();
+    }
+    ctx.restore();
 
     const lineWidth = Math.max(8, Math.round(size * 0.03));
     const nodeRadius = connectNodeRadiusPx();
 
-    const drawPath = (path, color)=>{
+    const drawPathPortion = (path, maxLen)=>{
       if(!Array.isArray(path) || path.length < 2) return;
-      ctx.save();
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.strokeStyle = color;
-      ctx.lineWidth = lineWidth;
+      let remainingLen = Math.max(0, Number(maxLen) || 0);
       ctx.beginPath();
       ctx.moveTo(path[0].x, path[0].y);
       for(let i=1;i<path.length;i++){
-        ctx.lineTo(path[i].x, path[i].y);
+        const p1 = path[i - 1];
+        const p2 = path[i];
+        const segLen = connectPointDist(p1, p2);
+        if(segLen <= 0.0001) continue;
+        if(remainingLen >= segLen){
+          ctx.lineTo(p2.x, p2.y);
+          remainingLen -= segLen;
+          continue;
+        }
+        const t = Math.max(0, Math.min(1, remainingLen / segLen));
+        const x = p1.x + ((p2.x - p1.x) * t);
+        const y = p1.y + ((p2.y - p1.y) * t);
+        ctx.lineTo(x, y);
+        break;
       }
       ctx.stroke();
+    };
+
+    const drawPath = (path, color, opts = {})=>{
+      if(!Array.isArray(path) || path.length < 2) return;
+      const lengths = [];
+      let totalLen = 0;
+      for(let i=1;i<path.length;i++){
+        const len = connectPointDist(path[i - 1], path[i]);
+        lengths.push(len);
+        totalLen += len;
+      }
+      if(totalLen <= 0.0001) return;
+      const drawRatio = Math.max(0, Math.min(1, Number(opts.drawRatio) || 1));
+      const flowOffset = Number(opts.flowOffset) || 0;
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = 'rgba(15,23,42,0.22)';
+      ctx.lineWidth = lineWidth + 5;
+      ctx.beginPath();
+      ctx.moveTo(path[0].x, path[0].y);
+      for(let i=1;i<path.length;i++) ctx.lineTo(path[i].x, path[i].y);
+      ctx.stroke();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+      drawPathPortion(path, totalLen * drawRatio);
+      if(drawRatio >= 0.999){
+        ctx.globalAlpha = 0.82;
+        ctx.strokeStyle = '#ecfeff';
+        ctx.lineWidth = Math.max(2, lineWidth * 0.38);
+        const dashA = Math.max(8, lineWidth * 0.95);
+        const dashB = Math.max(10, lineWidth * 1.3);
+        ctx.setLineDash([dashA, dashB]);
+        ctx.lineDashOffset = -flowOffset;
+        ctx.beginPath();
+        ctx.moveTo(path[0].x, path[0].y);
+        for(let i=1;i<path.length;i++) ctx.lineTo(path[i].x, path[i].y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
       ctx.restore();
     };
 
+    const obstacleRects = connectObstacleRectsPx();
+    obstacleRects.forEach((r, idx)=>{
+      const hatchPhase = (now * 0.08 + (idx * 8)) % 14;
+      ctx.save();
+      ctx.fillStyle = 'rgba(15,23,42,0.7)';
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
+      ctx.strokeStyle = 'rgba(248,250,252,0.38)';
+      ctx.lineWidth = 1.5;
+      for(let k = -r.h; k < r.w + r.h; k += 10){
+        const x1 = r.x + k + hatchPhase;
+        const y1 = r.y;
+        const x2 = x1 + r.h;
+        const y2 = r.y + r.h;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    });
+
     connectState.colors.forEach(color=>{
-      drawPath(connectState.lines[color], color);
+      const line = connectState.lines[color];
+      const fx = connectState.pathFx && connectState.pathFx[color] ? connectState.pathFx[color] : null;
+      const drawRatio = fx ? Math.max(0, Math.min(1, (now - fx.startedAt) / fx.durationMs)) : 1;
+      drawPath(line, color, {
+        drawRatio,
+        flowOffset: (now * 0.06) + (Math.abs(hashCode(color)) % 30),
+      });
     });
     if(connectState.activePath && Array.isArray(connectState.activePath.points)){
-      drawPath(connectState.activePath.points, connectState.activePath.color);
+      drawPath(connectState.activePath.points, connectState.activePath.color, { drawRatio: 1, flowOffset: now * 0.08 });
     }
 
-    for(const node of connectState.nodes){
+    connectState.nodes.forEach((node, idx)=>{
       const p = connectNodeToPx(node);
+      const breath = 1 + (Math.sin((now / 380) + (idx * 1.1)) * 0.07);
+      const pulseRadius = nodeRadius * breath;
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(255,255,255,0.22)';
+      ctx.arc(p.x, p.y, pulseRadius + 8, 0, Math.PI * 2);
+      ctx.fill();
       ctx.beginPath();
       ctx.fillStyle = node.color;
-      ctx.arc(p.x, p.y, nodeRadius, 0, Math.PI * 2);
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = node.color;
+      ctx.arc(p.x, p.y, pulseRadius, 0, Math.PI * 2);
       ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+      ctx.stroke();
+    });
+
+    if(connectState.pathFx && typeof connectState.pathFx === 'object'){
+      Object.keys(connectState.pathFx).forEach(color=>{
+        const fx = connectState.pathFx[color];
+        if(!fx) return;
+        if((now - fx.startedAt) > (fx.durationMs + 2500)) delete connectState.pathFx[color];
+      });
     }
+
+    const circle = connectPlayableCirclePx();
+    ctx.save();
+    ctx.strokeStyle = 'rgba(15,23,42,0.62)';
+    ctx.lineWidth = Math.max(3, Math.round(size * 0.008));
+    ctx.beginPath();
+    ctx.arc(circle.cx, circle.cy, Math.max(0, circle.radius), 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
   }
 
   function sendConnectState(reason = 'update', force = false){
@@ -4602,6 +5691,7 @@ function evaluatePlayerInputs(playerInputs) {
       const payload = {
         team: cfg.team || 'unknown',
         nodes: connectState.nodes.map(n=> ({ ...n })),
+        obstacles: Array.isArray(connectState.obstacles) ? connectState.obstacles.map(o=> ({ ...o })) : [],
         colors: connectState.colors.slice(),
         totalPairs: connectState.totalPairs,
         matched: connectState.matched,
@@ -4627,6 +5717,7 @@ function evaluatePlayerInputs(playerInputs) {
       nextLines[color] = src.map(p=> ({ x: Number(p.x) || 0, y: Number(p.y) || 0 }));
     });
     connectState.lines = nextLines;
+    connectState.obstacles = [];
     connectState.matched = Math.max(0, Number(snapshot.matched) || 0);
     if(snapshot.finished){
       finished = true;
@@ -4634,16 +5725,28 @@ function evaluatePlayerInputs(playerInputs) {
     }
     renderConnectBoard();
     updateConnectProgress(false);
+    updateConnectUndoButtonState();
   }
 
   function bindConnectCanvasEvents(){
     if(!connectCanvasEl || connectCanvasEl.dataset.bound === '1') return;
     connectCanvasEl.dataset.bound = '1';
 
+    if(connectUndoBtn && connectUndoBtn.dataset.bound !== '1'){
+      connectUndoBtn.dataset.bound = '1';
+      connectUndoBtn.addEventListener('click', ()=>{
+        if(levelMode !== 'connect') return;
+        undoLastConnectMove();
+      });
+    }
+
     connectCanvasEl.addEventListener('pointerdown', (evt)=>{
       if(levelMode !== 'connect' || isSpectator || !connectState || !connectState.enabled || finished) return;
-      const p = canvasPointFromEvent(evt);
-      if(!p) return;
+      const pRaw = canvasPointFromEvent(evt);
+      if(!pRaw) return;
+      const circle = connectPlayableCirclePx();
+      if(!pointInConnectPlayableCircle(pRaw, circle)) return;
+      const p = clampPointToConnectPlayableCircle(pRaw, circle);
       const node = findConnectNodeAt(p);
       if(!node) return;
       connectState.activePath = {
@@ -4657,8 +5760,10 @@ function evaluatePlayerInputs(playerInputs) {
 
     connectCanvasEl.addEventListener('pointermove', (evt)=>{
       if(levelMode !== 'connect' || !connectState || !connectState.activePath) return;
-      const p = canvasPointFromEvent(evt);
-      if(!p) return;
+      const pRaw = canvasPointFromEvent(evt);
+      if(!pRaw) return;
+      const circle = connectPlayableCirclePx();
+      const p = clampPointToConnectPlayableCircle(pRaw, circle);
       const points = connectState.activePath.points;
       const last = points[points.length - 1];
       if(!last || connectPointDist(last, p) < 6) return;
@@ -4669,7 +5774,9 @@ function evaluatePlayerInputs(playerInputs) {
     connectCanvasEl.addEventListener('pointerup', (evt)=>{
       if(levelMode !== 'connect' || !connectState || !connectState.activePath) return;
       const active = connectState.activePath;
-      const p = canvasPointFromEvent(evt);
+      const pRaw = canvasPointFromEvent(evt);
+      const circle = connectPlayableCirclePx();
+      const p = pRaw ? clampPointToConnectPlayableCircle(pRaw, circle) : null;
       const points = active.points.slice();
       if(p) points.push(p);
 
@@ -4682,8 +5789,15 @@ function evaluatePlayerInputs(playerInputs) {
         if(points.length < 2) points.push(targetPx);
         points[0] = startPx;
         points[points.length - 1] = targetPx;
-        if(!pathIntersectsOtherLines(points, active.color) && !pathTouchesForeignNode(points, active.color, startNode.id, targetNode.id)){
+        if(!pathOutOfConnectPlayableCircle(points)
+          && !pathIntersectsOtherLines(points, active.color)
+          && !pathTouchesForeignNode(points, active.color, startNode.id, targetNode.id)){
+          recordConnectMove(active.color, points);
           connectState.lines[active.color] = points;
+          connectState.pathFx[active.color] = {
+            startedAt: (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now(),
+            durationMs: 620,
+          };
           accepted = true;
         }
       }
@@ -4694,7 +5808,7 @@ function evaluatePlayerInputs(playerInputs) {
         if(connectStatusEl) connectStatusEl.textContent = 'Good path. Connect remaining colors.';
         updateConnectProgress(true);
       } else if(connectStatusEl){
-        connectStatusEl.textContent = 'Invalid path. Paths cannot cross.';
+        connectStatusEl.textContent = 'Invalid path. Stay inside the border and avoid crossings.';
       }
     });
   }
@@ -4708,7 +5822,10 @@ function evaluatePlayerInputs(playerInputs) {
     started = false;
 
     const fallbackPairCount = normalizeConnectPairCount(cfgLevel.pairCount || 4);
-    const rawNodes = Array.isArray(cfgLevel.nodes) && cfgLevel.nodes.length ? cfgLevel.nodes : randomConnectNodes(fallbackPairCount);
+    const incomingNodes = Array.isArray(cfgLevel.nodes) && cfgLevel.nodes.length ? cfgLevel.nodes : null;
+    const rawNodes = connectNodesFollowDistributionRule(incomingNodes, fallbackPairCount)
+      ? incomingNodes
+      : randomConnectNodes(fallbackPairCount);
     const nodes = rawNodes.map((n, idx)=> ({
       id: String(n && n.id ? n.id : `n${idx}`),
       color: String(n && n.color ? n.color : '#3f51b5'),
@@ -4718,15 +5835,19 @@ function evaluatePlayerInputs(playerInputs) {
     const colors = Array.from(new Set(nodes.map(n=> n.color))).filter(Boolean);
     const lines = {};
     colors.forEach(c=>{ lines[c] = []; });
+    const obstacles = [];
 
     connectState = {
       nodes,
       colors,
       lines,
+      obstacles,
+      moveHistory: [],
       totalPairs: colors.length,
       matched: 0,
       enabled: !isSpectator,
       activePath: null,
+      pathFx: {},
       canvasSize: Math.max(320, Math.min(900, Number(cfgLevel.canvasSize) || 520)),
       lastSig: '',
     };
@@ -4742,8 +5863,10 @@ function evaluatePlayerInputs(playerInputs) {
     showLevelMode('connect');
     bindConnectCanvasEvents();
     renderConnectBoard();
+    ensureConnectAnimationLoop();
     updateConnectProgress(false);
-    if(connectStatusEl) connectStatusEl.textContent = 'Draw paths between matching dots.';
+    updateConnectUndoButtonState();
+    if(connectStatusEl) connectStatusEl.textContent = 'Draw paths between matching dots. Avoid crossings.';
 
     if(isSpectator || !started) disableConnectInputs();
     else enableConnectInputs();
@@ -4946,7 +6069,7 @@ function evaluatePlayerInputs(playerInputs) {
           stopHeartbeatSound();
           disableMoves();
           // Show message on team board
-          if (typeof statusEl !== 'undefined' && statusEl) statusEl.textContent = 'Ended';
+          setSharedStatusText('Ended');
           // Show message on admin control panel
           try {
             const adminStatus = document.querySelector('.admin-page #statusMessage');
@@ -5115,6 +6238,9 @@ function evaluatePlayerInputs(playerInputs) {
     const connectPairCountInput = document.getElementById('connectPairCountInput');
     const connectPairsDecreaseBtn = document.getElementById('connectPairsDecreaseBtn');
     const connectPairsIncreaseBtn = document.getElementById('connectPairsIncreaseBtn');
+    const memoryDifficultySelect = document.getElementById('memoryDifficultySelect');
+    const wordDifficultySelect = document.getElementById('wordDifficultySelect');
+    const pipeDifficultySelect = document.getElementById('pipeDifficultySelect');
     const letterInput = document.getElementById('letterInput');
     const memoryItemsInput = document.getElementById('memoryItemsInput');
     const levelNumber = document.getElementById('levelNumber');
@@ -5127,14 +6253,30 @@ function evaluatePlayerInputs(playerInputs) {
         .map(v=> v.trim())
         .filter(Boolean)
         .slice(0, 10);
-      const pairs = items.length ? items.length : 4;
-      const payload = { type: 'level', mode: 'memory', pairs, timeLimit: 60, level: 2 };
+      const difficulty = normalizeMemoryDifficulty(memoryDifficultySelect ? memoryDifficultySelect.value : 'medium');
+      if(memoryDifficultySelect) memoryDifficultySelect.value = difficulty;
+      const pairs = items.length ? items.length : memoryPairsForDifficulty(difficulty);
+      const payload = { type: 'level', mode: 'memory', pairs, timeLimit: 60, level: 2, difficulty };
       if(items.length) payload.items = items;
       return payload;
     }
 
     function sendLevelPayload(payload){
       try{ sendAdmin(payload); }catch(e){ console.error('send level failed', e); }
+    }
+
+    function getPipeDifficultyFromAdmin(){
+      const raw = pipeDifficultySelect ? pipeDifficultySelect.value : 'medium';
+      const safe = normalizePipeDifficulty(raw);
+      if(pipeDifficultySelect) pipeDifficultySelect.value = safe;
+      return safe;
+    }
+
+    function getWordDifficultyFromAdmin(){
+      const raw = wordDifficultySelect ? wordDifficultySelect.value : 'medium';
+      const safe = normalizeWordDifficulty(raw);
+      if(wordDifficultySelect) wordDifficultySelect.value = safe;
+      return safe;
     }
 
     function getConnectPairCountFromAdmin(){
@@ -5186,8 +6328,11 @@ function evaluatePlayerInputs(playerInputs) {
     }
     if(level3Btn){
       level3Btn.addEventListener('click', ()=>{
-        const letter = (letterInput && letterInput.value && letterInput.value.trim()) ? letterInput.value.trim().charAt(0).toUpperCase() : randomLetter();
-        const payload = { type: 'level', mode: 'word', level: 3, letter, categories: WORD_CATEGORIES.slice() };
+        const difficulty = getWordDifficultyFromAdmin();
+        const letter = (letterInput && letterInput.value && letterInput.value.trim())
+          ? letterInput.value.trim().charAt(0).toUpperCase()
+          : randomWordLetterForDifficulty(difficulty);
+        const payload = { type: 'level', mode: 'word', level: 3, difficulty, letter, categories: WORD_CATEGORIES.slice() };
         sendLevelPayload(payload);
         try {
           const cl = document.getElementById('currentLevel');
@@ -5216,7 +6361,7 @@ function evaluatePlayerInputs(playerInputs) {
     const level4Btn = document.getElementById('level4Btn');
     if(level4Btn){
       level4Btn.addEventListener('click', ()=>{
-        const payload = buildPipeLevelPayload();
+        const payload = buildPipeLevelPayload({ difficulty: getPipeDifficultyFromAdmin() });
         sendLevelPayload(payload);
         try{ setupPipeLevel(payload); }catch(e){}
         // Update admin level counter
@@ -5240,11 +6385,14 @@ function evaluatePlayerInputs(playerInputs) {
           const payload = buildMemoryLevelPayload();
           sendLevelPayload(payload);
         }else if(n===3){
-          const letter = (letterInput && letterInput.value && letterInput.value.trim()) ? letterInput.value.trim().charAt(0).toUpperCase() : randomLetter();
-          const payload = { type: 'level', mode: 'word', level: 3, letter, categories: WORD_CATEGORIES.slice() };
+          const difficulty = getWordDifficultyFromAdmin();
+          const letter = (letterInput && letterInput.value && letterInput.value.trim())
+            ? letterInput.value.trim().charAt(0).toUpperCase()
+            : randomWordLetterForDifficulty(difficulty);
+          const payload = { type: 'level', mode: 'word', level: 3, difficulty, letter, categories: WORD_CATEGORIES.slice() };
           sendLevelPayload(payload);
         }else if(n===4){
-          const payload = buildPipeLevelPayload();
+          const payload = buildPipeLevelPayload({ difficulty: getPipeDifficultyFromAdmin() });
           sendLevelPayload(payload);
         }else if(n===5){
           // Level 5: Word Search

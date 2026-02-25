@@ -17,7 +17,7 @@
       --muted:#64748b;
       --accent:#38bdf8;
       --accent-2:#22d3ee;
-      --board-panel-min-height:620px;
+      --board-panel-min-height:880px;
       --promo-col-width:380px;
       --promo-area-min-height:430px;
     }
@@ -479,7 +479,7 @@
       .status-title-pill{grid-column:1}
       .boards-layout{grid-template-columns:1fr}
       .boards{grid-template-columns:1fr;min-height:auto}
-      .panel{min-height:580px}
+      .panel{min-height:780px}
       .promo-area{min-height:var(--promo-area-min-height)}
     }
     @media (max-width: 640px){
@@ -665,7 +665,7 @@
 
       const PROMO_WIDTH_MIN = 280;
       const PROMO_WIDTH_MAX = 680;
-      const BOARD_HEIGHT_MIN = 470;
+      const BOARD_HEIGHT_MIN = 760;
       const BOARD_HEIGHT_MAX = 980;
       const BOARD_HEIGHT_STEP = 30;
       const BOARD_HEIGHT_KEY = 'dashboard:boardPanelMinHeight';
@@ -699,7 +699,7 @@
 
       function clampBoardHeight(value){
         const n = Number(value);
-        if(!Number.isFinite(n)) return 620;
+        if(!Number.isFinite(n)) return 880;
         return Math.max(BOARD_HEIGHT_MIN, Math.min(BOARD_HEIGHT_MAX, Math.round(n)));
       }
 
@@ -715,14 +715,14 @@
       }
 
       (function initBoardHeightControls(){
-        let initial = 620;
+        let initial = 880;
         try{
           const raw = localStorage.getItem(BOARD_HEIGHT_KEY);
           if(raw != null) initial = clampBoardHeight(raw);
         }catch(e){}
         applyBoardHeight(initial, false);
-        if(boardHeightDecreaseBtn) boardHeightDecreaseBtn.addEventListener('click', ()=> applyBoardHeight((parseInt(String(boardHeightValueEl && boardHeightValueEl.textContent || '620'), 10) || 620) - BOARD_HEIGHT_STEP));
-        if(boardHeightIncreaseBtn) boardHeightIncreaseBtn.addEventListener('click', ()=> applyBoardHeight((parseInt(String(boardHeightValueEl && boardHeightValueEl.textContent || '620'), 10) || 620) + BOARD_HEIGHT_STEP));
+        if(boardHeightDecreaseBtn) boardHeightDecreaseBtn.addEventListener('click', ()=> applyBoardHeight((parseInt(String(boardHeightValueEl && boardHeightValueEl.textContent || '880'), 10) || 880) - BOARD_HEIGHT_STEP));
+        if(boardHeightIncreaseBtn) boardHeightIncreaseBtn.addEventListener('click', ()=> applyBoardHeight((parseInt(String(boardHeightValueEl && boardHeightValueEl.textContent || '880'), 10) || 880) + BOARD_HEIGHT_STEP));
       })();
 
       const state = {
@@ -970,7 +970,7 @@
         else if(mode === 'word') state.levelText = `Level ${level || 3} — Word`;
         else if(mode === 'pipe') state.levelText = `Level ${level || 4} — Pipe`;
         else if(mode === 'wordsearch') state.levelText = `Level ${level || 5} — Word Search`;
-        else if(mode === 'connect') state.levelText = `Level ${level || 6} — Dot Connect`;
+        else if(mode === 'connect') state.levelText = `Level ${level || 6} — Connect`;
         else if(mode === 'puzzle') state.levelText = `Level ${level || 1} — Puzzle`;
         else if(level) state.levelText = `Level ${level}`;
         if(elLevel && state.levelText) elLevel.textContent = state.levelText;

@@ -55,11 +55,32 @@
             <button id="level5Btn" class="level-btn">Start Level 5 (Word Search)</button>
             <button id="level6Btn" class="level-btn">Start Level 6 (Dot Connect)</button>
           </div>
+          <label>Level 4 Difficulty
+            <select id="pipeDifficultySelect" class="small-input">
+              <option value="easy">Easy</option>
+              <option value="medium" selected>Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </label>
           <label>Letter for Level 3 (optional, English or Amharic)
             <input id="letterInput" type="text" maxlength="1" placeholder="A-Z or ሀ-ፐ" class="small-input" />
           </label>
+          <label>Level 3 Difficulty
+            <select id="wordDifficultySelect" class="small-input">
+              <option value="easy">Easy</option>
+              <option value="medium" selected>Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </label>
           <label>Memory items for Level 2 (optional: numbers/words, comma or new line)
             <textarea id="memoryItemsInput" rows="3" placeholder="1, 2, 3, 4\nOR\nCat\nDog\nTree\nCar"></textarea>
+          </label>
+          <label>Level 2 Difficulty
+            <select id="memoryDifficultySelect" class="small-input">
+              <option value="easy">Easy</option>
+              <option value="medium" selected>Medium</option>
+              <option value="hard">Hard</option>
+            </select>
           </label>
           <label>Level 6 Dot Pairs (more pairs = more dots)
             <div class="inline-row">

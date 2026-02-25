@@ -162,6 +162,9 @@
       <section class="level-section level-wordsearch hidden" id="wordSearchLevel">
         <h2>Team A — Word Search <span class="timer wordsearch-timer" id="wordsearchTimerA">00:00</span></h2>
         <div id="wordSearchGameA"></div>
+        <div class="score wordsearch-score">Score: 0</div>
+        <div class="completion wordsearch-completion">Completion: 0%</div>
+        <div class="status">Waiting to start</div>
       </section>
 
       <section class="level-section level-connect hidden" id="connectLevel">
@@ -171,6 +174,9 @@
           <div class="connect-help">Draw from one colored dot to the matching dot. Paths cannot cross.</div>
           <div class="connect-board">
             <canvas id="connectCanvas" width="520" height="520" aria-label="Dot connect puzzle board"></canvas>
+          </div>
+          <div class="connect-controls">
+            <button id="connectUndoBtn" type="button" class="secondary connect-undo-btn">Undo</button>
           </div>
           <div class="connect-status" id="connectStatus">Waiting to start</div>
         </section>
