@@ -516,8 +516,9 @@ const state = {
     promoImage: null,
     promoWidth: 380,
     promoHeight: 430,
-    boardHeight: 620,
+    boardHeight: 760,
     promoBoardMode: 'boards',
+    dashboardLeftPanelVisible: true,
   },
   puzzleStates: {
     A: null,
@@ -528,6 +529,10 @@ const state = {
     B: null,
   },
   wordStates: {
+    A: null,
+    B: null,
+  },
+  wordsearchStates: {
     A: null,
     B: null,
   },
@@ -717,6 +722,7 @@ function resetLiveBoardStates() {
   resetPuzzleStates();
   state.memoryStates = { A: null, B: null };
   state.wordStates = { A: null, B: null };
+  state.wordsearchStates = { A: null, B: null };
   state.pipeStates = { A: null, B: null };
   state.connectStates = { A: null, B: null };
 }
@@ -804,8 +810,9 @@ function buildGameStatePayload() {
     promoImageUrl: state.session.promoImage && state.session.promoImage.url ? state.session.promoImage.url : null,
     promoWidth: Math.max(280, Math.min(680, Math.round(Number(state.session.promoWidth) || 380))),
     promoHeight: Math.max(320, Math.min(760, Math.round(Number(state.session.promoHeight) || 430))),
-    boardHeight: Math.max(470, Math.min(980, Math.round(Number(state.session.boardHeight) || 620))),
+    boardHeight: Math.max(620, Math.min(980, Math.round(Number(state.session.boardHeight) || 760))),
     promoBoardMode: String(state.session.promoBoardMode || 'boards').toLowerCase() === 'video' ? 'video' : 'boards',
+    dashboardLeftPanelVisible: state.session.dashboardLeftPanelVisible !== false,
     timer: {
       running: Boolean(state.session.start) && !state.session.paused && (remaining == null ? false : remaining > 0),
       paused: Boolean(state.session.paused),
@@ -967,6 +974,12 @@ function replayStateToClient(ws) {
   if (state.wordStates && state.wordStates.B && state.wordStates.B.letter) {
     sendToClient(ws, { type: 'wordState', payload: { ...state.wordStates.B } });
   }
+  if (state.wordsearchStates && state.wordsearchStates.A && Array.isArray(state.wordsearchStates.A.grid)) {
+    sendToClient(ws, { type: 'wordsearchState', payload: { ...state.wordsearchStates.A } });
+  }
+  if (state.wordsearchStates && state.wordsearchStates.B && Array.isArray(state.wordsearchStates.B.grid)) {
+    sendToClient(ws, { type: 'wordsearchState', payload: { ...state.wordsearchStates.B } });
+  }
   if (state.pipeStates && state.pipeStates.A && Array.isArray(state.pipeStates.A.rotations)) {
     sendToClient(ws, { type: 'pipeState', payload: { ...state.pipeStates.A } });
   }
@@ -1040,18 +1053,19 @@ wss.on('connection', (ws, req) => {
       if (teamKey) {
         payload.team = teamKey;
         payload.teamDisplay = state.teamNames[teamKey] || teamKey;
+        const payloadLevel = Number(payload.level);
+        const activeLevel = Number(state.session.level && state.session.level.level);
+        const level = Number.isFinite(payloadLevel) && payloadLevel > 0
+          ? payloadLevel
+          : (Number.isFinite(activeLevel) && activeLevel > 0 ? activeLevel : 0);
+        if (level > 0) payload.level = level;
         // live score shown during a running round
         const matched = Number(payload.matched) || 0;
         // Ignore late progress after this team has already finalized the round.
         if (!state.scoredTeamsThisRound.has(teamKey)) {
-          const pairs = Number(payload.pairs) || 0;
           let perItem = 10;
-          // For wordsearch (level 5), use 30 points per word
-          if (pairs > 4 && data.payload && data.payload.level === 5) {
-            perItem = 30;
-          } else if (data.payload && Number(data.payload.level) === 6) {
-            perItem = 20;
-          }
+          if (level === 5) perItem = 30;
+          else if (level === 6) perItem = 20;
           // For pipe (level 4), always 10 points per correct tile
           // For all other levels, 10 points per correct
           state.roundScores[teamKey] = Math.max(0, matched * perItem);
@@ -1136,6 +1150,47 @@ wss.on('connection', (ws, req) => {
       };
       state.wordStates[teamKey] = statePayload;
       broadcast({ type: 'wordState', payload: statePayload });
+      return;
+    }
+
+    if (data.type === 'wordsearchState') {
+      const payload = data.payload || {};
+      const teamKey = normalizeTeamKey(payload.team || data.team);
+      const grid = Array.isArray(payload.grid)
+        ? payload.grid.map((row) => (Array.isArray(row) ? row.map((ch) => String(ch || '').toUpperCase()) : []))
+        : null;
+      const words = Array.isArray(payload.words)
+        ? payload.words.map((w) => String(w || '').toUpperCase())
+        : [];
+      if (!teamKey || !grid || !grid.length) return;
+      const found = Array.isArray(payload.found)
+        ? payload.found.map((w) => String(w || '').toUpperCase())
+        : [];
+      const rawFoundMap = payload.foundCellsByWord && typeof payload.foundCellsByWord === 'object'
+        ? payload.foundCellsByWord
+        : {};
+      const foundCellsByWord = {};
+      Object.keys(rawFoundMap).forEach((wordKey) => {
+        const arr = Array.isArray(rawFoundMap[wordKey]) ? rawFoundMap[wordKey] : [];
+        foundCellsByWord[String(wordKey || '').toUpperCase()] = arr
+          .filter((pair) => Array.isArray(pair) && pair.length >= 2)
+          .map(([r, c]) => [Number(r) || 0, Number(c) || 0]);
+      });
+      const statePayload = {
+        team: teamKey,
+        teamDisplay: state.teamNames[teamKey] || teamKey,
+        grid,
+        words,
+        found,
+        foundCellsByWord,
+        colorsByWord: (payload.colorsByWord && typeof payload.colorsByWord === 'object') ? payload.colorsByWord : {},
+        blockedUntil: Math.max(0, Number(payload.blockedUntil) || 0),
+        blockedBy: String(payload.blockedBy || ''),
+        finished: Boolean(payload.finished),
+        timestamp: Date.now(),
+      };
+      state.wordsearchStates[teamKey] = statePayload;
+      broadcast({ type: 'wordsearchState', payload: statePayload });
       return;
     }
 
@@ -1309,7 +1364,7 @@ wss.on('connection', (ws, req) => {
     }
 
     if (data.type === 'boardHeight') {
-      const height = Math.max(470, Math.min(980, Math.round(Number(data.height) || 620)));
+      const height = Math.max(620, Math.min(980, Math.round(Number(data.height) || 760)));
       data.height = height;
       state.session.boardHeight = height;
     }
@@ -1318,6 +1373,11 @@ wss.on('connection', (ws, req) => {
       const mode = String(data.mode || '').toLowerCase();
       data.mode = mode === 'video' ? 'video' : 'boards';
       state.session.promoBoardMode = data.mode;
+    }
+
+    if (data.type === 'dashboardLeftPanel') {
+      state.session.dashboardLeftPanelVisible = data.visible !== false;
+      data.visible = state.session.dashboardLeftPanelVisible;
     }
 
     if (data.type === 'level') {
@@ -1547,7 +1607,7 @@ wss.on('connection', (ws, req) => {
       console.log(`Broadcasting ${data.type} message`);
       broadcast(data);
     }
-    if (['start', 'pause', 'image', 'promoVideo', 'promoImage', 'promoWidth', 'promoHeight', 'boardHeight', 'promoBoardMode', 'level', 'next', 'reset'].includes(data.type)) {
+    if (['start', 'pause', 'image', 'promoVideo', 'promoImage', 'promoWidth', 'promoHeight', 'boardHeight', 'promoBoardMode', 'dashboardLeftPanel', 'level', 'next', 'reset'].includes(data.type)) {
       emitGameState();
     }
 

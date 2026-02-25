@@ -17,7 +17,7 @@
       --muted:#64748b;
       --accent:#38bdf8;
       --accent-2:#22d3ee;
-      --board-panel-min-height:880px;
+      --board-panel-min-height:760px;
       --promo-col-width:380px;
       --promo-area-min-height:430px;
     }
@@ -122,6 +122,7 @@
       grid-template-columns:repeat(2,minmax(320px,1fr));
       gap:14px;
       min-height:0;
+      position:relative;
     }
     .promo-board-stage{
       display:none;
@@ -200,7 +201,7 @@
     }
     .panel{
       background:var(--card);
-      border:1px solid var(--card-border);
+      border:2px solid var(--card-border);
       border-radius:16px;
       overflow:hidden;
       display:flex;
@@ -235,7 +236,7 @@
       height:100%;
       aspect-ratio:auto;
       transform:none;
-      border:1px solid rgba(148,163,184,0.42);
+      border:2px solid rgba(148,163,184,0.42);
       border-radius:12px;
       flex:1;
       pointer-events:none;
@@ -254,6 +255,12 @@
       grid-template-columns:minmax(280px,var(--promo-col-width)) minmax(0,1fr);
       gap:14px;
       align-items:stretch;
+    }
+    .dashboard.left-panel-hidden .status-grid{display:none}
+    .dashboard.left-panel-hidden .boards-layout{grid-template-columns:1fr}
+    .dashboard.left-panel-hidden .promo-area{display:none}
+    .dashboard.left-panel-hidden .boards{
+      grid-template-columns:repeat(2,minmax(280px,1fr));
     }
 
     .promo-area{
@@ -451,6 +458,94 @@
     .winner-banner.show{display:flex}
     .winner-banner.tie{background:linear-gradient(135deg,#f59e0b,#ea580c)}
 
+    #winnerFireworks{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      pointer-events:none;
+      z-index:24;
+      opacity:0;
+      transition:opacity .35s ease;
+      border-radius:16px;
+    }
+    #winnerFireworks.show{opacity:1}
+
+    .winner-overlay{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      z-index:25;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      border-radius:16px;
+      background:radial-gradient(circle at center, rgba(15,23,42,.12), rgba(15,23,42,.48));
+      backdrop-filter: blur(3px);
+    }
+    .winner-overlay.show{display:flex}
+    .winner-overlay-card{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      width:min(96%, 1060px);
+      padding:22px 28px;
+      border-radius:22px;
+      border:1px solid rgba(255,255,255,.42);
+      background:linear-gradient(130deg, rgba(14,165,233,.92), rgba(37,99,235,.92));
+      color:#fff;
+      font-weight:900;
+      letter-spacing:.03em;
+      line-height:1.15;
+      font-size:clamp(1rem,2vw,1.45rem);
+      box-shadow:0 24px 64px rgba(2,132,199,.35);
+      animation:winnerCardPop .5s cubic-bezier(.2,.85,.2,1.2);
+    }
+    .winner-overlay.tie .winner-overlay-card{
+      background:linear-gradient(130deg, rgba(245,158,11,.93), rgba(234,88,12,.93));
+      box-shadow:0 24px 64px rgba(217,119,6,.35);
+    }
+    .winner-overlay-title{
+      font-size:clamp(1rem,1.5vw,1.2rem);
+      opacity:.95;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      margin-bottom:8px;
+      font-weight:800;
+    }
+    .winner-overlay-main{
+      font-size:clamp(1.36rem,3vw,2.45rem);
+      font-weight:900;
+      line-height:1.08;
+      text-shadow:0 10px 24px rgba(2,6,23,.24);
+      margin-bottom:14px;
+    }
+    .winner-overlay-scores{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(220px,1fr));
+      gap:10px;
+      width:100%;
+      text-align:left;
+    }
+    .winner-overlay-score-line{
+      background:rgba(15,23,42,.2);
+      border:1px solid rgba(255,255,255,.28);
+      border-radius:12px;
+      padding:10px 12px;
+      font-size:clamp(.84rem,1.2vw,1.02rem);
+      font-weight:800;
+      line-height:1.35;
+    }
+    .winner-overlay-foot{
+      margin-top:10px;
+      font-size:clamp(.88rem,1.2vw,1.04rem);
+      font-weight:800;
+      opacity:.96;
+    }
+
     .score-total{
       font-weight:900 !important;
       transition:transform .18s ease, box-shadow .18s ease, background-color .18s ease;
@@ -472,6 +567,10 @@
       50%{transform:scale(1.02)}
       100%{transform:scale(1)}
     }
+    @keyframes winnerCardPop{
+      0%{transform:scale(.82) translateY(18px); opacity:0}
+      100%{transform:scale(1) translateY(0); opacity:1}
+    }
 
     @media (max-width: 1080px){
       .status-grid{grid-template-columns:1fr}
@@ -479,7 +578,7 @@
       .status-title-pill{grid-column:1}
       .boards-layout{grid-template-columns:1fr}
       .boards{grid-template-columns:1fr;min-height:auto}
-      .panel{min-height:780px}
+      .panel{min-height:760px}
       .promo-area{min-height:var(--promo-area-min-height)}
     }
     @media (max-width: 640px){
@@ -491,6 +590,8 @@
       .promo-score-table{font-size:.7rem}
       .promo-score-table th,.promo-score-table td{padding:3px 4px}
       .winner-banner{font-size:.82rem;padding:7px 10px}
+      .winner-overlay-card{padding:16px 14px}
+      .winner-overlay-scores{grid-template-columns:1fr}
       .pill{padding:9px 10px}
     }
   </style>
@@ -604,7 +705,7 @@
             </div>
           </article>
           <article class="panel" aria-label="Team B board">
-            <h2 id="dashboardTeamBNameHeader">Team B</h2>
+            <h2 id="teamBHeader">Team B</h2>
             <div class="panel-body">
               <iframe class="board-frame" src="/teamB?view=1" title="Team B live board" loading="eager" sandbox="allow-scripts allow-same-origin"></iframe>
             </div>
@@ -615,6 +716,10 @@
             <iframe id="promoBoardVideoEmbed" class="promo-board-video promo-video-embed" title="Promotion video embedded in board area" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe>
             <div id="promoBoardStageNote" class="promo-board-stage-note">No promotion video is active right now.</div>
           </div>
+          <canvas id="winnerFireworks" aria-hidden="true"></canvas>
+          <div id="winnerOverlay" class="winner-overlay" aria-hidden="true">
+            <div id="winnerOverlayCard" class="winner-overlay-card"></div>
+          </div>
         </section>
       </div>
     </section>
@@ -622,6 +727,7 @@
 
   <script>
     (function(){
+      const dashboardRootEl = document.querySelector('main.dashboard');
       const elConn = document.getElementById('connectionState');
       const elLevel = document.getElementById('levelState');
       const elTimer = document.getElementById('timerState');
@@ -629,8 +735,11 @@
       const elLast = document.getElementById('lastUpdate');
       const elA = document.getElementById('teamAHeader');
       const elB = document.getElementById('teamBHeader');
-      const elWinner = document.getElementById('winnerBanner');
+      let elWinner = document.getElementById('winnerBanner');
       const elDashboardTitle = document.getElementById('dashboardTitle');
+      const winnerOverlayEl = document.getElementById('winnerOverlay');
+      const winnerOverlayCardEl = document.getElementById('winnerOverlayCard');
+      const winnerFireworksEl = document.getElementById('winnerFireworks');
       const promoVideoEl = document.getElementById('promoSlot1Video');
       const promoVideoEmbedEl = document.getElementById('promoSlot1VideoEmbed');
       const promoStatusEl = document.getElementById('promoSlot1Status');
@@ -662,15 +771,198 @@
       const boardHeightDecreaseBtn = document.getElementById('boardHeightDecreaseBtn');
       const boardHeightIncreaseBtn = document.getElementById('boardHeightIncreaseBtn');
       const boardHeightValueEl = document.getElementById('boardHeightValue');
+      const boardFrames = Array.from(document.querySelectorAll('iframe.board-frame'));
+      const fireworks = {
+        particles: [],
+        raf: 0,
+        spawnAt: 0,
+        until: 0,
+        lastTs: 0,
+        activeWinner: '',
+      };
 
       const PROMO_WIDTH_MIN = 280;
       const PROMO_WIDTH_MAX = 680;
-      const BOARD_HEIGHT_MIN = 760;
+      const BOARD_HEIGHT_MIN = 620;
       const BOARD_HEIGHT_MAX = 980;
       const BOARD_HEIGHT_STEP = 30;
       const BOARD_HEIGHT_KEY = 'dashboard:boardPanelMinHeight';
       const PROMO_HEIGHT_MIN = 320;
       const PROMO_HEIGHT_MAX = 760;
+
+      function escapeHtml(value){
+        return String(value || '').replace(/[&<>"']/g, (ch)=>{
+          if(ch === '&') return '&amp;';
+          if(ch === '<') return '&lt;';
+          if(ch === '>') return '&gt;';
+          if(ch === '"') return '&quot;';
+          if(ch === "'") return '&#39;';
+          return ch;
+        });
+      }
+
+      function getWinnerLayerSize(){
+        const fallback = { width: Math.max(320, window.innerWidth), height: Math.max(240, window.innerHeight * 0.7) };
+        if(!boardsAreaEl) return fallback;
+        const width = Math.max(320, boardsAreaEl.clientWidth || fallback.width);
+        const height = Math.max(240, boardsAreaEl.clientHeight || fallback.height);
+        return { width, height };
+      }
+
+      function resizeWinnerFireworksCanvas(){
+        if(!winnerFireworksEl) return;
+        const { width, height } = getWinnerLayerSize();
+        const ratio = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+        winnerFireworksEl.width = Math.floor(width * ratio);
+        winnerFireworksEl.height = Math.floor(height * ratio);
+        try{
+          const ctx = winnerFireworksEl.getContext('2d');
+          if(ctx) ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        }catch(e){}
+      }
+      resizeWinnerFireworksCanvas();
+      window.addEventListener('resize', resizeWinnerFireworksCanvas);
+
+      function spawnWinnerBurst(cx, cy, count){
+        const n = Math.max(14, Number(count) || 22);
+        for(let i = 0; i < n; i += 1){
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 1.5 + Math.random() * 4.2;
+          const hue = Math.floor(Math.random() * 360);
+          fireworks.particles.push({
+            x: cx,
+            y: cy,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - (Math.random() * 1.2),
+            life: 56 + Math.floor(Math.random() * 30),
+            age: 0,
+            color: `hsl(${hue} 96% 64%)`,
+            size: 2 + Math.random() * 2.6,
+          });
+        }
+      }
+
+      function stepWinnerFireworks(ts){
+        if(!winnerFireworksEl) return;
+        const ctx = winnerFireworksEl.getContext('2d');
+        if(!ctx){
+          fireworks.raf = 0;
+          return;
+        }
+        const { width, height } = getWinnerLayerSize();
+        if(!fireworks.lastTs) fireworks.lastTs = ts;
+        const elapsed = Math.max(8, Math.min(50, ts - fireworks.lastTs));
+        fireworks.lastTs = ts;
+
+        ctx.clearRect(0, 0, width, height);
+        if(ts >= fireworks.spawnAt && ts <= fireworks.until){
+          fireworks.spawnAt = ts + 180;
+          const x = width * (0.12 + Math.random() * 0.76);
+          const y = height * (0.1 + Math.random() * 0.45);
+          spawnWinnerBurst(x, y, 24);
+        }
+
+        const gravity = 0.035 * (elapsed / 16.6);
+        fireworks.particles = fireworks.particles.filter((p)=>{
+          p.age += 1;
+          p.vy += gravity;
+          p.x += p.vx * (elapsed / 16.6);
+          p.y += p.vy * (elapsed / 16.6);
+          const alive = p.age < p.life;
+          if(!alive) return false;
+          const alpha = 1 - (p.age / p.life);
+          ctx.globalAlpha = Math.max(0, alpha);
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+          return true;
+        });
+        ctx.globalAlpha = 1;
+
+        if(ts <= fireworks.until || fireworks.particles.length){
+          fireworks.raf = window.requestAnimationFrame(stepWinnerFireworks);
+          return;
+        }
+        fireworks.raf = 0;
+        if(winnerFireworksEl) winnerFireworksEl.classList.remove('show');
+      }
+
+      function clearWinnerCelebration(){
+        fireworks.until = 0;
+        fireworks.lastTs = 0;
+        fireworks.spawnAt = 0;
+        fireworks.particles.length = 0;
+        fireworks.activeWinner = '';
+        if(fireworks.raf){
+          window.cancelAnimationFrame(fireworks.raf);
+          fireworks.raf = 0;
+        }
+        if(winnerFireworksEl) winnerFireworksEl.classList.remove('show');
+        if(winnerOverlayEl){
+          winnerOverlayEl.classList.remove('show', 'tie');
+          winnerOverlayEl.setAttribute('aria-hidden', 'true');
+        }
+        if(winnerOverlayCardEl) winnerOverlayCardEl.textContent = '';
+      }
+
+      function composeWinnerOverlayHtml(mainText, isTie){
+        const aName = escapeHtml(state.names && state.names.A ? state.names.A : 'Team A');
+        const bName = escapeHtml(state.names && state.names.B ? state.names.B : 'Team B');
+        const aLevels = (state.levelScores && state.levelScores.A) || {};
+        const bLevels = (state.levelScores && state.levelScores.B) || {};
+        const aL1 = Number(aLevels[1]) || 0;
+        const aL2 = Number(aLevels[2]) || 0;
+        const aL3 = Number(aLevels[3]) || 0;
+        const aL4 = Number(aLevels[4]) || 0;
+        const aL5 = Number(aLevels[5]) || 0;
+        const aL6 = Number(aLevels[6]) || 0;
+        const bL1 = Number(bLevels[1]) || 0;
+        const bL2 = Number(bLevels[2]) || 0;
+        const bL3 = Number(bLevels[3]) || 0;
+        const bL4 = Number(bLevels[4]) || 0;
+        const bL5 = Number(bLevels[5]) || 0;
+        const bL6 = Number(bLevels[6]) || 0;
+        const aTotal = Number(state.totals && state.totals.A) || (aL1 + aL2 + aL3 + aL4 + aL5 + aL6);
+        const bTotal = Number(state.totals && state.totals.B) || (bL1 + bL2 + bL3 + bL4 + bL5 + bL6);
+        const safeMain = escapeHtml(mainText);
+        const title = isTie ? 'Level 6 Finished - Draw' : 'Level 6 Finished - Winner';
+        return `
+          <div class="winner-overlay-title">${title}</div>
+          <div class="winner-overlay-main">${safeMain}</div>
+          <div class="winner-overlay-scores">
+            <div class="winner-overlay-score-line">${aName}: L1 ${aL1} | L2 ${aL2} | L3 ${aL3} | L4 ${aL4} | L5 ${aL5} | L6 ${aL6} | Total ${aTotal}</div>
+            <div class="winner-overlay-score-line">${bName}: L1 ${bL1} | L2 ${bL2} | L3 ${bL3} | L4 ${bL4} | L5 ${bL5} | L6 ${bL6} | Total ${bTotal}</div>
+          </div>
+          <div class="winner-overlay-foot">Final totals shown for audience view</div>
+        `;
+      }
+
+      function celebrateWinner(text, isTie){
+        const finalText = String(text || '').trim();
+        if(!finalText) return;
+        if(fireworks.activeWinner === finalText) return;
+        clearWinnerCelebration();
+        fireworks.activeWinner = finalText;
+        if(winnerOverlayCardEl) winnerOverlayCardEl.innerHTML = composeWinnerOverlayHtml(finalText, !!isTie);
+        if(winnerOverlayEl){
+          winnerOverlayEl.classList.toggle('tie', !!isTie);
+          winnerOverlayEl.classList.add('show');
+          winnerOverlayEl.setAttribute('aria-hidden', 'false');
+        }
+        if(winnerFireworksEl){
+          winnerFireworksEl.classList.add('show');
+          resizeWinnerFireworksCanvas();
+          const { width, height } = getWinnerLayerSize();
+          spawnWinnerBurst(width * 0.22, height * 0.44, 32);
+          spawnWinnerBurst(width * 0.5, height * 0.28, 34);
+          spawnWinnerBurst(width * 0.78, height * 0.44, 32);
+          fireworks.until = performance.now() + 5500;
+          fireworks.spawnAt = performance.now() + 150;
+          fireworks.lastTs = 0;
+          fireworks.raf = window.requestAnimationFrame(stepWinnerFireworks);
+        }
+      }
 
       function clampPromoWidth(value){
         const n = Number(value);
@@ -699,7 +991,7 @@
 
       function clampBoardHeight(value){
         const n = Number(value);
-        if(!Number.isFinite(n)) return 880;
+        if(!Number.isFinite(n)) return 760;
         return Math.max(BOARD_HEIGHT_MIN, Math.min(BOARD_HEIGHT_MAX, Math.round(n)));
       }
 
@@ -715,19 +1007,61 @@
       }
 
       (function initBoardHeightControls(){
-        let initial = 880;
+        let initial = 760;
         try{
           const raw = localStorage.getItem(BOARD_HEIGHT_KEY);
           if(raw != null) initial = clampBoardHeight(raw);
         }catch(e){}
         applyBoardHeight(initial, false);
-        if(boardHeightDecreaseBtn) boardHeightDecreaseBtn.addEventListener('click', ()=> applyBoardHeight((parseInt(String(boardHeightValueEl && boardHeightValueEl.textContent || '880'), 10) || 880) - BOARD_HEIGHT_STEP));
-        if(boardHeightIncreaseBtn) boardHeightIncreaseBtn.addEventListener('click', ()=> applyBoardHeight((parseInt(String(boardHeightValueEl && boardHeightValueEl.textContent || '880'), 10) || 880) + BOARD_HEIGHT_STEP));
+        if(boardHeightDecreaseBtn) boardHeightDecreaseBtn.addEventListener('click', ()=> applyBoardHeight((parseInt(String(boardHeightValueEl && boardHeightValueEl.textContent || '760'), 10) || 760) - BOARD_HEIGHT_STEP));
+        if(boardHeightIncreaseBtn) boardHeightIncreaseBtn.addEventListener('click', ()=> applyBoardHeight((parseInt(String(boardHeightValueEl && boardHeightValueEl.textContent || '760'), 10) || 760) + BOARD_HEIGHT_STEP));
       })();
+
+      function applyDashboardConnectBoardTuningToFrame(frame){
+        if(!frame) return;
+        try{
+          const doc = frame.contentDocument;
+          if(!doc || !doc.head) return;
+          const styleId = 'dashboard-connect-board-tuning';
+          let styleEl = doc.getElementById(styleId);
+          if(!styleEl){
+            styleEl = doc.createElement('style');
+            styleEl.id = styleId;
+            styleEl.textContent = `
+              .spectator-view .level-connect .connect-challenge{
+                width:min(86vw, 860px) !important;
+                max-width:100% !important;
+              }
+              .spectator-view .level-connect .connect-board{
+                width:min(100%, 620px) !important;
+                aspect-ratio:1/1 !important;
+                max-height:min(72vh, 620px) !important;
+              }
+              .spectator-view .level-connect .connect-controls,
+              .spectator-view .level-connect .connect-undo-btn{
+                display:none !important;
+              }
+            `;
+            doc.head.appendChild(styleEl);
+          }
+        }catch(e){}
+      }
+
+      function setupDashboardConnectBoardTuning(){
+        boardFrames.forEach((frame)=>{
+          if(!frame) return;
+          frame.addEventListener('load', ()=> applyDashboardConnectBoardTuningToFrame(frame));
+          applyDashboardConnectBoardTuningToFrame(frame);
+        });
+      }
+
+      setupDashboardConnectBoardTuning();
 
       const state = {
         names: { A: 'Team A', B: 'Team B' },
         totals: { A: 0, B: 0 },
+        currentLevel: 0,
+        leftPanelVisible: true,
         progress: {
           A: { matched: 0, pairs: 0, score: 0 },
           B: { matched: 0, pairs: 0, score: 0 },
@@ -741,6 +1075,13 @@
         promoVideoUrl: '',
         promoVideoIsEmbed: false,
       };
+
+      function applyDashboardLeftPanelVisible(visible){
+        const next = visible !== false;
+        state.leftPanelVisible = next;
+        if(dashboardRootEl) dashboardRootEl.classList.toggle('left-panel-hidden', !next);
+      }
+      applyDashboardLeftPanelVisible(true);
 
       function toYouTubeEmbedUrl(rawUrl){
         if(!rawUrl || typeof rawUrl !== 'string') return '';
@@ -903,8 +1244,21 @@
         if(scoreBTotalEl) scoreBTotalEl.textContent = String(totalB);
       }
 
+      function announceLevel6Winner(){
+        const aLevels = state.levelScores.A || {};
+        const bLevels = state.levelScores.B || {};
+        const aTotal = Number(state.totals.A) || ((Number(aLevels[1]) || 0) + (Number(aLevels[2]) || 0) + (Number(aLevels[3]) || 0) + (Number(aLevels[4]) || 0) + (Number(aLevels[5]) || 0) + (Number(aLevels[6]) || 0));
+        const bTotal = Number(state.totals.B) || ((Number(bLevels[1]) || 0) + (Number(bLevels[2]) || 0) + (Number(bLevels[3]) || 0) + (Number(bLevels[4]) || 0) + (Number(bLevels[5]) || 0) + (Number(bLevels[6]) || 0));
+        const aName = String((state.names && state.names.A) || 'Team A');
+        const bName = String((state.names && state.names.B) || 'Team B');
+        if(aTotal > bTotal) setWinnerBanner(`Winner! team ${aName}`);
+        else if(bTotal > aTotal) setWinnerBanner(`Winner! team ${bName}`);
+        else setWinnerBanner(`Draw — ${aName}: ${aTotal} | ${bName}: ${bTotal}`);
+      }
+
       function setWinnerBanner(text){
         if (!elWinner) elWinner = document.getElementById('winnerStatus');
+        if(!elWinner) return;
         const raw = String(text || '').trim();
         const low = raw.toLowerCase();
         const pending = !raw || low.includes('pending') || raw === '—' || raw === '-';
@@ -912,6 +1266,7 @@
           elWinner.style.display = 'none';
           elWinner.classList.remove('show', 'tie');
           elWinner.textContent = '';
+          clearWinnerCelebration();
           return;
         }
         // Defensive checks for state and its properties
@@ -923,6 +1278,7 @@
         const aTotal = Number(safeTotals.A) || 0;
         const bTotal = Number(safeTotals.B) || 0;
         let finalText = '';
+        let isTie = false;
         // Remove previous highlights
         document.querySelectorAll('.score-total').forEach(el => {
           if (el) {
@@ -946,15 +1302,17 @@
           }
         } else {
           finalText = `🤝 Draw — ${aName}: ${aTotal} | ${bName}: ${bTotal} 🤝`;
+          isTie = true;
           const aTotalEl = document.getElementById('scoreATotal');
           const bTotalEl = document.getElementById('scoreBTotal');
           if (aTotalEl) aTotalEl.classList.add('draw-highlight');
           if (bTotalEl) bTotalEl.classList.add('draw-highlight');
         }
-        elWinner.classList.remove('tie');
+        elWinner.classList.toggle('tie', isTie);
         elWinner.textContent = finalText;
         elWinner.style.display = 'inline-block';
         elWinner.classList.add('show');
+        celebrateWinner(finalText, isTie);
         return;
         // Fallback for unexpected errors
         // (should not be reached with above checks)
@@ -966,6 +1324,7 @@
       function applyLevel(msg){
         const mode = String((msg && msg.mode) || '').toLowerCase();
         const level = Number(msg && msg.level) || null;
+        state.currentLevel = level || state.currentLevel || 0;
         if(mode === 'memory') state.levelText = `Level ${level || 2} — Memory`;
         else if(mode === 'word') state.levelText = `Level ${level || 3} — Word`;
         else if(mode === 'pipe') state.levelText = `Level ${level || 4} — Pipe`;
@@ -1299,11 +1658,13 @@
             if(typeof msg.promoHeight !== 'undefined') applyPromoHeight(msg.promoHeight);
             if(typeof msg.boardHeight !== 'undefined') applyBoardHeight(msg.boardHeight, false);
             if(typeof msg.promoBoardMode !== 'undefined') applyPromoBoardMode(msg.promoBoardMode);
+            if(typeof msg.dashboardLeftPanelVisible !== 'undefined') applyDashboardLeftPanelVisible(msg.dashboardLeftPanelVisible);
             if(msg.level) applyLevel(msg.level);
             if(msg.timer && typeof msg.timer.remaining !== 'undefined' && elTimer){
               elTimer.textContent = formatTime(msg.timer.remaining);
             }
             if(typeof msg.winnerName === 'string') setWinnerBanner(msg.winnerName);
+            else if(Number(state.currentLevel) === 6 && Number(msg && msg.timer && msg.timer.remaining) <= 0) announceLevel6Winner();
             if(typeof msg.promoVideoUrl !== 'undefined') applyPromoVideo(msg.promoVideoUrl);
             if(typeof msg.promoImageUrl !== 'undefined') applyPromoImage(msg.promoImageUrl);
             updateHeaders();
@@ -1353,6 +1714,12 @@
             return;
           }
 
+          if(msg.type === 'dashboardLeftPanel'){
+            applyDashboardLeftPanelVisible(msg.visible);
+            touch();
+            return;
+          }
+
           if(msg.type === 'refreshDashboard'){
             window.location.reload();
             return;
@@ -1375,7 +1742,20 @@
               state.levelScores.B = msg.levelScores.B || state.levelScores.B;
             }
             if(typeof msg.winnerName === 'string') setWinnerBanner(msg.winnerName);
+            else if(Number(state.currentLevel) === 6) announceLevel6Winner();
             updateHeaders();
+            touch();
+            return;
+          }
+
+          if(msg.type === 'timerFinished'){
+            if(Number(state.currentLevel) === 6){
+              if(typeof msg.winnerName === 'string' && msg.winnerName.trim()){
+                setWinnerBanner(msg.winnerName);
+              }else{
+                announceLevel6Winner();
+              }
+            }
             touch();
             return;
           }
@@ -1386,9 +1766,11 @@
             if(!team) return;
             const matched = Math.max(0, Number(p.matched) || 0);
             const pairs = Math.max(0, Number(p.pairs) || 0);
+            const progressLevel = Number(p.level) || Number(state.currentLevel) || 0;
+            const perItem = progressLevel === 5 ? 30 : (progressLevel === 6 ? 20 : 10);
             state.progress[team].matched = matched;
             state.progress[team].pairs = pairs;
-            state.progress[team].score = matched * 10;
+            state.progress[team].score = matched * perItem;
             updateHeaders();
             touch();
             return;

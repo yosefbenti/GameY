@@ -131,7 +131,7 @@
           <label>Board height
             <div class="inline-row" aria-label="Dashboard board height controls">
               <button id="boardHeightDecreaseBtn" type="button" class="secondary">−</button>
-              <span id="boardHeightValue">620px</span>
+              <span id="boardHeightValue">760px</span>
               <button id="boardHeightIncreaseBtn" type="button" class="secondary">+</button>
             </div>
           </label>
@@ -160,6 +160,7 @@
           <div class="inline-row" aria-label="Dashboard promotion display controls">
             <button id="showPromoOnDashboardBtn" type="button">Show Promotion Video on Dashboard</button>
             <button id="restoreDefaultBoardBtn" type="button" class="secondary">Restore Default Board</button>
+            <button id="toggleDashboardLeftPanelBtn" type="button" class="secondary">Hide Left Dashboard Panel</button>
             <button id="refreshDashboardBtn" type="button" class="secondary">Refresh Dashboard</button>
           </div>
           <video id="promoVideoAdminPreview" class="admin-promo-video" controls playsinline preload="metadata"></video>
@@ -189,41 +190,43 @@
       </div>
     </section>
 
-    <section id="gameControlsPanel" class="admin-box">
-      <div class="box-title">Game Controls</div>
-      <div class="button-grid">
-        <button id="startBtn">Start</button>
-        <button id="pauseBtn" class="secondary">Pause</button>
-        <button id="forceEndBtn" class="secondary">Force End</button>
-        <button id="nextBtn" class="secondary">Next Level</button>
-        <button id="resetBtn">Reset</button>
-        <button id="resetAllBtn" class="secondary">Reset All</button>
-      </div>
-    </section>
+    <div id="rightPanelsStack" class="admin-right-stack">
+      <section id="gameControlsPanel" class="admin-box">
+        <div class="box-title">Game Controls</div>
+        <div class="button-grid">
+          <button id="startBtn">Start</button>
+          <button id="pauseBtn" class="secondary">Pause</button>
+          <button id="forceEndBtn" class="secondary">Force End</button>
+          <button id="nextBtn" class="secondary">Next Level</button>
+          <button id="resetBtn">Reset</button>
+          <button id="resetAllBtn" class="secondary">Reset All</button>
+        </div>
+      </section>
 
-    <section id="teamAPanel" class="admin-box">
-      <div class="box-title">Team <span id="teamAName">A</span></div>
-      <label>Set Team A Name:
-        <input id="teamANameInput" type="text" placeholder="Enter Team A Name" />
-        <button id="setTeamANameBtn">Set</button>
-      </label>
-      <div>Matched pairs: <span class="matched">0 / 0</span></div>
-      <div>Completion: <span class="completion">0%</span></div>
-      <div class="score">Score: 0</div>
-      <div>Status: <span class="team-status">Waiting</span></div>
-    </section>
+      <section id="teamAPanel" class="admin-box">
+        <div class="box-title">Team <span id="teamAName">A</span></div>
+        <label>Set Team A Name:
+          <input id="teamANameInput" type="text" placeholder="Enter Team A Name" />
+          <button id="setTeamANameBtn">Set</button>
+        </label>
+        <div>Matched pairs: <span class="matched">0 / 0</span></div>
+        <div>Completion: <span class="completion">0%</span></div>
+        <div class="score">Score: 0</div>
+        <div>Status: <span class="team-status">Waiting</span></div>
+      </section>
 
-    <section id="teamBPanel" class="admin-box">
-      <div class="box-title">Team <span id="teamBName">B</span></div>
-      <label>Set Team B Name:
-        <input id="teamBNameInput" type="text" placeholder="Enter Team B Name" />
-        <button id="setTeamBNameBtn">Set</button>
-      </label>
-      <div>Matched pairs: <span class="matched">0 / 0</span></div>
-      <div>Completion: <span class="completion">0%</span></div>
-      <div class="score">Score: 0</div>
-      <div>Status: <span class="team-status">Waiting</span></div>
-    </section>
+      <section id="teamBPanel" class="admin-box">
+        <div class="box-title">Team <span id="teamBName">B</span></div>
+        <label>Set Team B Name:
+          <input id="teamBNameInput" type="text" placeholder="Enter Team B Name" />
+          <button id="setTeamBNameBtn">Set</button>
+        </label>
+        <div>Matched pairs: <span class="matched">0 / 0</span></div>
+        <div>Completion: <span class="completion">0%</span></div>
+        <div class="score">Score: 0</div>
+        <div>Status: <span class="team-status">Waiting</span></div>
+      </section>
+    </div>
 
     <section id="historyPanel" class="admin-box">
       <div class="box-title">Game History</div>
@@ -258,6 +261,10 @@
       window.GAME_CONFIG = { adminWs: wsUrl, ws: wsUrl };
     })();
   </script>
-  <script src="script.js?v=20260215c"></script>
+  <script src="data/countries.js?v=20260225a"></script>
+  <script src="data/foods.js?v=20260225a"></script>
+  <script src="data/drinks.js?v=20260225a"></script>
+  <script src="data/animals.js?v=20260225a"></script>
+  <script src="script.js?v=20260225a"></script>
 </body>
 </html>

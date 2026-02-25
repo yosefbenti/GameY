@@ -681,7 +681,7 @@ function resetWordsearchLevel() {
   const PROMO_WIDTH_MAX = 680;
   const PROMO_HEIGHT_MIN = 320;
   const PROMO_HEIGHT_MAX = 760;
-  const BOARD_HEIGHT_MIN = 470;
+  const BOARD_HEIGHT_MIN = 620;
   const BOARD_HEIGHT_MAX = 980;
   const zoomStorageKey = `gameBoardZoom:${cfg.team || 'global'}`;
   let boardZoom = 1;
@@ -883,7 +883,7 @@ function resetWordsearchLevel() {
 
   function clampBoardHeight(v){
     const n = Number(v);
-    if(!Number.isFinite(n)) return 620;
+    if(!Number.isFinite(n)) return 760;
     return Math.max(BOARD_HEIGHT_MIN, Math.min(BOARD_HEIGHT_MAX, Math.round(n)));
   }
 
@@ -895,7 +895,7 @@ function resetWordsearchLevel() {
 
   applyDashboardPromoWidth(380);
   applyDashboardPromoHeight(430);
-  applyDashboardBoardHeight(620);
+  applyDashboardBoardHeight(760);
 
   function clampBoardZoom(v){
     const n = Number(v);
@@ -1366,123 +1366,13 @@ function resetWordsearchLevel() {
     'Animal name'
   ];
 
-  // Updated list to include 1000 foods and 1000 drinks for the game
-  const data = {
-    countries: {
-        A: ["Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan"],
-        B: ["Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi"],
-        C: ["Cabo Verde", "Cambodia", "Cameroon", "Canada", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czech Republic"],
-        D: ["Denmark", "Djibouti", "Dominica", "Dominican Republic"],
-        E: ["Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia"],
-        F: ["Fiji", "Finland", "France"],
-        G: ["Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana"],
-        H: ["Haiti", "Honduras", "Hungary"],
-        I: ["Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy"],
-        J: ["Jamaica", "Japan", "Jordan"],
-        K: ["Kazakhstan", "Kenya", "Kiribati", "Korea (North)", "Korea (South)", "Kosovo", "Kuwait", "Kyrgyzstan"],
-        L: ["Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg"],
-        M: ["Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar"],
-        N: ["Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Macedonia", "Norway"],
-        O: ["Oman"],
-        P: ["Pakistan", "Palau", "Palestine", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal"],
-        Q: ["Qatar"],
-        R: ["Romania", "Russia", "Rwanda"],
-        S: ["Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria"],
-        T: ["Tajikistan", "Tanzania", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu"],
-        U: ["Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan"],
-        V: ["Vanuatu", "Vatican City", "Venezuela", "Vietnam"],
-        W: ["Yemen"],
-        Z: ["Zambia", "Zimbabwe"]
-    },
-    foods: {
-        A: ["Apple", "Avocado", "Artichoke", "Asparagus", "Almond", "Apricot", "Acorn Squash", "Amaranth", "Anchovy", "Arugula"],
-        B: ["Banana", "Blueberry", "Broccoli", "Brussels Sprouts", "Bread", "Bagel", "Bacon", "Basil", "Blackberry", "Beet"],
-        C: ["Carrot", "Cucumber", "Cabbage", "Cauliflower", "Celery", "Chili", "Cheese", "Chicken", "Chickpea", "Cilantro"],
-        D: ["Dumpling", "Date", "Duck", "Dill", "Donut", "Dragonfruit", "Durian", "Dandelion Greens", "Danish", "Dosa"],
-        E: ["Egg", "Eggplant", "Edamame", "Endive", "Escarole", "Eel", "Elderberry", "Emmental", "English Muffin", "Espresso"],
-        F: ["Fish", "Fig", "Fennel", "Feta", "Falafel", "Focaccia", "French Fries", "Fudge", "Flan", "Frosting"],
-        G: ["Grapes", "Garlic", "Ginger", "Gooseberry", "Gouda", "Granola", "Gnocchi", "Graham Cracker", "Guacamole", "Gumbo"],
-        H: ["Hamburger", "Honey", "Hazelnut", "Hummus", "Haddock", "Halibut", "Hoisin Sauce", "Hot Dog", "Havarti", "Hash Browns"],
-        I: ["Ice Cream", "Indian Curry", "Italian Sausage", "Iceberg Lettuce", "Idli", "Irish Soda Bread", "Iced Tea", "Instant Noodles", "Icing", "Italian Dressing"],
-        J: ["Jam", "Jelly", "Jalapeno", "Jackfruit", "Jicama", "Jerky", "Juice", "Jellybean", "Jasmine Rice", "Jambalaya"],
-        K: ["Kebab", "Kiwi", "Kale", "Ketchup", "Kimchi", "Kohlrabi", "Kombucha", "Kasha", "Kippers", "Kheer"],
-        L: ["Lettuce", "Lemon", "Lime", "Lentil", "Lobster", "Lychee", "Lasagna", "Lollipop", "Linguine", "Liver"],
-        M: ["Mango", "Mushroom", "Milk", "Muffin", "Macaroni", "Meatball", "Miso", "Mozzarella", "Meringue", "Melon"],
-        N: ["Noodles", "Nutmeg", "Nectarine", "Naan", "Nachos", "Natto", "Nougat", "Nuggets", "Nicoise Salad", "Nori"],
-        O: ["Orange", "Olive", "Onion", "Oregano", "Oatmeal", "Octopus", "Okra", "Omelette", "Orzo", "Oysters"],
-        P: ["Pizza", "Pasta", "Peach", "Pear", "Pineapple", "Papaya", "Peanut", "Pepper", "Potato", "Pumpkin"],
-        Q: ["Quiche", "Quinoa", "Quail", "Quesadilla", "Quince", "Quark", "Quahog", "Quenelle", "Quavers", "Quetsch"],
-        R: ["Rice", "Raspberry", "Radish", "Raisin", "Rhubarb", "Ricotta", "Ravioli", "Ratatouille", "Ramen", "Roulade"],
-        S: ["Salad", "Spinach", "Strawberry", "Sushi", "Sausage", "Soup", "Scone", "Salsa", "Saffron", "Schnitzel"],
-        T: ["Taco", "Tomato", "Turkey", "Tofu", "Tangerine", "Tuna", "Turnip", "Tortilla", "Tiramisu", "Tapioca"],
-        U: ["Udon", "Ugli Fruit", "Upside-Down Cake", "Urfa Pepper", "Ube", "Umami Paste", "Urad Dal", "Ukrainian Borscht", "Unagi", "Umeboshi"],
-        V: ["Vanilla", "Vegetable", "Venison", "Vermicelli", "Vinegar", "Vichyssoise", "Victoria Sponge", "Vada", "Velveeta", "Vermouth"],
-        W: ["Waffle", "Walnut", "Watermelon", "Wasabi", "Wheat", "Whipped Cream", "White Chocolate", "Wiener", "Wonton", "Worcestershire Sauce"],
-        X: ["Xacuti", "Xigua", "Xylitol", "Xnipec", "Xouba", "Xingren", "Xocolatl", "Xiaolongbao", "Xerem", "Xerophyte"],
-        Y: ["Yogurt", "Yam", "Yeast", "Yellowtail", "Yuzu", "Yabby", "Yakhni", "Yassa", "Yokan", "Yorkshire Pudding"],
-        Z: ["Zucchini", "Ziti", "Zest", "Zander", "Zabaglione", "Zopf", "Zhoug", "Ziti Pasta", "Zinfandel", "Zebra Cake"]
-    },
-    drinks: {
-        A: ["Apple Juice", "Apricot Nectar", "Aloe Vera Drink", "Amaretto", "Arnold Palmer", "Absinthe", "Aperol", "Apple Cider", "Aguardiente", "Akvavit"],
-        B: ["Beer", "Black Tea", "Bubble Tea", "Buttermilk", "Bloody Mary", "Bourbon", "Brandy", "Baileys", "Bacardi", "Boba"],
-        C: ["Coffee", "Coca-Cola", "Coconut Water", "Cranberry Juice", "Champagne", "Chai", "Cider", "Campari", "Cognac", "Cucumber Water"],
-        D: ["Daiquiri", "Diet Coke", "Dr. Pepper", "Dry Martini", "Dubonnet", "Dandelion Tea", "Dark Beer", "Detox Water", "Dragonfruit Juice", "Dewberry Cordial"],
-        E: ["Espresso", "Elderflower Cordial", "Eggnog", "Energy Drink", "Earl Grey Tea", "Ethanol", "Eiskaffee", "Elderberry Wine", "Evian", "Ethiopian Coffee"],
-        F: ["Fanta", "Fruit Punch", "Fennel Tea", "Flat White", "Frappuccino", "Fernet", "Fizzy Water", "Frozen Margarita", "Frosty", "Frappe"],
-        G: ["Ginger Ale", "Green Tea", "Grape Juice", "Gin", "Gimlet", "Grenadine", "Ginger Beer", "Grog", "Guava Juice", "Ginseng Tea"],
-        H: ["Hot Chocolate", "Herbal Tea", "Horchata", "Hibiscus Tea", "Honey Mead", "Hefeweizen", "Hot Toddy", "Hurricane", "Hibiscus Water", "Hoppy Beer"],
-        I: ["Iced Tea", "Irish Coffee", "Ice Water", "Indian Chai", "Iced Latte", "Italian Soda", "Ice Wine", "Iced Mocha", "Iced Cappuccino", "Iceberg"],
-        J: ["Juice", "Jasmine Tea", "Julep", "Jagermeister", "Jamaica Water", "Jack Daniels", "Jalapeno Margarita", "Jasmine Milk Tea", "Jungle Juice", "Jolt Cola"],
-        K: ["Kombucha", "Kahlua", "Kefir", "Kiwi Juice", "Kool-Aid", "Kava", "Kopi Luwak", "Kumquat Juice", "Kirin Beer", "Krupnik"],
-        L: ["Lemonade", "Lime Juice", "Lassi", "Latte", "Long Island Iced Tea", "Lager", "Lychee Juice", "Lillet", "Lemon Water", "Limoncello"],
-        M: ["Milk", "Mojito", "Matcha", "Margarita", "Mulled Wine", "Mimosa", "Milkshake", "Malibu", "Martini", "Mead"],
-        N: ["Nectar", "Negroni", "Nut Milk", "Nettle Tea", "Nimbu Pani", "Nesquik", "Naked Juice", "Naranjilla Juice", "Nocino", "Nettle Beer"],
-        O: ["Orange Juice", "Oolong Tea", "Ouzo", "Old Fashioned", "Oat Milk", "Orangina", "Ovaltine", "Oyster Shooter", "Ouzo Lemonade", "Oregon Chai"],
-        P: ["Punch", "Pina Colada", "Peach Tea", "Peppermint Tea", "Port", "Prosecco", "Perrier", "Pomegranate Juice", "Pale Ale", "Pisco Sour"],
-        Q: ["Quinine Water", "Quince Juice", "Qishr", "Quark Smoothie", "Quetsch", "Quince Wine", "Quark", "Quahog", "Quenelle", "Quavers"],
-        R: ["Rum", "Raspberry Tea", "Root Beer", "Red Wine", "Rooibos Tea", "Raspberry Lemonade", "Raki", "Raspberry Smoothie", "Rhubarb Cordial", "Raspberry Vodka"],
-        S: ["Soda", "Sangria", "Smoothie", "Scotch", "Seltzer", "Shirley Temple", "Sake", "Sambuca", "Sarsaparilla", "Sauvignon Blanc"],
-        T: ["Tea", "Tonic Water", "Tomato Juice", "Tequila", "Turmeric Latte", "Thai Iced Tea", "Tamarind Juice", "Tisane", "Tangerine Juice", "Triple Sec"],
-        U: ["Umeshu", "Ube Milkshake", "Uva Tea", "Ukrainian Vodka", "Uji Matcha", "Umeshu Soda", "Ube Latte", "Uva Juice", "Umeshu Cocktail", "Ube Smoothie"],
-        V: ["Vodka", "Vanilla Milkshake", "Vermouth", "Vitamin Water", "V8 Juice", "Valpolicella", "Vanilla Latte", "Vinho Verde", "Violet Liqueur", "Vegan Smoothie"],
-        W: ["Water", "Whiskey", "White Wine", "Wheatgrass Juice", "Warm Milk", "Winter Ale", "Wassail", "White Russian", "Whey Protein Shake", "Wild Berry Tea"],
-        X: ["Xingren Almond Drink", "Xocolatl", "Xiaoshu Tea", "Xanadu Wine", "Xylitol Water", "Xingren Smoothie", "Xouba Juice", "Xerem Drink", "Xerophyte Tea", "Xigua Juice"],
-        Y: ["Yakult", "Yerba Mate", "Yellow Tea", "Yogurt Drink", "Yunnan Coffee", "Yuzu Soda", "Yam Wine", "Yogurt Smoothie", "Yunnan Tea", "Yuzu Cocktail"],
-        Z: ["Zinfandel", "Zobo Drink", "Zucchini Juice", "Zebra Milk", "Zinger Tea", "Zubrowka", "Zobo Punch", "Zinfandel Rose", "Zebra Smoothie", "Zesty Lemonade"]
-    },
-    animals: {
-        A: ["Antelope", "Aardvark", "Albatross", "Alligator", "Anaconda", "Armadillo", "Axolotl", "Aye-Aye", "African Elephant", "Arctic Fox"],
-        B: ["Bear", "Bison", "Baboon", "Bat", "Beaver", "Blue Whale", "Butterfly", "Buzzard", "Bald Eagle", "Barracuda"],
-        C: ["Cat", "Cheetah", "Cobra", "Camel", "Capybara", "Chameleon", "Coyote", "Crab", "Crow", "Caterpillar"],
-        D: ["Dog", "Dolphin", "Duck", "Deer", "Dragonfly", "Dodo", "Donkey", "Dugong", "Dhole", "Dachshund"],
-        E: ["Elephant", "Eagle", "Eel", "Emu", "Egret", "Ermine", "Earthworm", "Eastern Bluebird", "Echidna", "Elk"],
-        F: ["Fox", "Frog", "Falcon", "Flamingo", "Firefly", "Ferret", "Fiddler Crab", "Flying Squirrel", "Fossa", "Frigatebird"],
-        G: ["Giraffe", "Goat", "Gorilla", "Gecko", "Goldfish", "Grasshopper", "Gannet", "Gazelle", "Gibbon", "Gila Monster"],
-        H: ["Horse", "Hawk", "Hedgehog", "Heron", "Hippopotamus", "Honeybee", "Hornbill", "Hummingbird", "Hyena", "Harpy Eagle"],
-        I: ["Iguana", "Indian Star Tortoise", "Indian Cobra", "Indian Elephant", "Indian Pangolin", "Indian Starling", "Indian Mongoose", "Indian Peafowl", "Indian Python", "Indian Starfish"],
-        J: ["Jaguar", "Jellyfish", "Jackal", "Jackrabbit", "Japanese Macaque", "Javan Rhino", "Jungle Cat", "Junco", "Jerboa", "Jacana"],
-        K: ["Kangaroo", "Koala", "Kookaburra", "Kudu", "Kiwi", "Kingfisher", "Kite", "Killer Whale", "Komodo Dragon", "Krill"],
-        L: ["Lion", "Lemur", "Leopard", "Lynx", "Llama", "Lobster", "Ladybug", "Lamprey", "Leafcutter Ant", "Lungfish"],
-        M: ["Monkey", "Moose", "Mongoose", "Manta Ray", "Manatee", "Mole", "Moth", "Macaw", "Magpie", "Mandrill"],
-        N: ["Narwhal", "Newt", "Nightingale", "Numbat", "Nautilus", "Nile Crocodile", "Northern Cardinal", "Northern Pike", "Nudibranch", "Nutria"],
-        O: ["Owl", "Octopus", "Otter", "Ocelot", "Orangutan", "Ostrich", "Ox", "Osprey", "Orca", "Okapi"],
-        P: ["Penguin", "Panda", "Parrot", "Peacock", "Pelican", "Porcupine", "Puma", "Platypus", "Puffin", "Python"],
-        Q: ["Quail", "Quokka", "Quetzal", "Queen Bee", "Quagga", "Quoll", "Quahog", "Quetzalcoatlus", "Quokka Wallaby", "Queen Triggerfish"],
-        R: ["Rabbit", "Raccoon", "Rat", "Raven", "Red Panda", "Reindeer", "Rhinoceros", "Robin", "Rockhopper Penguin", "Rottweiler"],
-        S: ["Snake", "Shark", "Sheep", "Sloth", "Snail", "Spider", "Swan", "Squirrel", "Starfish", "Seahorse"],
-        T: ["Tiger", "Turtle", "Toucan", "Tarantula", "Tuna", "Turkey", "Termite", "Tortoise", "Tasmanian Devil", "Tapir"],
-        U: ["Urial", "Umbrellabird", "Uakari", "Ugandan Kob", "Unicornfish", "Upland Sandpiper", "Urchin", "Ulysses Butterfly", "Umbrella Octopus", "Ural Owl"],
-        V: ["Vulture", "Viper", "Vicuna", "Vervet Monkey", "Vinegaroon", "Velvet Worm", "Vampire Bat", "Vaquita", "Violet-backed Starling", "Vine Snake"],
-        W: ["Wolf", "Whale", "Walrus", "Wombat", "Woodpecker", "Warthog", "Weasel", "Wildebeest", "Wolverine", "Wrasse"],
-        X: ["Xerus", "Xantus's Hummingbird", "X-ray Tetra", "Xenopus", "Xenarthra", "Xenops", "Xenopus Frog", "Xenoturbella", "Xenopus Toad", "Xerus Squirrel"],
-        Y: ["Yak", "Yellowjacket", "Yellowhammer", "Yellowfin Tuna", "Yellowtail Snapper", "Yellow Baboon", "Yellow Mongoose", "Yellow Warbler", "Yellow Tang", "Yellow Anaconda"],
-        Z: ["Zebra", "Zebu", "Zorilla", "Zander", "Zebra Finch", "Zebra Shark", "Zebra Spider", "Zebra Swallowtail", "Zebra Mussel", "Zebra Dove"]
-    }
-};
+  const data = (window.GAME_STATIC_DATA && typeof window.GAME_STATIC_DATA === 'object')
+    ? window.GAME_STATIC_DATA
+    : { countries: {}, foods: {}, drinks: {}, animals: {} };
 
 // Function to compare player input with the list and assign points
 function compareInput(category, letter, input) {
-    const validInputs = data[category][letter];
+    const validInputs = data?.[category]?.[letter];
     if (validInputs && validInputs.some(validInput => validInput.toLowerCase() === input.toLowerCase())) {
         return 1; // Assign 1 point for correct input
     }
@@ -1540,6 +1430,7 @@ function evaluatePlayerInputs(playerInputs) {
   let pendingPuzzleLayout = null;
   let pendingMemorySnapshot = null;
   let pendingWordSnapshot = null;
+  let pendingWordSearchSnapshot = null;
   let pendingPipeSnapshot = null;
   let pendingConnectSnapshot = null;
   let wordStateBroadcastTimer = null;
@@ -1862,6 +1753,91 @@ function evaluatePlayerInputs(playerInputs) {
     }catch(e){ console.error('wordState send failed', e); }
   }
 
+  function sendWordSearchState(reason = 'update', force = false){
+    if(levelMode !== 'wordsearch' || isSpectator || !cfg.team || !wordSearchState) return;
+    const payload = {
+      team: cfg.team,
+      grid: Array.isArray(wordSearchState.grid)
+        ? wordSearchState.grid.map((row)=> Array.isArray(row) ? row.map((ch)=> String(ch || '')) : [])
+        : [],
+      words: Array.isArray(wordSearchState.words) ? wordSearchState.words.map((w)=> String(w || '')) : [],
+      found: wordSearchState.found ? Array.from(wordSearchState.found).map((w)=> String(w || '')) : [],
+      foundCellsByWord: (() => {
+        const src = (wordSearchState && wordSearchState.foundCellsByWord && typeof wordSearchState.foundCellsByWord === 'object')
+          ? wordSearchState.foundCellsByWord
+          : {};
+        const out = {};
+        Object.keys(src).forEach((wordKey)=>{
+          const arr = Array.isArray(src[wordKey]) ? src[wordKey] : [];
+          out[String(wordKey || '')] = arr
+            .filter((pair)=> Array.isArray(pair) && pair.length >= 2)
+            .map(([r,c])=> [Number(r) || 0, Number(c) || 0]);
+        });
+        return out;
+      })(),
+      colorsByWord: (wordSearchState && wordSearchState.colorsByWord && typeof wordSearchState.colorsByWord === 'object')
+        ? { ...wordSearchState.colorsByWord }
+        : {},
+      blockedUntil: Math.max(0, Number(wordSearchState.blockedUntil) || 0),
+      blockedBy: String(wordSearchState.blockedBy || ''),
+      finished: Boolean(finished),
+      reason,
+      timestamp: Date.now(),
+    };
+    const sig = JSON.stringify(payload);
+    if(!force && sig === lastSentPuzzleStateSig) return;
+    lastSentPuzzleStateSig = sig;
+    try{ saveGameSession(); }catch(e){}
+    try{
+      if(pubWs && pubWs.readyState === WebSocket.OPEN){
+        pubWs.send(JSON.stringify({ type: 'wordsearchState', payload }));
+      }
+    }catch(e){ console.error('wordsearchState send failed', e); }
+  }
+
+  function applyWordSearchSnapshot(snapshot){
+    if(!snapshot || !Array.isArray(snapshot.grid) || !snapshot.grid.length) return;
+    const grid = snapshot.grid.map((row)=> Array.isArray(row) ? row.map((ch)=> String(ch || '').toUpperCase()) : []);
+    const words = Array.isArray(snapshot.words) ? snapshot.words.map((w)=> String(w || '').toUpperCase()) : [];
+    const size = grid.length;
+    if(levelMode !== 'wordsearch' || !wordSearchState){
+      setupWordSearchLevel({ mode: 'wordsearch', level: 5, size, words });
+    }
+    if(!wordSearchState) return;
+    wordSearchState.grid = grid;
+    wordSearchState.words = words;
+    wordSearchState.wordSet = new Set(words);
+    wordSearchState.found = new Set(Array.isArray(snapshot.found) ? snapshot.found.map((w)=> String(w || '').toUpperCase()) : []);
+    const foundMap = {};
+    const rawFoundMap = snapshot.foundCellsByWord && typeof snapshot.foundCellsByWord === 'object' ? snapshot.foundCellsByWord : {};
+    Object.keys(rawFoundMap).forEach((wordKey)=>{
+      const k = String(wordKey || '').toUpperCase();
+      const arr = Array.isArray(rawFoundMap[wordKey]) ? rawFoundMap[wordKey] : [];
+      foundMap[k] = arr
+        .filter((pair)=> Array.isArray(pair) && pair.length >= 2)
+        .map(([r,c])=> [Number(r) || 0, Number(c) || 0]);
+    });
+    wordSearchState.foundCellsByWord = foundMap;
+    wordSearchState.colorsByWord = (() => {
+      const src = (snapshot.colorsByWord && typeof snapshot.colorsByWord === 'object')
+        ? snapshot.colorsByWord
+        : (wordSearchState.colorsByWord || {});
+      const out = {};
+      Object.keys(src).forEach((wordKey)=>{
+        out[String(wordKey || '').toUpperCase()] = String(src[wordKey] || '');
+      });
+      return out;
+    })();
+    wordSearchState.blockedUntil = Math.max(0, Number(snapshot.blockedUntil) || 0);
+    wordSearchState.blockedBy = String(snapshot.blockedBy || '');
+    wordSearchState.selecting = false;
+    wordSearchState.startCell = null;
+    wordSearchState.selectedTiles = [];
+    wordSearchState.selected = null;
+    renderWordSearchPuzzle(wordSearchState);
+    setWordSearchHud(wordSearchState.found.size, wordSearchState.words.length);
+  }
+
   function scheduleWordStateBroadcast(reason = 'typing'){
     if(isSpectator) return;
     if(wordStateBroadcastTimer) clearTimeout(wordStateBroadcastTimer);
@@ -1947,6 +1923,7 @@ function evaluatePlayerInputs(playerInputs) {
       // update any local wordsearch score display if present
       if(wordScoreEl) wordScoreEl.textContent = `Score: ${points}`;
       if(wordCompletionEl) wordCompletionEl.textContent = `Completion: ${pct}%`;
+      if(!isSpectator) sendWordSearchState('scoreUpdate');
     } else {
       correct = checkCompletionForContainer(board);
       // For level 4 (pipe), each correct tile gives exactly 10 points
@@ -1963,7 +1940,8 @@ function evaluatePlayerInputs(playerInputs) {
     }
     // broadcast progress/state so admin + dashboard stay in sync
     if(broadcast && !isSpectator){
-      try{ const msg = { type: 'progress', payload: { team: cfg.team || 'unknown', matched: correct, pairs: pairsLocal, remaining } };
+      const inferredLevel = Number(currentLevel) || (levelMode === 'memory' ? 2 : (levelMode === 'word' ? 3 : (levelMode === 'pipe' ? 4 : (levelMode === 'wordsearch' ? 5 : (levelMode === 'connect' ? 6 : 1)))));
+      try{ const msg = { type: 'progress', payload: { team: cfg.team || 'unknown', matched: correct, pairs: pairsLocal, remaining, level: inferredLevel } };
         console.debug('Sending progress:', msg);
         if(pubWs && pubWs.readyState === WebSocket.OPEN) pubWs.send(JSON.stringify(msg));
       }catch(e){ console.error('progress send failed', e); }
@@ -2125,7 +2103,7 @@ function evaluatePlayerInputs(playerInputs) {
     // notify coordinator about round completion if requested
     try{ if(notifyCoordinator && pubWs && pubWs.readyState === WebSocket.OPEN) pubWs.send(JSON.stringify({ type: 'roundComplete', payload: entry })); }catch(e){ console.error(e); }
     // defensive: also send a progress message immediately so admin sees matched/score update
-    try{ if(pubWs && pubWs.readyState === WebSocket.OPEN) pubWs.send(JSON.stringify({ type: 'progress', payload: { team: entry.team, matched, pairs, remaining } })); }catch(e){}
+    try{ if(pubWs && pubWs.readyState === WebSocket.OPEN) pubWs.send(JSON.stringify({ type: 'progress', payload: { team: entry.team, matched, pairs, remaining, level: inferredLevel } })); }catch(e){}
 
     scoreRecorded = true;
     try{ clearSavedGameSession(); }catch(e){}
@@ -2193,7 +2171,6 @@ function evaluatePlayerInputs(playerInputs) {
       stopHeartbeatSound();
       setSharedStatusText('Time is up');
       if(levelMode === 'word'){
-        revealWordHintAnswers();
         disableWordInputs();
       }
       if(levelMode === 'wordsearch'){
@@ -2275,6 +2252,7 @@ function evaluatePlayerInputs(playerInputs) {
     connectState = null;
     pendingMemorySnapshot = null;
     pendingWordSnapshot = null;
+    pendingWordSearchSnapshot = null;
     pendingConnectSnapshot = null;
     resetWordUI();
     resetConnectUI();
@@ -2621,7 +2599,6 @@ function evaluatePlayerInputs(playerInputs) {
         clearInterval(interval);
         disableMoves();
         if(levelMode === 'word'){
-          revealWordHintAnswers();
           disableWordInputs();
         }
         setSharedStatusText('Time is up');
@@ -2695,6 +2672,7 @@ function evaluatePlayerInputs(playerInputs) {
             try{
               if(levelMode === 'memory') sendMemoryState('sync', true);
               else if(levelMode === 'word') sendWordState('sync', true);
+              else if(levelMode === 'wordsearch') sendWordSearchState('sync', true);
               else if(levelMode === 'connect') sendConnectState('sync', true);
               else sendPuzzleState('sync', true);
             }catch(e){}
@@ -2764,9 +2742,6 @@ function evaluatePlayerInputs(playerInputs) {
                 finished = true; roundLocked = true; clearInterval(interval); disableMoves(); setSharedStatusText('Time is up');
                 stopHeartbeatSound();
                 if(levelMode === 'word'){
-                  if(Number(remaining) <= 0){
-                    revealWordHintAnswers();
-                  }
                   disableWordInputs();
                 }
                 if(!scoreRecorded) recordScoreAndAdvance('timeout', true, false);
@@ -2780,10 +2755,6 @@ function evaluatePlayerInputs(playerInputs) {
             stopHeartbeatSound();
             try{
               if(levelMode === 'word'){
-                const reasonText = String(msg.reason || '').toLowerCase();
-                if(/timeout|time\s*up|time\s*is\s*up/.test(reasonText)){
-                  revealWordHintAnswers();
-                }
                 disableWordInputs();
               }
             }catch(e){}
@@ -2861,6 +2832,21 @@ function evaluatePlayerInputs(playerInputs) {
                 pendingWordSnapshot = null;
               }
             }catch(e){ console.error('apply wordState failed', e); }
+          } else if(msg.type === 'wordsearchState'){
+            try{
+              const payload = msg.payload || {};
+              const teamKey = normalizeTeamKey(payload.team || payload.teamDisplay);
+              if(cfg.team && teamKey && cfg.team !== teamKey) return;
+              // Ignore live echo snapshots on active player board to avoid selection flicker.
+              if(!isSpectator && cfg.team && teamKey === cfg.team && levelMode === 'wordsearch' && wordSearchState){
+                return;
+              }
+              pendingWordSearchSnapshot = payload;
+              if(levelMode === 'wordsearch' && wordSearchSection){
+                applyWordSearchSnapshot(payload);
+                pendingWordSearchSnapshot = null;
+              }
+            }catch(e){ console.error('apply wordsearchState failed', e); }
           } else if(msg.type === 'pipeState'){
             try{
               const payload = msg.payload || {};
@@ -3543,7 +3529,7 @@ function evaluatePlayerInputs(playerInputs) {
     if(state.foundCellsByWord){
       Object.keys(state.foundCellsByWord).forEach(w=>{
         const cellsArr = state.foundCellsByWord[w] || [];
-        const color = (state.colorsByWord && state.colorsByWord[w]) || null;
+        const color = (state.colorsByWord && (state.colorsByWord[w] || state.colorsByWord[String(w || '').toUpperCase()] || state.colorsByWord[String(w || '').toLowerCase()])) || null;
         cellsArr.forEach(([rr,cc])=> cellFoundMap.set(`${rr},${cc}`, { word: w, color }));
       });
     }
@@ -3565,8 +3551,13 @@ function evaluatePlayerInputs(playerInputs) {
         const foundInfo = cellFoundMap.get(`${r},${c}`);
         if(foundInfo){
           td.classList.add('found');
-            if(foundInfo.color){ td.style.backgroundColor = foundInfo.color; td.style.borderColor = foundInfo.color; td.style.color = '#08131a'; }
-            td.style.fontSize = '14px';
+          if(foundInfo.color){
+            td.style.setProperty('--ws-found-bg', foundInfo.color);
+            td.style.setProperty('--ws-found-border', foundInfo.color);
+            td.style.setProperty('--ws-found-fg', '#08131a');
+            td.style.setProperty('--ws-found-shadow', '0 6px 14px rgba(15,23,42,0.18)');
+          }
+          td.style.fontSize = '14px';
           td.dataset.foundWord = foundInfo.word;
         }
         // allow click toggling unless part of found word
@@ -3602,7 +3593,8 @@ function evaluatePlayerInputs(playerInputs) {
       const pill = document.createElement('span');
       pill.className = 'word-pill';
       pill.textContent = w;
-      if(state.colorsByWord && state.colorsByWord[w]) pill.style.backgroundColor = state.colorsByWord[w];
+      const pillColor = state.colorsByWord && (state.colorsByWord[w] || state.colorsByWord[String(w || '').toUpperCase()] || state.colorsByWord[String(w || '').toLowerCase()]);
+      if(pillColor) pill.style.backgroundColor = pillColor;
       pill.style.color = '#fff';
       pill.style.marginRight = '8px';
       li.appendChild(pill);
@@ -3799,7 +3791,9 @@ function evaluatePlayerInputs(playerInputs) {
     // clear backward-compatible property
     wordSearchState.selected = null;
     renderWordSearchPuzzle(wordSearchState);
-    // Update scoring and completion
+    // Update scoring/progress only when a new word is found so dashboard stays in sync.
+    if(foundWord) updateScores();
+    // Update completion
     if (wordSearchState.found.size === wordSearchState.words.length) {
       finished = true;
       const score = wordSearchState.words.length * 30;
@@ -3879,6 +3873,11 @@ function evaluatePlayerInputs(playerInputs) {
 
     renderWordSearchPuzzle(wordSearchState);
     setWordSearchHud(0, words.length);
+    if(pendingWordSearchSnapshot && Array.isArray(pendingWordSearchSnapshot.grid) && pendingWordSearchSnapshot.grid.length){
+      applyWordSearchSnapshot(pendingWordSearchSnapshot);
+      pendingWordSearchSnapshot = null;
+    }
+    if(!isSpectator) sendWordSearchState('setup', true);
   }
 
 
@@ -4649,7 +4648,8 @@ function evaluatePlayerInputs(playerInputs) {
         if (nr < 0 || nc < 0 || nr >= rows || nc >= cols) continue;
         const nIdx = nr * cols + nc;
         const neighbor = tiles[nIdx];
-        if (!neighbor || !neighbor.isPath) continue;
+        // Natural flow: water can travel through any connected, non-empty pipe tile.
+        if (!neighbor || !Array.isArray(neighbor.base) || neighbor.base.length === 0) continue;
         const neighborEdges = rotatePipeEdges(neighbor.base, neighbor.rot);
         if (!neighborEdges.includes(nDir)) continue;
         if (!visited.has(nIdx)) {
@@ -4704,7 +4704,7 @@ function evaluatePlayerInputs(playerInputs) {
       if(tile.isStart) btn.classList.add('start');
       if(tile.isEnd) btn.classList.add('end');
       const edgesNow = rotatePipeEdges(tile.base, tile.rot);
-      const waterOn = Boolean(tile.isPath && reachable.has(idx));
+      const waterOn = Boolean(reachable.has(idx));
       if(waterOn) btn.classList.add('water-on');
       btn.innerHTML = buildPipeSvg(edgesNow, waterOn);
       // Allow S and E tiles to rotate, but keep them visually distinct and not scorable
@@ -6216,6 +6216,7 @@ function evaluatePlayerInputs(playerInputs) {
     const promoVideoRemoveBtn = document.getElementById('promoVideoRemoveBtn');
     const showPromoOnDashboardBtn = document.getElementById('showPromoOnDashboardBtn');
     const restoreDefaultBoardBtn = document.getElementById('restoreDefaultBoardBtn');
+    const toggleDashboardLeftPanelBtn = document.getElementById('toggleDashboardLeftPanelBtn');
     const refreshDashboardBtn = document.getElementById('refreshDashboardBtn');
     const promoImageUrlInput = document.getElementById('promoImageUrlInput');
     const promoImageFileInput = document.getElementById('promoImageFileInput');
@@ -6228,6 +6229,12 @@ function evaluatePlayerInputs(playerInputs) {
     const promoHeightIncreaseBtn = document.getElementById('promoHeightIncreaseBtn');
     const boardHeightDecreaseBtn = document.getElementById('boardHeightDecreaseBtn');
     const boardHeightIncreaseBtn = document.getElementById('boardHeightIncreaseBtn');
+    let dashboardLeftPanelVisible = true;
+    function setDashboardLeftPanelButtonLabel(){
+      if(!toggleDashboardLeftPanelBtn) return;
+      toggleDashboardLeftPanelBtn.textContent = dashboardLeftPanelVisible ? 'Hide Left Dashboard Panel' : 'Show Left Dashboard Panel';
+    }
+    setDashboardLeftPanelButtonLabel();
     if(imagePreview && imageUrl) imagePreview.src = imageUrl;
 
     // admin level controls
@@ -6587,6 +6594,19 @@ function evaluatePlayerInputs(playerInputs) {
         });
       }
 
+      if(toggleDashboardLeftPanelBtn){
+        toggleDashboardLeftPanelBtn.addEventListener('click', ()=>{
+          dashboardLeftPanelVisible = !dashboardLeftPanelVisible;
+          sendAdmin({ type: 'dashboardLeftPanel', visible: dashboardLeftPanelVisible });
+          setDashboardLeftPanelButtonLabel();
+          if(promoVideoStatusEl){
+            promoVideoStatusEl.textContent = dashboardLeftPanelVisible
+              ? 'Dashboard left panel is shown.'
+              : 'Dashboard left panel is hidden. Team boards are expanded.';
+          }
+        });
+      }
+
       if(refreshDashboardBtn){
         refreshDashboardBtn.addEventListener('click', ()=>{
           sendAdmin({ type: 'refreshDashboard' });
@@ -6680,7 +6700,7 @@ function evaluatePlayerInputs(playerInputs) {
     }
     if(boardHeightDecreaseBtn){
       boardHeightDecreaseBtn.addEventListener('click', ()=>{
-        const current = clampBoardHeight(parseInt(String((boardHeightValueEl && boardHeightValueEl.textContent) || '620'), 10));
+        const current = clampBoardHeight(parseInt(String((boardHeightValueEl && boardHeightValueEl.textContent) || '760'), 10));
         const next = clampBoardHeight(current - 30);
         sendAdmin({ type: 'boardHeight', height: next });
         applyDashboardBoardHeight(next);
@@ -6688,7 +6708,7 @@ function evaluatePlayerInputs(playerInputs) {
     }
     if(boardHeightIncreaseBtn){
       boardHeightIncreaseBtn.addEventListener('click', ()=>{
-        const current = clampBoardHeight(parseInt(String((boardHeightValueEl && boardHeightValueEl.textContent) || '620'), 10));
+        const current = clampBoardHeight(parseInt(String((boardHeightValueEl && boardHeightValueEl.textContent) || '760'), 10));
         const next = clampBoardHeight(current + 30);
         sendAdmin({ type: 'boardHeight', height: next });
         applyDashboardBoardHeight(next);
